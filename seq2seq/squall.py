@@ -13,8 +13,6 @@ from tqdm import tqdm
 import pandas as pd
 import json
 
-# fn_kwargs={"tokenizer": tokenizer}
-
 def preprocess_squall_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
     # preprocess the squall datasets for the model input
 
@@ -22,8 +20,6 @@ def preprocess_squall_function(examples, tokenizer, max_source_length, max_targe
     tbls = examples["tbl"]
     nls = examples["question"]
     sqls = examples["query"]
-    answer_texts = examples["answer_text"]
-    db_paths = examples["db_path"]
     json_paths = examples["json_path"]
 
     num_ex = len(tbls)
@@ -61,6 +57,12 @@ def preprocess_squall_function(examples, tokenizer, max_source_length, max_targe
                     if len(cc['data'])>max_rows:
                         max_rows=len(cc['data'])
             # ensure each column has same length
+            for col in columns:
+                if len(columns[col])<max_rows:
+                    columns[col] += ['nan']*(max_rows-len(columns[col]))
+                if isinstance(columns[col][0], list):
+                    columns[col] = [', '.join([str(x) for x in cell]) for cell in columns[col]]
+            df = pd.DataFrame(columns).astype(str)
             for col in columns:
                 if len(columns[col])<max_rows:
                     columns[col] += [None]*(max_rows-len(columns[col]))
@@ -140,8 +142,10 @@ def preprocess_squall_function(examples, tokenizer, max_source_length, max_targe
 if __name__=='__main__':
     from datasets import load_dataset
     from transformers import T5Tokenizer
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 'plus')
-    train_dataset = datasets["train"]
+    # ensure squall <-> default
+    # squall_tableqa can be plus or default
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 'default')
+    train_dataset = datasets["test"]
     tokenizer = T5Tokenizer.from_pretrained("t5-small")
     train_dataset = train_dataset.map(
         preprocess_squall_function,
