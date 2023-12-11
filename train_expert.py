@@ -397,12 +397,13 @@ def main():
 
 
     if data_args.dataset_name=='squall' and data_args.task.lower()=='tableqa':
-        from metric.squall_tableqa import compute_metrics
+        from metric.squall_tableqa import preprare_compute_metrics
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
-        from metric.squall import compute_metrics
+        from metric.squall import preprare_compute_metrics
     else:
         raise NotImplementedError
-    
+    compute_metrics = preprare_compute_metrics(tokenizer, eval_dataset)
+
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
