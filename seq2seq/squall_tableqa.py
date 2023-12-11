@@ -13,7 +13,7 @@ from tqdm import tqdm
 import pandas as pd
 import json
 
-def preprocess_squall_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
+def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
     # preprocess the squall datasets for the model input
 
     tbls = examples["tbl"]
@@ -111,7 +111,7 @@ if __name__=='__main__':
     train_dataset = datasets["validation"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
-        preprocess_squall_function,
+        preprocess_function,
         fn_kwargs={"tokenizer":tokenizer, 
                    "max_source_length": 1024,
                    "max_target_length": 512,
