@@ -1,27 +1,14 @@
-import os
-import torch
-import random
-import re
-from copy import deepcopy
-from typing import List, Dict
-
-from datasets.dataset_dict import DatasetDict
-from torch.utils.data import Dataset
-from torch.utils.data.dataset import T_co
-
-from tqdm import tqdm
-import pandas as pd
 import numpy as np
+import pandas as pd
 import json
-
-from squall_evaluator import Evaluator
+from metric.squall_evaluator import Evaluator
 
 def postprocess_text(preds, labels):
     preds = [pred.strip() for pred in preds]
     labels = [label.strip() for label in labels]
     return preds, labels
 
-def preprare_compute_metrics(tokenizer, eval_dataset):    
+def prepare_compute_metrics(tokenizer, eval_dataset, stage=None):    
     def compute_metrics(eval_preds):
         # nonlocal tokenizer
         preds, labels = eval_preds
@@ -39,8 +26,20 @@ def preprare_compute_metrics(tokenizer, eval_dataset):
             prediction = {'pred': pred, 'nt': eval_dataset['nt'][i]}
             predictions.append(prediction)
         evaluator = Evaluator()
-        num_correct = evaluator.evaluate_tableqa(predictions)
-        return {"acc": np.round(num_correct/len(predictions),4)}
+        correct_flag = evaluator.evaluate_tableqa(predictions)
+
+        if stage:
+            to_save = {'id': eval_dataset['nt'],
+                       'tbl': eval_dataset['tbl'],
+                       'question': eval_dataset['question'],
+                       'answer': eval_dataset['answer_text'],
+                       'acc': correct_flag,
+                       'predictions':preds}
+            df = pd.DataFrame(to_save)
+            df.to_csv(f'./predict/{stage}.csv')
+            print('predictions saved! ', stage)
+            
+        return {"acc": np.round(np.mean(correct_flag),4)}
     return compute_metrics
 
 

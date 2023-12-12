@@ -1,21 +1,12 @@
 import logging
 import os
 import sys
-import ast
-import re
 from dataclasses import dataclass, field
 from typing import List, Optional
-from collections import Counter
 
 import nltk  # Here to have a nice missing dependency error message early on
-import numpy as np
-import pandas as pd
-import json
-import random
 import datasets
 from datasets import load_dataset
-from collections import Counter
-from fuzzywuzzy import process
 
 import transformers
 from filelock import FileLock
@@ -373,10 +364,10 @@ def main():
         elif data_args.predict_split=='dev':
             predict_dataset = eval_dataset
         else:
+            predict_dataset = raw_datasets["test"]
             if data_args.max_predict_samples is not None:
                 max_predict_samples = min(len(predict_dataset), data_args.max_predict_samples)
                 predict_dataset = predict_dataset.select(range(max_predict_samples))
-
             with training_args.main_process_first(desc="test dataset map pre-processing"):
                 predict_dataset = predict_dataset.map(
                     preprocess_function,
@@ -386,7 +377,7 @@ def main():
                     load_from_cache_file=False,
                     desc="Running tokenizer on predict dataset",
                     )
-    
+
     label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
     data_collator = DataCollatorForSeq2Seq(
         tokenizer,
@@ -397,12 +388,18 @@ def main():
 
 
     if data_args.dataset_name=='squall' and data_args.task.lower()=='tableqa':
-        from metric.squall_tableqa import preprare_compute_metrics
+        from metric.squall_tableqa import prepare_compute_metrics
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
-        from metric.squall import preprare_compute_metrics
+        from metric.squall import prepare_compute_metrics
     else:
         raise NotImplementedError
-    compute_metrics = preprare_compute_metrics(tokenizer, eval_dataset)
+    
+    if training_args.do_train:
+        compute_metrics = prepare_compute_metrics(tokenizer, eval_dataset)
+    else:
+        p = 'p' if data_args.squall_plus == 'plus' else ''
+        stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}'
+        compute_metrics = prepare_compute_metrics(tokenizer, predict_dataset, stage)
 
     trainer = Seq2SeqTrainer(
         model=model,
@@ -456,9 +453,8 @@ def main():
         )
         metrics = predict_results.metrics
         metrics["predict_samples"] = len(predict_dataset)
-
         trainer.log_metrics("predict", metrics)
-        preds = tokenizer.batch_decode(
-            predict_results.predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
-        )
-        preds = [pred.strip() for pred in preds]
+
+
+if __name__ == "__main__":
+    main()

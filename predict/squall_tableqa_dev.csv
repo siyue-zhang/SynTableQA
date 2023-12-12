@@ -1,0 +1,101 @@
+,id,tbl,question,answer,acc,predictions
+0,nt-540,204_469,what was the number of loses while fred jordan was coaching?,552,True,552
+1,nt-2474,204_469,who was the last coach to only have 1 loss?,Ed Sabre,False,"O. B. ""Rip"" Sanderson"
+2,nt-4491,204_469,does mack erwin have more or less wins than fred montsdeoca?,more,False,1
+3,nt-5967,204_469,what is the difference in win pct under fred jordan and chal port?,0.056,False,2.0
+4,nt-7621,204_469,who coached more seasons : ed sabre or mack erwin?,Mack Erwin,False,Ed Sabre
+5,nt-10651,204_469,which coach has the least number of total games on their record?,Ed Sabre,False,"""Barney"" Hughes"
+6,nt-10889,204_469,who is the only coach with 2 ties on their record?,Chal Port,True,chal Port
+7,nt-11876,204_469,which coach had greater than 700 total wins?,Fred Jordan,True,Fred Jordan
+8,nt-12229,204_469,how many coaches had above 500 wins?,2,False,0
+9,nt-12885,204_469,in 1948 what was their percentage?,.462,True,0.462
+10,nt-1570,204_614,which plant builds the ford triton engine and the ford essex v6 engine?,Essex Engine,False,Ford Triton
+11,nt-2447,204_614,which plant is listed first?,St. Louis Assembly,True,St. Louis Assembly
+12,nt-5301,204_614,which plant had the least amount of employees laid off?,Windsor Casting,False,Team USA
+13,nt-5690,204_614,what is the top company that has the most employees?,Norfolk Assembly,False,Ford F-Series
+14,nt-10362,204_614,where is the last plant on the list located?,"Maumee, Ohio",False,"Wixom, Michigan"
+15,nt-11175,204_614,what is the average number of employees at a given plant?,1310,False,1646.923076923077
+16,nt-12384,204_614,what is the number of plants in ohio?,2,True,2
+17,nt-13360,204_614,how many plants had more than 2000 employees laid off?,2,True,2
+18,nt-13582,204_614,"how many plants have at least 1,500 employees?",5,False,8
+19,nt-3844,203_281,"roy oswalt opened for the astros for eight years in a row , seven of which were in minute maid park , but in what year did he start the season opener in petco park?",2008,False,1969
+20,nt-5237,203_281,what was the last season when mike scott was the opening day starter for the astros?,1991,False,1967
+21,nt-6957,203_281,how many times was nolan ryan the opening day pitcher for the astros?,3,False,2
+22,nt-10110,203_281,which game had the greatest score difference?,1982,False,W
+23,nt-10807,203_281,who was the first astro to be the opening day pitcher in the astrodome?,Bob Bruce,True,Bob Bruce
+24,nt-8079,204_437,which countries had no listing for 2002?,Luxembourg|Andorra|Liechtenstein|New Zealand|Estonia|Jamaica|Slovakia|Cyprus|Belize|Suriname|Lithuania|Organisation of Eastern Caribbean States|Latvia|Samoa|Botswana|Trinidad and Tobago|Papua New Guinea|Malta|Moldova|Tonga|Guyana|Dominican Republic|Nicaragua|Lesotho|Timor-Leste|Armenia|Northern Cyprus|Georgia|Albania|Fiji|Maldives|Qatar|United Arab Emirates|South Sudan|Macedonia|Honduras|Oman|Singapore|Somalia|United States (extraterritorial)|Israel (extraterritorial)|Grenada,False,"luxembourg, andorra, Liechtenstein"
+25,nt-10625,204_437,what country is listed before germany?,Czech Republic,False,Andorra
+26,nt-1207,204_740,how many bmws finished before webber?,1,True,1
+27,nt-2135,204_740,who was the last driver to actually finish the race?,Christijan Albers,False,Giancarlo Fisichella
+28,nt-2750,204_740,what driver finished first?,Fernando Alonso,True,Fernando Alonso
+29,nt-3184,204_740,what were the total number of laps completed by the 1st position winner?,56,True,56
+30,nt-5551,204_740,how long did it take fernando alonso to finish the race?,1:31:33.736,True,1:31:33.736
+31,nt-9781,204_740,who finished before nick heidfeld?,Jarno Trulli,False,Juan Pablo Montoya
+32,nt-11066,204_740,how many drivers were retired before the race could end?,7,False,0
+33,nt-13671,204_740,how many drivers ended the race early because of engine problems?,2,False,15
+34,nt-1900,204_717,how many times did the team come in 9th place?,2,True,2
+35,nt-2411,204_717,"which was a better season , 2006/07 or 2007/08?",2006/07,False,2007/08
+36,nt-8843,204_717,the two level 6 seasons were 2012/13 and what other season?,2013/14,False,2012/13
+37,nt-9187,204_717,which season came in last place?,2002/03,True,2002/03
+38,nt-9843,204_717,what is the total number of level 4 seasons?,9,True,9
+39,nt-11466,204_717,what place did this team finish immediately after the 2008/2009 season?,6th,True,6th
+40,nt-12630,204_717,which season was the only season to come in 18th?,2011/12,True,2011/12
+41,nt-86,203_139,what party has the most mp 's?,Serbian Progressive Party Српска напредна странка / Srpska napredna stranka,False,Conservative Party of Serbia
+42,nt-3170,203_139,there are at least 10 mps for how many political parties?,6,False,5
+43,nt-4099,203_139,which party has the most mps?,Serbian Progressive Party Српска напредна странка / Srpska napredna stranka,False,Conservative Party of Serbia
+44,nt-6473,203_139,what is the total of groups that have a populism ideology?,2,True,2
+45,nt-9432,203_139,what party has the highest number of mps?,Serbian Progressive Party,False,Conservative Party of Serbia
+46,nt-11555,203_139,how many parties follow the ideology of social democracy?,5,False,2
+47,nt-1531,203_343,when was the first neutral site game to be won by tampa bay?,"January 4, 1994",False,1994
+48,nt-6738,203_343,"how many events occurred in minneapolis , mn?",6,False,4
+49,nt-6901,203_343,"how many more people attended the november 18 , 1993 games than the november 9th game?",8865,False,-16981.0
+50,nt-6931,203_343,"who won the game the day before the january 5 , 1994 game?",Tampa Bay,True,Tampa Bay
+51,nt-11539,203_343,how many games have been held in minneapolis?,6,False,3
+52,nt-11629,203_343,the game on which date had the most attendance?,"January 4, 1994",True,"January 4, 1994"
+53,nt-13429,203_343,"did dallas or ottawa win the december 9 , 1993 game?",Dallas,True,Dallas
+54,nt-2146,203_406,what is the total amount of times porsche is a constructor?,4,False,13
+55,nt-2695,203_406,how many drivers drove all the rounds?,8,False,5
+56,nt-3505,203_406,was the ferrari engine used by scuderia ferrari a v6 or v8?,V6,False,Ferrari 178 1.5 V6
+57,nt-10946,203_406,what was the average tyre used in the race?,D,True,D
+58,nt-11135,203_406,what brand has been constructor the most?,Lotus-Climax,False,Ferrari
+59,nt-11360,203_406,what entrant is listed after ecurie excelsior?,John Dalton,False,Team Lega Nord
+60,nt-4258,204_408,"which nation finished higher in 2000 , greenland or mexico?",Greenland,False,mexico
+61,nt-5959,204_408,what is the total number of nations?,16,False,13
+62,nt-9342,204_408,who placed first in 2007?,Brazil,False,argentina
+63,nt-12525,204_408,who was the top competitor in 2009?,Argentina,False,2nd
+64,nt-426,204_147,what is the number of games where the `` giants '' the opponent?,3,True,3
+65,nt-1830,204_147,what is the number of saves for the marlins,3,False,6
+66,nt-2784,204_147,"how many games had an attendance of more than 30,000?",15,False,3
+67,nt-4293,204_147,what was the difference in attendance between the july 7th game and the july 8th game?,2907,False,18796.0
+68,nt-7015,204_147,"how many games have an attendance below 25,000?",1,False,2
+69,nt-10776,204_147,what is the difference in attendance between the game on july 7th and the game on july 8th?,2907,False,0.0
+70,nt-12393,204_147,how many games took place in july before the fourth of july?,2,True,2
+71,nt-12538,204_147,which player with the most saves,Clippard,False,Bancourt (14-14)
+72,nt-2269,204_15,how many times was the conference not held in the us?,9,False,8
+73,nt-2910,204_15,in the chart is nara before firenze?,yes,False,3
+74,nt-3338,204_15,is canada at least on the chart 3 times?,no,False,1
+75,nt-4443,204_15,how many times was a conference held in san francisco?,2,True,2
+76,nt-4687,204_15,"previous to 2000 , what city was listed the most?","San Francisco, CA",False,"Berkeley, California"
+77,nt-7597,204_15,where was the previous acm multimedia workshop held at in 2012?,Nara Prefectural New Public Hall,True,Nara Prefectural New Public Hall
+78,nt-8061,204_15,is the usa on the chart more or less than 7 times?,more,False,1
+79,nt-10914,204_15,how many times is usa listed as the country?,11,False,6
+80,nt-1544,204_634,does the malaysia open super series pay more or less than french super series?,more,False,1
+81,nt-2593,204_634,"how many series awarded at least $ 500,000 in prize money?",3,False,8
+82,nt-4554,204_634,"how many events of the 2013 bwf super series pay over $ 200,000?",9,False,8
+83,nt-4578,204_634,what is the total prize payout for all 13 series?,5050000,False,4780000.0
+84,nt-5325,204_634,which has the same prize money as the french super series?,Japan Super Series|Singapore Super Series|India Super Series,False,India Super Series
+85,nt-6325,204_634,which series has the highest prize payout?,Korea Open Super Series Premier,True,Korea Open Super Series Premier
+86,nt-11821,204_634,how many tours took place during january?,2,False,3
+87,nt-13006,204_634,which tour was the only one to take place in december?,Super Series Masters Finals,False,10
+88,nt-1473,203_665,were any towers established before the year 1800?,no,False,0
+89,nt-4186,203_665,names of municipalities established before 1880,San Juan,False,Port San Juan Light
+90,nt-5057,203_665,how many towers are at least 18 meters tall?,3,False,4
+91,nt-7268,203_665,the difference in years from 1882 to 1889,7,False,4 years
+92,nt-9441,203_665,cardona island light and caja de muertos light are both located in what municipality?,Ponce,True,Ponce
+93,nt-10790,203_665,what is the largest tower,Punta Higuero Light,False,111
+94,nt-12761,203_665,which municipality was the first to be established?,San Juan,True,San Juan
+95,nt-6404,202_265,how many bus routes are handled by trustybus?,2,True,2
+96,nt-13222,202_265,which route travels to broxbourne station and also essex road industrial estate?,323,False,Broxbourne Station
+97,nt-1133,204_68,"other than william stuart price , which other businessman was born in tulsa?",Joseph L. Parker Jr.,True,Joseph L. Parker Jr.
+98,nt-2670,204_68,what is the total number of state regents who are attorneys?,3,False,2
+99,nt-5048,204_68,total number of members from lawton and oklahoma city,3,False,4.0

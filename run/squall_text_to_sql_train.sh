@@ -7,11 +7,12 @@ run_name="squall_text_to_sql"
 dataset_name="squall"
 output_dir="output/squall_text_to_sql"
 
-python ./train_expert.py \
+python ./train.py \
   --do_train \
   --do_eval \
   --num_train_epochs 30 \
   --run_name ${run_name} \
+  --task text_to_sql \
   --output_dir ${output_dir} \
   --model_name_or_path ${model_name} \
   --overwrite_output_dir \

@@ -478,9 +478,9 @@ class Evaluator:
     #     return num_correct
         
     def evaluate_tableqa(self, predictions):
-        num_correct = 0
+        correct_flag = []
         for prediction in predictions:
             pred = prediction['pred']
             ex_id = prediction['nt']
-            num_correct += eval_tag_match(pred, ex_id, self.target_values_map, separator='|')
-        return num_correct
+            correct_flag.append(eval_tag_match(pred, ex_id, self.target_values_map, separator='|'))
+        return correct_flag

@@ -5,7 +5,8 @@ dataset_name="squall"
 output_dir="output/squall_text_to_sql"
 checkpoint=4600
 
-python ./train_expert.py \
+python ./train.py \
+  --task text_to_sql \
   --do_predict \
   --predict_split dev \
   --output_dir ${output_dir} \
