@@ -33,7 +33,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'tbl': eval_dataset['tbl'],
                        'question': eval_dataset['question'],
                        'answer': eval_dataset['answer_text'],
-                       'acc': correct_flag,
+                       'acc': [int(b) for b in correct_flag],
                        'predictions':preds,
                        'src': eval_dataset['src']}
             df = pd.DataFrame(to_save)
