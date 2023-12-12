@@ -8,7 +8,7 @@ def postprocess_text(preds, labels):
     labels = [label.strip() for label in labels]
     return preds, labels
 
-def prepare_compute_metrics(tokenizer, eval_dataset, stage=None):    
+def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
     def compute_metrics(eval_preds):
         # nonlocal tokenizer
         preds, labels = eval_preds

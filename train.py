@@ -87,13 +87,13 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
     dataset_name: str = field(
-        default="squall",
+        default="squall", metadata={"help": "squall or selector"}
     )
     squall_plus: str = field(
         default="default", metadata={"help": "default or plus"}
     )
     task: str = field(
-        default="tableqa", metadata={"help": "tableqa or text_to_sql"}
+        default="tableqa", metadata={"help": "tableqa, text_to_sql or selector"}
     )
     predict_split: str = field(
         default="test", metadata={"help": "which split to predict"}
@@ -161,7 +161,7 @@ class DataTrainingArguments:
         },
     )
     postproc_fuzzy_string: bool = field(
-        default=False,
+        default=True,
         metadata={
             "help": "Replace string value with table cell value by fuzzy match."
         },
@@ -214,6 +214,10 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+    # disable wandb
+    if data_args.max_train_samples or data_args.max_eval_samples or data_args.max_predict_samples:
+        training_args.report_to = []
+
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -257,6 +261,9 @@ def main():
 
     if data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
+        raw_datasets = load_dataset(task, data_args.squall_plus)
+    elif data_args.dataset_name == 'selector':
+        task = "./task/selector.py"
         raw_datasets = load_dataset(task, data_args.squall_plus)
     else:
         raise NotImplementedError
@@ -391,15 +398,25 @@ def main():
         from metric.squall_tableqa import prepare_compute_metrics
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
         from metric.squall import prepare_compute_metrics
+    elif data_args.task.lower()=='selector':
+        raise NotImplementedError
     else:
         raise NotImplementedError
     
     if training_args.do_train:
-        compute_metrics = prepare_compute_metrics(tokenizer, eval_dataset)
+        compute_metrics = prepare_compute_metrics(
+            tokenizer=tokenizer, 
+            eval_dataset=eval_dataset, 
+            stage=None, 
+            fuzzy=data_args.postproc_fuzzy_string)
     else:
-        p = 'p' if data_args.squall_plus == 'plus' else ''
+        p = '_plus' if data_args.squall_plus == 'plus' else ''
         stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}'
-        compute_metrics = prepare_compute_metrics(tokenizer, predict_dataset, stage)
+        compute_metrics = prepare_compute_metrics(
+            tokenizer=tokenizer, 
+            eval_dataset=predict_dataset, 
+            stage=stage, 
+            fuzzy=data_args.postproc_fuzzy_string)
 
     trainer = Seq2SeqTrainer(
         model=model,

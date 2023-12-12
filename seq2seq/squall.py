@@ -4,12 +4,6 @@ import random
 import re
 from copy import deepcopy
 from typing import List, Dict
-
-from datasets.dataset_dict import DatasetDict
-from torch.utils.data import Dataset
-from torch.utils.data.dataset import T_co
-
-from tqdm import tqdm
 import pandas as pd
 import json
 
@@ -77,6 +71,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     nl_header = re.sub(r'c(\d+)', '{}'.format(headers[number_after_c-1]), header)
                 else:
                     nl_header = header
+                # nl header may have < which can't be tokenized
+                nl_header = nl_header.replace('<','!>')
                 nl_headers.append(nl_header)
             # make each col name unique
             df.columns = [f'{j+1}_{h}' for j, h in enumerate(nl_headers)]

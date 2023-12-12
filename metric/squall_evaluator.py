@@ -362,10 +362,10 @@ def check_quote_format(str):
 
 
 
-def make_query(sql, table_json, c, pred, replace=True):
+def make_query(sql, is_list, c, pred, replace=True):
     sql = requests.get(
         "http://localhost:3000/", 
-        json={"sql": sql, "is_list": table_json["is_list"]}).json()
+        json={"sql": sql, "is_list": is_list}).json()
     c.execute(sql)
     answer_list = list()
     for result, in c:
@@ -373,14 +373,16 @@ def make_query(sql, table_json, c, pred, replace=True):
         answer_list.append(result)
     
     if replace:
-        if any(item in pred['nl'] for item in ['more', 'less', 'more/less']) and answer_list[0] in ['0','1']:
+        if 'how many' in pred['nl']:
+            pass
+        elif any(item in pred['nl'] for item in ['is', 'was', 'does', 'do', 'did']) and answer_list[0] in ['0','1']:
+            replace_dict = {'0':'no', '1':'yes'}
+            answer_list = [replace_dict[answer_list[0]]]
+        elif any(item in pred['nl'] for item in ['more', 'less', 'more/less']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'less', '1':'more'}
             answer_list = [replace_dict[answer_list[0]]]
         elif any(item in pred['nl'] for item in ['above', 'below', 'above/below']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'below', '1':'above'}
-            answer_list = [replace_dict[answer_list[0]]]
-        elif any(item in pred['nl'] for item in ['is', 'was', 'does', 'do']) and answer_list[0] in ['0','1']:
-            replace_dict = {'0':'no', '1':'yes'}
             answer_list = [replace_dict[answer_list[0]]]
         elif any(item in pred['nl'] for item in ['month']) and answer_list[0] in [str(n) for n in range(1,13)]:
             replace_dict = {
@@ -425,57 +427,48 @@ class Evaluator:
                     self.target_values_map[ex_id] = to_value_list(
                             original_strings, canon_strings)
 
-    # def evaluate_text_to_sql(self, predictions):
-    #     num_examples, num_not_found, num_correct = 0, 0, 0
-    #     num_fail = 0
-    #     correct_flag = []
-    #     targets = []
-    #     predicted = []
-    #     for pred in predictions:
-    #         table_id = pred['table_id']
-    #         ####   find the exact db file
-    #         db_file = self.db_path + table_id + '.db'
-    #         table_file = self.db_path + "../json/" + table_id + ".json"
+    def evaluate_text_to_sql(self, predictions):
+        correct_flag = []
+        targets = []
+        predicted = []
+        buffer = {}
+        for pred in predictions:
+            table_id = pred['table_id']
+            if table_id not in buffer:
+                with open(pred['json_path'], "r") as f:
+                    table_json = json.load(f)
+                buffer[table_id] = table_json["is_list"]
 
-    #         with open(table_file, "r") as f:
-    #             table_json = json.load(f)
+            db_file = pred['db_path']
+            connection = sqlite3.connect(db_file)
+            c = connection.cursor()
+            results = pred['result']
+            for result in results:
+                answer_list = list()
+                ex_id = result['id']
+                targets.append(self.target_values_map[ex_id])
+                sql = result['sql']
+                if not check_quote_format(sql):
+                    sql = "select"
+                try:
+                    is_list = buffer[table_id]
+                    predicted_values, answer_list = make_query(sql, is_list, c, pred, replace=True)
+                except Exception as e:
+                    predicted_values = list()
 
-    #         connection = sqlite3.connect(db_file)
-    #         c = connection.cursor()
-    #         results = pred['result']
-    #         for result in results:
-    #             answer_list = list()
-    #             ex_id = result['id']
-    #             targets.append(self.target_values_map[ex_id])
-    #             sql = result['sql']
-    #             if not check_quote_format(sql):
-    #                 sql = "select"
-     
-    #             try:
-    #                 predicted_values, answer_list = make_query(sql, table_json, c, pred, replace=True)
-    #             except Exception as e:
-    #                 num_fail += 1
-    #                 predicted_values = list()
-
-    #             if ex_id not in self.target_values_map:
-    #                 print('WARNING: Example ID "%s" not found' % ex_id)
-    #                 correct_flag.append(None)
-    #                 num_examples += 1
-    #                 num_not_found += 1
-    #             else:
-    #                 target_values = self.target_values_map[ex_id]
-    #                 correct = check_denotation(target_values, predicted_values)
-    #                 num_examples += 1
-    #                 if correct:
-    #                     num_correct += 1
-    #                     correct_flag.append(1)
-    #                 else:
-    #                     correct_flag.append(0)
+                if ex_id not in self.target_values_map:
+                    print('WARNING: Example ID "%s" not found' % ex_id)
+                    raise ValueError
+                    # correct_flag.append(None)
+                else:
+                    target_values = self.target_values_map[ex_id]
+                    correct = check_denotation(target_values, predicted_values)
+                    correct_flag.append(correct)
                 
-    #             predicted.append([str(x) for x in answer_list])
+                predicted.append('|'.join([str(x) for x in answer_list]))
 
-    #     assert len(correct_flag)==num_examples
-    #     return num_correct
+        assert len(correct_flag)==len(predictions)
+        return correct_flag, predicted
         
     def evaluate_tableqa(self, predictions):
         correct_flag = []
