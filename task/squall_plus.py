@@ -75,6 +75,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                     "answer_text": datasets.Value("string"),
                     "db_path": datasets.Value("string"),
                     "json_path": datasets.Value("string"),
+                    "src":datasets.Value("string"),
                 }
             ),
             supervised_keys=None,
@@ -137,7 +138,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                     tbl = tbl[1].replace('-','_') + tbl[2].split('.')[0]
                     if tbl in tbls and nt not in nts:
                         # print('\n', nt, question, tbl, answer_text, '\n')
-                        examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text})
+                        examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text, 'src': 'wtq'})
   
         for i, sample in enumerate(examples):
             # print(sample)
@@ -169,7 +170,12 @@ class Squall(datasets.GeneratorBasedBuilder):
                 else:
                     query = ''
                 answer_text = sample['tgt']
-                
+            
+            if 'src' in sample:
+                src = sample['src']
+            else:
+                src = 'squall'
+
             yield i, {
                 "nt": nt,
                 "tbl": tbl,
@@ -178,6 +184,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                 "answer_text": answer_text,
                 "db_path": db_path,
                 "json_path": json_path,
+                "src": src
             }
 
         

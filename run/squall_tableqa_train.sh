@@ -3,9 +3,9 @@ export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_tableqa"
+run_name="squall_tableqa"
 dataset_name="squall"
-output_dir="output/squall_plus_tableqa"
+output_dir="output/squall_tableqa"
 
 python ./train.py \
   --do_train \
@@ -19,7 +19,7 @@ python ./train.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
-  --squall_plus plus \
+  --squall_plus default \
   --per_device_train_batch_size 6 \
   --per_device_eval_batch_size 6 \
   --gradient_accumulation_steps 2 \

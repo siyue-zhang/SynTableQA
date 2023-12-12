@@ -34,7 +34,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'question': eval_dataset['question'],
                        'answer': eval_dataset['answer_text'],
                        'acc': correct_flag,
-                       'predictions':preds}
+                       'predictions':preds,
+                       'src': eval_dataset['src']}
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/{stage}.csv')
             print('predictions saved! ', stage)
