@@ -4,6 +4,7 @@ import datasets
 import pandas as pd
 
 logger = datasets.logging.get_logger(__name__)
+_dir_squall = "./data/squall"
 
 class SelectorConfig(datasets.BuilderConfig):
     """BuilderConfig for Selector."""
@@ -27,6 +28,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                 {
                     "id": datasets.Value("string"),
                     "tbl": datasets.Value("string"),
+                    "json_path": datasets.Value("string"),
                     "question": datasets.Value("string"),
                     "acc_tableqa": datasets.Value("int32"),
                     "acc_text_to_sql": datasets.Value("int32"),
@@ -68,12 +70,13 @@ class Selector(datasets.GeneratorBasedBuilder):
         text_to_sql = pd.read_csv(text_to_sql)
         all_ids = list(set(list(tableqa['id']) + list(text_to_sql['id'])))
         for i, id in enumerate(all_ids):
-            
+
             if id in tableqa['id']:
                 row = tableqa.loc[tableqa['id'] == id, :]
             else:
                 row = text_to_sql.loc[tableqa['id'] == id, :]
             tbl = row['tbl'].values[0]
+            json_path = f"{_dir_squall}/tables/json/{tbl}.json"
             question = row['question'].values[0]
 
             acc_tableqa = tableqa.loc[tableqa['id'] == id, 'acc'].values[0]
@@ -98,6 +101,7 @@ class Selector(datasets.GeneratorBasedBuilder):
             yield i, {
                 "id": id,
                 "tbl": tbl,
+                "json_path": json_path,
                 "question": question,
                 "acc_tableqa": acc_tableqa,
                 "acc_text_to_sql": acc_text_to_sql,
