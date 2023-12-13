@@ -469,8 +469,11 @@ def main():
             num_beams=data_args.num_beams,
         )
         metrics = predict_results.metrics
-        metrics["predict_samples"] = len(predict_dataset)
+        max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
+        metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
+        
         trainer.log_metrics("predict", metrics)
+        trainer.save_metrics("predict", metrics)
 
 
 if __name__ == "__main__":

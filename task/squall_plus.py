@@ -157,7 +157,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                 question = sample["nl"]
             # get sql query and answer text
             if split_key == 'test':
-                query = ''
+                query = 'unk'
                 answer = test_label[test_label["id"]==sample["nt"]]["targetValue"].tolist()[0]
                 if isinstance(answer, list):
                     answer_text = [str(x) for x in answer]
@@ -168,7 +168,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                 if 'sql' in sample:
                     query = ' '.join([tok[1] for tok in sample['sql']])
                 else:
-                    query = ''
+                    query = 'unk'
                 answer_text = sample['tgt']
             
             if 'src' in sample:
