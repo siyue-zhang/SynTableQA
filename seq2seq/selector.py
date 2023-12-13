@@ -5,7 +5,6 @@ import torch
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
     # preprocess the squall datasets for the model input
-
     tbls = examples["tbl"]
     nls = examples["question"]
     labels = examples["label"]
@@ -66,16 +65,9 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
         table=tables, 
-        query=nls, 
+        query=nls,
         max_length=max_source_length, 
         padding=padding, truncation=True)
-
-    # label_digits = []
-    # for y in labels:
-    #     digit = [0,0]
-    #     digit[int(y)] = 1
-    #     label_digits.append(digit)
-    # label_digits = torch.tensor(label_digits)
      
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.
@@ -83,8 +75,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         labels["input_ids"] = [
             [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
         ]
-
-    model_inputs["labels"] = labels
+    
+    model_inputs["labels"] = [[item] for item in labels]
     return model_inputs
 
 

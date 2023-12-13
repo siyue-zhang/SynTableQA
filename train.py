@@ -13,6 +13,7 @@ from filelock import FileLock
 from transformers import (
     AutoConfig,
     T5ForConditionalGeneration,
+    T5ForSequenceClassification,
     BartForConditionalGeneration,
     DataCollatorForSeq2Seq,
     HfArgumentParser,
@@ -21,6 +22,8 @@ from transformers import (
     AutoTokenizer,
     TapexTokenizer,
     BartForSequenceClassification,
+    DataCollatorWithPadding,
+    Trainer,
     set_seed,
 )
 from transformers.file_utils import is_offline_mode
@@ -260,11 +263,11 @@ def main():
     
     set_seed(training_args.seed)
 
-    if data_args.dataset_name == 'squall':
-        task = "./task/squall_plus.py"
-        raw_datasets = load_dataset(task, data_args.squall_plus)
-    elif data_args.dataset_name == 'selector':
+    if data_args.task == 'selector':
         task = "./task/selector.py"
+        raw_datasets = load_dataset(task, dataset=data_args.dataset_name)
+    elif data_args.dataset_name == 'squall':
+        task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, data_args.squall_plus)
     else:
         raise NotImplementedError
@@ -314,6 +317,16 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
     elif data_args.task.lower() == 'selector':
+        # if 't5' in model_args.model_name_or_path.lower():
+        #     model = T5ForSequenceClassification.from_pretrained(
+        #         pretrained_model_name_or_path=name,
+        #         from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        #         config=config,
+        #         cache_dir=model_args.cache_dir,
+        #         revision=model_args.model_revision,
+        #         use_auth_token=True if model_args.use_auth_token else None,
+        #     )
+        # else:
         model = BartForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=name,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -324,6 +337,10 @@ def main():
         )
     else:
         raise NotImplementedError
+    
+    if data_args.task=='selector':
+        model.config.label2id = {"text_to_sql": 0, "tableqa": 1}
+        model.config.id2label = {0: "text_to_sql", 1: "tableqa"}
 
     if data_args.dataset_name=='squall' and data_args.task.lower()=='tableqa':
         from seq2seq.squall_tableqa import preprocess_function
@@ -398,12 +415,19 @@ def main():
                     )
 
     label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
-    data_collator = DataCollatorForSeq2Seq(
-        tokenizer,
-        model=model,
-        label_pad_token_id=label_pad_token_id,
-        pad_to_multiple_of=8 if training_args.fp16 else None,
-    )
+    
+    if data_args.task=='selector':
+        data_collator = DataCollatorWithPadding(
+            tokenizer=tokenizer,
+            pad_to_multiple_of=8 if training_args.fp16 else None,
+        )
+    else:
+        data_collator = DataCollatorForSeq2Seq(
+            tokenizer,
+            model=model,
+            label_pad_token_id=label_pad_token_id,
+            pad_to_multiple_of=8 if training_args.fp16 else None,
+        )
 
 
     if data_args.dataset_name=='squall' and data_args.task.lower()=='tableqa':
@@ -411,7 +435,7 @@ def main():
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
         from metric.squall import prepare_compute_metrics
     elif data_args.task.lower()=='selector':
-        raise NotImplementedError
+        from metric.selector import prepare_compute_metrics
     else:
         raise NotImplementedError
     
@@ -430,15 +454,26 @@ def main():
             stage=stage, 
             fuzzy=data_args.postproc_fuzzy_string)
 
-    trainer = Seq2SeqTrainer(
-        model=model,
-        args=training_args,
-        train_dataset= train_dataset,
-        eval_dataset= eval_dataset,
-        tokenizer=tokenizer,
-        data_collator=data_collator,
-        compute_metrics=compute_metrics if training_args.predict_with_generate else None,
-    )
+    if data_args.task=='selector':
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset= train_dataset,
+            eval_dataset= eval_dataset,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+            compute_metrics=compute_metrics if training_args.predict_with_generate else None,
+        )
+    else:
+        trainer = Seq2SeqTrainer(
+            model=model,
+            args=training_args,
+            train_dataset= train_dataset,
+            eval_dataset= eval_dataset,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+            compute_metrics=compute_metrics if training_args.predict_with_generate else None,
+        )
 
     # Training
     if training_args.do_train:
