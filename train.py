@@ -20,6 +20,7 @@ from transformers import (
     Seq2SeqTrainingArguments,
     AutoTokenizer,
     TapexTokenizer,
+    BartForSequenceClassification,
     set_seed,
 )
 from transformers.file_utils import is_offline_mode
@@ -312,6 +313,15 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
+    elif data_args.task.lower() == 'selector':
+        model = BartForSequenceClassification.from_pretrained(
+            pretrained_model_name_or_path=name,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config,
+            cache_dir=model_args.cache_dir,
+            revision=model_args.model_revision,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
     else:
         raise NotImplementedError
 
@@ -319,6 +329,8 @@ def main():
         from seq2seq.squall_tableqa import preprocess_function
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
         from seq2seq.squall import preprocess_function
+    elif data_args.task.lower()=='selector':
+        from seq2seq.selector import preprocess_function  
     else:
         raise NotImplementedError
     
