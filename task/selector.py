@@ -68,36 +68,33 @@ class Selector(datasets.GeneratorBasedBuilder):
         
         tableqa = pd.read_csv(tableqa)
         text_to_sql = pd.read_csv(text_to_sql)
-        all_ids = list(set(list(tableqa['id']) + list(text_to_sql['id'])))
-        for i, id in enumerate(all_ids):
-
-            if id in tableqa['id']:
-                row = tableqa.loc[tableqa['id'] == id, :]
-            else:
-                row = text_to_sql.loc[tableqa['id'] == id, :]
-            tbl = row['tbl'].values[0]
-            json_path = f"{_dir_squall}/tables/json/{tbl}.json"
-            question = row['question'].values[0]
-
+        ids = list(tableqa['id'])
+        for i, id in enumerate(ids):
             acc_tableqa = tableqa.loc[tableqa['id'] == id, 'acc'].values[0]
             if isinstance(acc_tableqa, str):
                 if acc_tableqa.strip().lower()=='true':
                     acc_tableqa=1
                 else:
                     acc_tableqa=0
+            else:
+                acc_tableqa=int(acc_tableqa)
             acc_text_to_sql = text_to_sql.loc[text_to_sql['id'] == id, 'acc'].values[0]
             if isinstance(acc_text_to_sql, str):
                 if acc_text_to_sql.strip().lower()=='true':
                     acc_text_to_sql=1
                 else:
                     acc_text_to_sql=0
-            
+            else:
+                acc_text_to_sql=int(acc_text_to_sql)
             # label 0 means selecting text_to_sql model
             if acc_text_to_sql==1:
                 label=0
             else:
                 label=1
-
+            row = tableqa.loc[tableqa['id'] == id,:]
+            tbl = row['tbl'].values[0]
+            json_path = f"{_dir_squall}/tables/json/{tbl}.json"
+            question = row['question'].values[0]
             yield i, {
                 "id": id,
                 "tbl": tbl,

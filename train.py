@@ -317,16 +317,6 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
     elif data_args.task.lower() == 'selector':
-        # if 't5' in model_args.model_name_or_path.lower():
-        #     model = T5ForSequenceClassification.from_pretrained(
-        #         pretrained_model_name_or_path=name,
-        #         from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        #         config=config,
-        #         cache_dir=model_args.cache_dir,
-        #         revision=model_args.model_revision,
-        #         use_auth_token=True if model_args.use_auth_token else None,
-        #     )
-        # else:
         model = BartForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=name,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),

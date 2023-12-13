@@ -76,7 +76,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
         ]
     
-    model_inputs["labels"] = [[item] for item in labels]
+    model_inputs["labels"] = [int(x) for x in labels]
     return model_inputs
 
 

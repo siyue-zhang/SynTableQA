@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=2,3
 
 model_name="t5-large"
 dataset_name="squall"
@@ -8,7 +8,7 @@ checkpoint=1000
 python ./train.py \
   --task text_to_sql \
   --do_predict \
-  --predict_split dev \
+  --predict_split train \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -19,7 +19,6 @@ python ./train.py \
   --dataset_name ${dataset_name} \
   --predict_with_generate \
   --generation_max_length 128 \
-  --num_beams 5 
-
-  # --squall_plus plus \
+  --num_beams 5 \
+  --squall_plus plus 
   # --max_predict_samples 100
