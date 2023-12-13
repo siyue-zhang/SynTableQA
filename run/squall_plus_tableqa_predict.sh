@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
@@ -9,7 +9,7 @@ python ./train.py \
   --task tableqa \
   --squall_plus plus \
   --do_predict \
-  --predict_split dev \
+  --predict_split train \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
