@@ -1,9 +1,9 @@
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES=0
 
 model_name="t5-large"
 dataset_name="squall"
 output_dir="output/squall_text_to_sql"
-checkpoint=1000
+checkpoint=1400
 
 python ./train.py \
   --task text_to_sql \

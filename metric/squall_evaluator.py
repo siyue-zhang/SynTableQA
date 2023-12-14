@@ -375,11 +375,11 @@ def make_query(sql, is_list, c, pred, replace=True):
     if replace:
         if 'how many' in pred['nl']:
             pass
+        elif any(item in pred['nl'] for item in ['more/less', 'more or less']) and answer_list[0] in ['0','1']:
+            replace_dict = {'0':'less', '1':'more'}
+            answer_list = [replace_dict[answer_list[0]]]
         elif any(item in pred['nl'] for item in ['is', 'was', 'does', 'do', 'did']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'no', '1':'yes'}
-            answer_list = [replace_dict[answer_list[0]]]
-        elif any(item in pred['nl'] for item in ['more', 'less', 'more/less']) and answer_list[0] in ['0','1']:
-            replace_dict = {'0':'less', '1':'more'}
             answer_list = [replace_dict[answer_list[0]]]
         elif any(item in pred['nl'] for item in ['above', 'below', 'above/below']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'below', '1':'above'}

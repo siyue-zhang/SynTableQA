@@ -264,6 +264,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'question': eval_dataset['question'],
                        'answer': eval_dataset['answer_text'],
                        'acc': [int(b) for b in correct_flag],
+                       'query': eval_dataset['query'], 
                        'query_pred': decoded_preds,
                        'query_fuzzy':fuzzy_query,
                        'queried_ans': predicted,

@@ -65,8 +65,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             print('predictions saved! ', stage)
         
         return {"acc": np.round(np.mean(acc),4),
-                "acc_tableqa": np.round(np.mean(eval_dataset['acc_tableqa']),4),
-                "acc_text_to_sql": np.round(np.mean(eval_dataset['acc_text_to_sql']),4),
+                # "acc_tableqa": np.round(np.mean(eval_dataset['acc_tableqa']),4),
+                # "acc_text_to_sql": np.round(np.mean(eval_dataset['acc_text_to_sql']),4),
                 "acc_cls": np.round(np.mean(correct_flag),4),
                 "f1": f1}
     return compute_metrics
