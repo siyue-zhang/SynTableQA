@@ -18,7 +18,6 @@ python ./train.py \
   --dataset_name ${dataset_name} \
   --predict_with_generate \
   --generation_max_length 128 \
-  --num_beams 5 
-
-  # --max_predict_samples 100 \
+  --num_beams 5 \
+  --max_predict_samples 100
   # --max_eval_samples 100 \

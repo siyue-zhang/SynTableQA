@@ -9,8 +9,7 @@ def postprocess_text(preds, labels):
     return preds, labels
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None): 
-    print(eval_dataset)
-    assert 1==2   
+    input_tokens = tokenizer.batch_decode(eval_dataset['input_ids']) 
     def compute_metrics(eval_preds):
         # nonlocal tokenizer
         preds, labels = eval_preds
@@ -37,7 +36,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'answer': eval_dataset['answer_text'],
                        'acc': [int(b) for b in correct_flag],
                        'predictions':preds,
-                       'src': eval_dataset['src']}
+                       'src': eval_dataset['src'],
+                       'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/{stage}.csv')
             print('predictions saved! ', stage)
