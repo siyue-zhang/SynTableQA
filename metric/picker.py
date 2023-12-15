@@ -2,12 +2,14 @@ import numpy as np
 import pandas as pd
 import json
 from metric.squall_evaluator import Evaluator
+import pandas as pd
 
 
-def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eval_csv=None):    
+def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eval_csv=None):
     tableqa = pd.read_csv(eval_csv['tableqa'])
     text_to_sql = pd.read_csv(eval_csv['text_to_sql'])
 
+    # f"\nAnswer Choice 0 : {ans_tableqa}\nAnswer Choice 1 : {ans_text_to_sql}\n"
     def compute_metrics(eval_preds):
         # nonlocal tokenizer
         preds, labels = eval_preds
@@ -36,7 +38,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
                 TN+=1
             else:
                 FN+=1
-            
+              
         if TP+FP==0:
             precision=0
         else:
@@ -49,7 +51,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
             f1=0
         else:
             f1=np.round(2 * (precision * recall) / (precision + recall), 4)
-
 
         ids = []
         tbls = []
@@ -73,7 +74,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
             else:
                 pick = 0
             picks.append(pick)
-            scores.append(a_tableqa if pick==1 else a_text_to_sql)
+            scores.append(a_tableqa if pick==0 else a_text_to_sql)
             if src in tableqa:
                 src.append(tableqa.loc[j, 'src'])
 

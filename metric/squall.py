@@ -242,7 +242,7 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
     
     return predictions
 
-def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
+def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eval_csv=None):    
     def compute_metrics(eval_preds):
         # nonlocal tokenizer
         preds, labels = eval_preds

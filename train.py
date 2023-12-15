@@ -426,23 +426,32 @@ def main():
         from metric.squall import prepare_compute_metrics
     elif data_args.task.lower()=='selector':
         from metric.selector import prepare_compute_metrics
+    elif data_args.task.lower()=='picker':
+        from metric.picker import prepare_compute_metrics
+
     else:
         raise NotImplementedError
     
-    if training_args.do_train:
+    p = '_plus' if data_args.squall_plus == 'plus' else ''
+    if training_args.do_train:            
+        eval_csv={'tableqa': './predict'+data_args.dataset_name+p+'tableqa_train.csv',
+                  'text_to_sql': './predict'+data_args.dataset_name+p+'text_to_sql_train.csv'}
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=eval_dataset, 
             stage=None, 
-            fuzzy=data_args.postproc_fuzzy_string)
+            fuzzy=data_args.postproc_fuzzy_string,
+            eval_csv=eval_csv)
     else:
-        p = '_plus' if data_args.squall_plus == 'plus' else ''
+        eval_csv={'tableqa': './predict'+data_args.dataset_name+p+f'tableqa_{data_args.predict_split}.csv',
+                  'text_to_sql': './predict'+data_args.dataset_name+p+f'text_to_sql_{data_args.predict_split}.csv'}
         stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 
             stage=stage, 
-            fuzzy=data_args.postproc_fuzzy_string)
+            fuzzy=data_args.postproc_fuzzy_string,
+            eval_csv=eval_csv)
 
     if data_args.task=='selector':
         trainer = Trainer(
