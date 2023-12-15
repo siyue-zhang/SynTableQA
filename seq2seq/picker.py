@@ -70,10 +70,25 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
         table=tables, 
-        query=concat,
+        query=nls,
         max_length=max_source_length, 
         padding=padding, truncation=True)
-     
+
+    # # concat choices at end
+    # concat = []
+    # nl_inputs = model_inputs['input_ids']
+    # for n in range(num_ex):
+    #     nl_ids = nl_inputs[n]
+    #     len_ = len(nl_ids)
+    #     len_ = min(max_source_length-50, len_-1)
+    #     nl_tokens = tokenizer.decode(nl_ids[:len_])[1:] + choices[n]
+    #     concat.append(nl_tokens)
+
+    # model_inputs = tokenizer(
+    #     answer=concat,
+    #     max_length=max_source_length, 
+    #     padding=padding, truncation=True)
+
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.
     if padding == "max_length" and ignore_pad_token_for_loss:
@@ -90,7 +105,7 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
     # ensure squall <-> default
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/picker.py", dataset='squall')
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/picker.py", dataset='squall', augmentation=True)
     train_dataset = datasets["validation"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
     train_dataset = train_dataset.map(

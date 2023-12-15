@@ -33,9 +33,12 @@ class Selector(datasets.GeneratorBasedBuilder):
                     "json_path": datasets.Value("string"),
                     "question": datasets.Value("string"),
                     "acc_tableqa": datasets.Value("int32"),
+                    "ans_tableqa": datasets.Value("string"),
                     "acc_text_to_sql": datasets.Value("int32"),
+                    "ans_text_to_sql": datasets.Value("string"),
                     "label": datasets.Value("int32"),
-                    "choices": datasets.Value("string")
+                    "choices": datasets.Value("string"),
+                    "aug": datasets.Value("int32"),
                 }
             ),
             supervised_keys=None,
@@ -87,27 +90,68 @@ class Selector(datasets.GeneratorBasedBuilder):
             acc_text_to_sql = self.clean(text_to_sql.loc[index,'acc'])
             ans_text_to_sql = str(text_to_sql.loc[index,'queried_ans']).strip()
 
-            if self.config.augmentation == False:
-                if acc_tableqa != acc_text_to_sql and len(ans_tableqa)*len(ans_text_to_sql)>0:
-                    id = row['id']
-                    tbl = row['tbl']
-                    json_path = f"{_dir_squall}/tables/json/{tbl}.json"
-                    question = row['question']
-                    # careful the order
-                    label = [acc_tableqa, acc_text_to_sql].index(1)
-                    choices = f"\nAnswer Choice 0 : {ans_tableqa}\nAnswer Choice 1 : {ans_text_to_sql}\n"
-                    sample={
-                        "id": id,
-                        "tbl": tbl,
-                        "json_path": json_path,
-                        "question": question,
-                        "acc_tableqa": acc_tableqa,
-                        "acc_text_to_sql": acc_text_to_sql,
-                        "label": label,
-                        "choices": choices
-                    }
-                    diff_samples.append(sample)
-        
+            id = row['id']
+            tbl = row['tbl']
+            json_path = f"{_dir_squall}/tables/json/{tbl}.json"
+            question = row['question']
+            
+            if acc_tableqa != acc_text_to_sql and len(ans_tableqa)*len(ans_text_to_sql)>0:
+                # careful the order
+                label = [acc_tableqa, acc_text_to_sql].index(1)
+                choices = f"\nAnswer Choice 0 : {ans_tableqa}\nAnswer Choice 1 : {ans_text_to_sql}\n"
+                sample={
+                    "id": id,
+                    "tbl": tbl,
+                    "json_path": json_path,
+                    "question": question,
+                    "acc_tableqa": acc_tableqa,
+                    "ans_tableqa": ans_tableqa,
+                    "acc_text_to_sql": acc_text_to_sql,
+                    "ans_text_to_sql": ans_text_to_sql,
+                    "label": label,
+                    "choices": choices,
+                    "aug":0
+                }
+                diff_samples.append(sample)
+            elif self.config.augmentation:
+                positives=[]
+                positives.append(tableqa.loc[index,'answer'])
+                if acc_tableqa:
+                    positives.append(ans_tableqa)
+                if acc_text_to_sql:
+                    positives.append(ans_text_to_sql)
+                scope = random.sample(tableqa['predictions'].to_list(),50)
+                scope = [str(x) not in positives for x in scope]
+                scope2 = random.sample(text_to_sql['queried_ans'].to_list(),50)
+                scope2 = [str(x) for x in scope2 if x and x not in positives]
+                negatives = scope+scope2
+                label = random.choice([0,1])
+                if label==0:
+                    ans_tableqa = random.choice(positives)
+                    acc_tableqa = 1
+                    ans_text_to_sql = random.choice(negatives)
+                else:
+                    ans_text_to_sql = random.choice(positives)
+                    ans_tableqa = random.choice(negatives)
+                    acc_tableqa = 0
+                acc_text_to_sql = 1-acc_tableqa
+
+                choices = f"\nAnswer Choice 0 : {ans_tableqa}\nAnswer Choice 1 : {ans_text_to_sql}\n"
+                sample={
+                    "id": id,
+                    "tbl": tbl,
+                    "json_path": json_path,
+                    "question": question,
+                    "acc_tableqa": acc_tableqa,
+                    "ans_tableqa": ans_tableqa,
+                    "acc_text_to_sql": acc_text_to_sql,
+                    "ans_text_to_sql": ans_text_to_sql,
+                    "label": label,
+                    "choices": choices,
+                    "aug":1
+                }
+                diff_samples.append(sample)
+
         for j in range(len(diff_samples)):
             yield j, diff_samples[j]
             
