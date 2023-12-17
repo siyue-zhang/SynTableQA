@@ -9,7 +9,7 @@ python ./train.py \
   --task tableqa \
   --squall_plus plus \
   --do_predict \
-  --predict_split dev \
+  --predict_split test \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \

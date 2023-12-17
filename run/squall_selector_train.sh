@@ -10,7 +10,7 @@ output_dir="output/squall_selector"
 python ./train.py \
   --do_train \
   --do_eval \
-  --num_train_epochs 8 \
+  --num_train_epochs 10 \
   --run_name ${run_name} \
   --task selector \
   --output_dir ${output_dir} \
@@ -24,7 +24,7 @@ python ./train.py \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 8 \
   --gradient_accumulation_steps 1 \
-  --learning_rate 2e-5 \
+  --learning_rate 3e-5 \
   --weight_decay 0.01 \
   --max_grad_norm 0.1 \
   --predict_with_generate \

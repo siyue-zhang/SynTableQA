@@ -373,16 +373,21 @@ def make_query(sql, is_list, c, pred, replace=True):
         answer_list.append(result)
     
     if replace:
-        if 'how many' in pred['nl']:
+        if any(item in pred['nl'] for item in ['how many', 
+                                               'what is the number', 
+                                               'what was the number',
+                                               'what are the total number',
+                                               'what was the total number',
+                                               'what rank']):
             pass
         elif any(item in pred['nl'] for item in ['more/less', 'more or less']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'less', '1':'more'}
             answer_list = [replace_dict[answer_list[0]]]
-        elif any(item in pred['nl'] for item in ['is', 'was', 'does', 'do', 'did']) and answer_list[0] in ['0','1']:
-            replace_dict = {'0':'no', '1':'yes'}
-            answer_list = [replace_dict[answer_list[0]]]
-        elif any(item in pred['nl'] for item in ['above', 'below', 'above/below']) and answer_list[0] in ['0','1']:
+        elif any(item in pred['nl'] for item in ['above or below', 'above/below']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'below', '1':'above'}
+            answer_list = [replace_dict[answer_list[0]]]
+        elif any(pred['nl'].startswith(prefix) for prefix in ['is', 'was', 'does', 'do', 'did', 'were']) and answer_list[0] in ['0','1']:
+            replace_dict = {'0':'no', '1':'yes'}
             answer_list = [replace_dict[answer_list[0]]]
         elif any(item in pred['nl'] for item in ['month']) and answer_list[0] in [str(n) for n in range(1,13)]:
             replace_dict = {

@@ -68,9 +68,10 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'ans_tableqa': eval_dataset['ans_tableqa'],
                        'acc_text_to_sql': eval_dataset['acc_text_to_sql'],
                        'ans_text_to_sql': eval_dataset['ans_text_to_sql'],
+                       'query_fuzzy': eval_dataset['query_fuzzy'],
                        'score': scores}
             df = pd.DataFrame(to_save)
-            df.to_csv(f'./predict/{stage}.csv')
+            df.to_csv(f'./predict/{stage}.csv', na_rep='')
             print('predictions saved! ', stage)
         
         return {"acc": np.round(np.mean(scores),4),

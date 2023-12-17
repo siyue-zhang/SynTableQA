@@ -28,8 +28,8 @@ python ./train.py \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
-  --eval_steps 200 \
-  --save_steps 1000 \
+  --eval_steps 100 \
+  --save_steps 200 \
   --num_beams 5 \
   --generation_max_length 128 \
   --run_name ${run_name} \

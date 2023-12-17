@@ -37,6 +37,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                     "ans_tableqa": datasets.Value("string"),
                     "acc_text_to_sql": datasets.Value("int32"),
                     "ans_text_to_sql": datasets.Value("string"),
+                    "query_fuzzy": datasets.Value("string"),
                     "label": datasets.Value("int32"),
                     "claim": datasets.Value("string"),
                     "aug": datasets.Value("int32"),
@@ -123,6 +124,7 @@ class Selector(datasets.GeneratorBasedBuilder):
             ans_tableqa = df.loc[i, 'pred_ans']
 
             claim = f'answer : {ans_text_to_sql}'
+            query_fuzzy = df.loc[i, 'query_fuzzy']
             yield i, {
                 'id': id,
                 'tbl': tbl,
@@ -130,6 +132,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                 'question': question,
                 'acc_text_to_sql': acc_text_to_sql,
                 'ans_text_to_sql': ans_text_to_sql,
+                'query_fuzzy': query_fuzzy,
                 'acc_tableqa': acc_tableqa,
                 'ans_tableqa': ans_tableqa,
                 'label': acc_text_to_sql,

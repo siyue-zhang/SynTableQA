@@ -270,7 +270,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'queried_ans': predicted,
                        'src': eval_dataset['src']}
             df = pd.DataFrame(to_save)
-            df.to_csv(f'./predict/{stage}.csv')
+            df.to_csv(f'./predict/{stage}.csv', na_rep='')
             print('predictions saved! ', stage)
 
         return {"acc": np.round(np.mean(correct_flag),4)}

@@ -39,7 +39,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'src': eval_dataset['src'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)
-            df.to_csv(f'./predict/{stage}.csv')
+            df.to_csv(f'./predict/{stage}.csv', na_rep='')
             print('predictions saved! ', stage)
             
         return {"acc": np.round(np.mean(correct_flag),4)}
