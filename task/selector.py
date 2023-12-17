@@ -11,13 +11,14 @@ _dir_squall = "./data/squall"
 class SelectorConfig(datasets.BuilderConfig):
     """BuilderConfig for Selector."""
 
-    def __init__(self, dataset=None, **kwargs):
+    def __init__(self, dataset=None, add_from_train=False, **kwargs):
         """BuilderConfig for Selector.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
         super(SelectorConfig, self).__init__(**kwargs)
         self.dataset=dataset
+        self.add_from_train=add_from_train
 
 class Selector(datasets.GeneratorBasedBuilder):
 
@@ -49,7 +50,6 @@ class Selector(datasets.GeneratorBasedBuilder):
         dataset = self.config.dataset
         assert dataset in ['squall', 'sede']
         selector_dev_ratio = 0.2
-        add_from_train = True
 
         data = {}
         for split in ['train', 'dev', 'test']:
@@ -71,18 +71,20 @@ class Selector(datasets.GeneratorBasedBuilder):
         idx = int(len(tbl_dev_shuffle)*selector_dev_ratio)
         selector_dev_tbls = tbl_dev_shuffle[:idx]
         selector_train_tbls = tbl_dev_shuffle[idx:]
+        print('squall dev set is split into train and dev for training selector.')
 
         df_train = deepcopy(data['dev'])
         df_train = df_train[df_train['tbl'].isin(selector_train_tbls)]
 
-        if add_from_train:
+        if self.config.add_from_train:
             negatives_in_train = deepcopy(data['train'])
             negatives_in_train = negatives_in_train[negatives_in_train['acc_text_to_sql']==0]
             n_negative = negatives_in_train.shape[0]
             print(f'{n_negative} samples in train predictions are negatives (acc_text_to_sql=0)')
             positives_in_train = data['train'].sample(n=n_negative)
             df_train =  pd.concat([df_train, negatives_in_train, positives_in_train], ignore_index=True)
-
+            print('added some training samples.')
+            
         df_dev = deepcopy(data['dev'])
         df_dev = df_dev[df_dev['tbl'].isin(selector_dev_tbls)]
 

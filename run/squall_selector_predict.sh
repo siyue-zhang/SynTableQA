@@ -4,7 +4,7 @@ export WANDB_ENTITY=siyue-zhang
 
 model_name="microsoft/tapex-base-finetuned-tabfact"
 dataset_name="squall"
-output_dir="output/squall_selector"
+output_dir="output/squall_selector_add"
 checkpoint=1400
 
 python ./train.py \

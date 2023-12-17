@@ -20,7 +20,6 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     AutoTokenizer,
-    TapexTokenizer,
     BartForSequenceClassification,
     DataCollatorWithPadding,
     Trainer,
@@ -99,10 +98,12 @@ class DataTrainingArguments:
     task: str = field(
         default="tableqa", metadata={"help": "tableqa, text_to_sql or selector"}
     )
+    add_from_train: bool = field(
+        default=False, metadata={"help": "add samples from train set for training selector"}
+    )
     predict_split: str = field(
         default="test", metadata={"help": "which split to predict"}
     )
-    augmentation: bool = field(default=False, metadata={"help": "augment data."})
     overwrite_cache: bool = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
     )
@@ -265,7 +266,7 @@ def main():
 
     if data_args.task == 'selector':
         task = "./task/selector.py"
-        raw_datasets = load_dataset(task, dataset=data_args.dataset_name)
+        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, add_from_train=data_args.add_from_train)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, data_args.squall_plus)

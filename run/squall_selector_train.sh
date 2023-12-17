@@ -3,9 +3,9 @@ export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="microsoft/tapex-base-finetuned-tabfact"
-run_name="squall_selector_add"
+run_name="squall_selector"
 dataset_name="squall"
-output_dir="output/squall_selector_add"
+output_dir="output/squall_selector"
 
 python ./train.py \
   --do_train \
@@ -33,8 +33,8 @@ python ./train.py \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --eval_steps 50 \
-  --max_eval_samples 200 \
-  --max_train_samples 100
+  --eval_steps 50 
 
-# --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
+  # --add_from_train \
+  # --max_eval_samples 200 \
+  # --max_train_samples 100

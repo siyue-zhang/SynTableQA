@@ -16,6 +16,8 @@ python ./train.py \
   --output_dir ${output_dir} \
   --model_name_or_path ${model_name} \
   --overwrite_output_dir \
+  --load_best_model_at_end \
+  --metric_for_best_model acc \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
@@ -37,4 +39,3 @@ python ./train.py \
   # --max_eval_samples 10 \
   # --max_train_samples 100
 
-# --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \

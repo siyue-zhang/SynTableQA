@@ -1,11 +1,11 @@
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-export WANDB_PROJECT=f_SynTableQA
+export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
 run_name="squall_tableqa"
 dataset_name="squall"
-output_dir="output/f_squall_tableqa"
+output_dir="output/squall_tableqa"
 
 python ./train.py \
   --do_train \
@@ -16,6 +16,8 @@ python ./train.py \
   --max_target_length 128 \
   --val_max_target_length 128 \
   --overwrite_output_dir \
+  --load_best_model_at_end \
+  --metric_for_best_model acc \
   --per_device_train_batch_size 6 \
   --gradient_accumulation_steps 4 \
   --per_device_eval_batch_size 6 \
@@ -33,9 +35,9 @@ python ./train.py \
   --run_name ${run_name} \
   --task tableqa \
   --output_dir ${output_dir} \
-  --squall_plus default
+  --squall_plus default \
+  --save_total_limit 2
 
-  # --save_total_limit 2 \
   # --max_eval_samples 10 \
   # --max_train_samples 100
 
