@@ -5,23 +5,27 @@ from metric.squall_evaluator import Evaluator
 
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eval_csv=None):    
-    tableqa = pd.read_csv(eval_csv['tableqa'])
-    text_to_sql = pd.read_csv(eval_csv['text_to_sql'])
-
+    # tableqa = pd.read_csv(eval_csv['tableqa'], index_col=0)
+    # text_to_sql = pd.read_csv(eval_csv['text_to_sql'], index_col=0)
+    
     def compute_metrics(eval_preds):
-        # nonlocal tokenizer
         preds, labels = eval_preds
         if isinstance(preds, tuple):
             preds = preds[0]
         
         TP, FP, TN, FN = 0,0,0,0
         correct_flag = []
-        pred_dict = {}
+        scores = []
+        input_tokens = [] 
+        predictions = []
         for i in range(preds.shape[0]):
             pred = preds[i,:].argmax()
+            predictions.append(pred)
             label = labels[i]
             sample = eval_dataset[i]
-            pred_dict[sample['id']] = pred
+            acc_text_to_sql = sample['acc_text_to_sql']
+            acc_tableqa = sample['acc_tableqa']
+            input_tokens.append(tokenizer.decode(sample['input_ids']))
 
             if pred==label:
                 correct_flag.append(True)
@@ -36,6 +40,11 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
                 TN+=1
             else:
                 FN+=1
+            if sample['ans_text_to_sql'] and pred==1:
+                score = acc_text_to_sql
+            else:
+                score = acc_tableqa
+            scores.append(score)
             
         if TP+FP==0:
             precision=0
@@ -49,48 +58,28 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
             f1=0
         else:
             f1=np.round(2 * (precision * recall) / (precision + recall), 4)
-
-
-        ids = []
-        tbls = []
-        questions = []
-        acc_tableqa = []
-        acc_text_to_sql =[]
-        picks = []
-        scores = []
-        src = []
-        for j in range(tableqa.shape[0]):
-            id = tableqa.loc[j,'id']
-            ids.append(id)
-            tbls.append(tableqa.loc[j, 'tbl'])
-            questions.append(tableqa.loc[j, 'question'])
-            a_tableqa = tableqa.loc[j, 'acc']
-            acc_tableqa.append(a_tableqa)
-            a_text_to_sql = text_to_sql.loc[j, 'acc']
-            acc_text_to_sql.append(a_text_to_sql)
-            if id in pred_dict:
-                pick = pred_dict[id]
-            else:
-                pick = 0
-            picks.append(pick)
-            scores.append(a_tableqa if pick==1 else a_text_to_sql)
-            if src in tableqa:
-                src.append(tableqa.loc[j, 'src'])
-
+        
         if stage:
-            to_save = {'id': ids,
-                       'tbl': tbls,
-                       'question': questions,
-                       'acc_tableqa': acc_tableqa,
-                       'acc_text_to_sql': acc_text_to_sql,
-                       'pick': picks,
-                       'score': scores,
-                       'src': src}
+            to_save = {'id': eval_dataset['id'],
+                       'tbl': eval_dataset['tbl'],
+                       'question': eval_dataset['question'],
+                       'inputs': input_tokens,
+                       'preds': predictions,
+                       'labels': labels,
+                       'acc_tableqa': eval_dataset['acc_tableqa'],
+                       'ans_tableqa': eval_dataset['ans_tableqa'],
+                       'acc_text_to_sql': eval_dataset['acc_text_to_sql'],
+                       'ans_text_to_sql': eval_dataset['ans_text_to_sql'],
+                       'score': scores}
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/{stage}.csv')
             print('predictions saved! ', stage)
         
         return {"acc": np.round(np.mean(scores),4),
                 "acc_cls": np.round(np.mean(correct_flag),4),
-                "f1": f1}
+                "recall": np.round(recall,4),
+                "f1": f1,
+                "acc_tableqa": np.average(eval_dataset["acc_tableqa"]),
+                "acc_text_to_sql": np.average(eval_dataset["acc_text_to_sql"])}
+    
     return compute_metrics

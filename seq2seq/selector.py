@@ -9,13 +9,16 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     nls = examples["question"]
     labels = examples["label"]
     json_paths = examples["json_path"]
+    claims = examples["claim"]
 
     num_ex = len(tbls)
     table_contents = {}
     tables = []
+    concat = []
 
     for i in range(num_ex):
         tbl = tbls[i]
+        concat.append(nls[i]+' '+claims[i])
 
         if tbl not in table_contents:
             table_dir = json_paths[i]
@@ -65,7 +68,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
         table=tables, 
-        query=nls,
+        query=concat,
         max_length=max_source_length, 
         padding=padding, truncation=True)
      
@@ -85,7 +88,7 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
     # ensure squall <-> default
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", dataset='squall')
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
     train_dataset = datasets["validation"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
     train_dataset = train_dataset.map(

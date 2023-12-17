@@ -26,12 +26,15 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
         TP, FP, TN, FN = 0,0,0,0
         correct_flag = []
         pred_dict = {}
+        input_tokens_dict = {}
         for i in range(preds.shape[0]):
             pred = preds[i,:].argmax()
             label = labels[i]
             sample = eval_dataset[i]
+
             if sample['aug']==0:
                 pred_dict[sample['id']] = pred
+                input_tokens_dict[sample['id']] = tokenizer.decode(sample['input_ids'])
 
             if pred==label:
                 correct_flag.append(True)
@@ -72,6 +75,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
         scores = []
         src = []
         tag = []
+        input_tokens = []
         for j in range(tableqa.shape[0]):
             id = tableqa.loc[j,'id']
             ids.append(id)
@@ -96,9 +100,11 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
             if id in pred_dict:
                 pick = pred_dict[id]
                 tag.append(1)
+                input_tokens.append(input_tokens_dict[id])
             else:
                 pick = 0
                 tag.append(0)
+                input_tokens.append('')
             picks.append(pick)
             scores.append(a_tableqa if pick==0 else a_text_to_sql)
             if 'src' in tableqa:
@@ -109,6 +115,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eva
                        'tbl': tbls,
                        'question': questions,
                        'answer': answers,
+                       'input_tokens': input_tokens,
                        'acc_tableqa': acc_tableqa,
                        'ans_preds': ans_preds,
                        'acc_text_to_sql': acc_text_to_sql,

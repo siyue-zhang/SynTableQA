@@ -166,3 +166,4 @@ wandb/
 *.slurm
 setup.sh
 monitor/
+backup/

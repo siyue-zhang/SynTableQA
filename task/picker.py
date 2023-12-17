@@ -77,6 +77,9 @@ class Selector(datasets.GeneratorBasedBuilder):
             acc_tableqa=int(acc_tableqa)
         return acc_tableqa
 
+    def cut(self, ans):
+        return ans[:min(40,len(ans))]
+    
     def _generate_examples(self, split_key, tableqa, text_to_sql):
         """This function returns the examples in the raw (text) form."""
         logger.info("generating examples from local trained csv")
@@ -98,7 +101,7 @@ class Selector(datasets.GeneratorBasedBuilder):
             if acc_tableqa != acc_text_to_sql and len(ans_tableqa)*len(ans_text_to_sql)>0:
                 # careful the order
                 label = [acc_tableqa, acc_text_to_sql].index(1)
-                choices = f"\nAnswer Choice 0 : {ans_tableqa}\nAnswer Choice 1 : {ans_text_to_sql}\n"
+                choices = f"\nAnswer 0 : {self.cut(ans_tableqa)}\nAnswer 1 : {self.cut(ans_text_to_sql)}\n"
                 sample={
                     "id": id,
                     "tbl": tbl,
@@ -136,7 +139,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                     acc_tableqa = 0
                 acc_text_to_sql = 1-acc_tableqa
 
-                choices = f"\nAnswer Choice 0 : {ans_tableqa}\nAnswer Choice 1 : {ans_text_to_sql}\n"
+                choices = f"\nAnswer Choice 0 : {self.cut(ans_tableqa)}\nAnswer Choice 1 : {self.cut(ans_text_to_sql)}\n"
                 sample={
                     "id": id,
                     "tbl": tbl,

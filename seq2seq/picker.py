@@ -15,11 +15,11 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     num_ex = len(tbls)
     table_contents = {}
     tables = []
-    concat = []
+    # concat = []
 
     for i in range(num_ex):
         tbl = tbls[i]
-        concat.append(nls[i]+choices[i])
+        # concat.append(nls[i]+choices[i])
 
         if tbl not in table_contents:
             table_dir = json_paths[i]
@@ -74,20 +74,21 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         max_length=max_source_length, 
         padding=padding, truncation=True)
 
-    # # concat choices at end
-    # concat = []
-    # nl_inputs = model_inputs['input_ids']
-    # for n in range(num_ex):
-    #     nl_ids = nl_inputs[n]
-    #     len_ = len(nl_ids)
-    #     len_ = min(max_source_length-50, len_-1)
-    #     nl_tokens = tokenizer.decode(nl_ids[:len_])[1:] + choices[n]
-    #     concat.append(nl_tokens)
+    # concat choices at end
+    concat = []
+    nl_inputs = model_inputs['input_ids']
+    for n in range(num_ex):
+        nl_ids = nl_inputs[n]
+        len_ = len(nl_ids)
+        len_ = min(max_source_length-40, len_-1)
+        # <s>
+        nl_tokens = tokenizer.decode(nl_ids[:len_])[3:] + choices[n]
+        concat.append(nl_tokens)
 
-    # model_inputs = tokenizer(
-    #     answer=concat,
-    #     max_length=max_source_length, 
-    #     padding=padding, truncation=True)
+    model_inputs = tokenizer(
+        answer=concat,
+        max_length=max_source_length, 
+        padding=padding, truncation=True)
 
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.

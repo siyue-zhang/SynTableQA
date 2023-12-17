@@ -3,6 +3,7 @@ import os
 import datasets
 import pandas as pd
 import random
+from copy import deepcopy
 
 logger = datasets.logging.get_logger(__name__)
 _dir_squall = "./data/squall"
@@ -32,8 +33,12 @@ class Selector(datasets.GeneratorBasedBuilder):
                     "json_path": datasets.Value("string"),
                     "question": datasets.Value("string"),
                     "acc_tableqa": datasets.Value("int32"),
+                    "ans_tableqa": datasets.Value("string"),
                     "acc_text_to_sql": datasets.Value("int32"),
+                    "ans_text_to_sql": datasets.Value("string"),
                     "label": datasets.Value("int32"),
+                    "claim": datasets.Value("string"),
+                    "aug": datasets.Value("int32"),
                 }
             ),
             supervised_keys=None,
@@ -43,109 +48,92 @@ class Selector(datasets.GeneratorBasedBuilder):
         predict_dir = '/scratch/sz4651/Projects/SynTableQA/predict/'
         dataset = self.config.dataset
         assert dataset in ['squall', 'sede']
+        selector_dev_ratio = 0.3
+        add_from_train = True
 
-        tableqa_train = predict_dir + dataset+ '_tableqa_train.csv'
-        tableqa_train = pd.read_csv(tableqa_train)
+        data = {}
+        for split in ['train', 'dev', 'test']:
+            tableqa = predict_dir + dataset+ f'_tableqa_{split}.csv'
+            tableqa = pd.read_csv(tableqa, index_col=0)
+            text_to_sql = predict_dir + dataset+ f'_text_to_sql_{split}.csv'
+            text_to_sql = pd.read_csv(text_to_sql, index_col=0)
 
-        tableqa_dev = predict_dir + dataset+ '_tableqa_dev.csv'
-        tableqa_dev = pd.read_csv(tableqa_dev)
+            text_to_sql.rename(columns={'acc': 'acc_text_to_sql'}, inplace=True)
+            text_to_sql['acc_tableqa'] = tableqa['acc']
+            text_to_sql['pred_ans'] = tableqa['predictions']
 
-        tableqa = pd.concat([tableqa_train, tableqa_dev], axis=0)
+            data[split] = text_to_sql
+        
+        tbl_dev = list(set(data['dev']['tbl'].to_list()))
+        tbl_dev_shuffle = deepcopy(tbl_dev)
+        random.shuffle(tbl_dev_shuffle)
 
-        tbls = list(set(tableqa['tbl']))
+        idx = int(len(tbl_dev_shuffle)*selector_dev_ratio)
+        selector_dev_tbls = tbl_dev_shuffle[:idx]
+        selector_train_tbls = tbl_dev_shuffle[idx:]
 
-        random.seed(42)
-        random.shuffle(tbls)
-        split_index = int(0.8 * len(tbls))
-        train_tbl = tbls[:split_index]
-        dev_tbl = tbls[split_index:]
+        df_train = deepcopy(data['dev'])
+        df_train = df_train[df_train['tbl'].isin(selector_train_tbls)]
 
-        text_to_sql_train = predict_dir + dataset+ '_text_to_sql_train.csv'
-        text_to_sql_train = pd.read_csv(text_to_sql_train)
+        if add_from_train:
+            negatives_in_train = deepcopy(data['train'])
+            negatives_in_train = negatives_in_train[negatives_in_train['acc_text_to_sql']==0]
+            n_negative = negatives_in_train.shape[0]
+            print(f'{n_negative} samples in train predictions are negatives (acc_text_to_sql=0)')
+            positives_in_train = data['train'].sample(n=n_negative)
+            df_train =  pd.concat([df_train, negatives_in_train, positives_in_train], ignore_index=True)
 
-        text_to_sql_dev = predict_dir + dataset+ '_text_to_sql_dev.csv'
-        text_to_sql_dev = pd.read_csv(text_to_sql_dev)
+        df_dev = deepcopy(data['dev'])
+        df_dev = df_dev[df_dev['tbl'].isin(selector_dev_tbls)]
 
-        text_to_sql = pd.concat([text_to_sql_train, text_to_sql_dev], axis=0)
-
-        train_tableqa = tableqa[tableqa['tbl'].isin(train_tbl)]
-        train_text_to_sql = text_to_sql[text_to_sql['tbl'].isin(train_tbl)]
-
-        dev_tableqa = tableqa[tableqa['tbl'].isin(dev_tbl)]
-        dev_text_to_sql = text_to_sql[text_to_sql['tbl'].isin(dev_tbl)]
-
-        test_tableqa = pd.read_csv(predict_dir + dataset + f'_tableqa_test.csv')
-        test_text_to_sql = pd.read_csv(predict_dir + dataset + f'_text_to_sql_test.csv')
+        df_test = deepcopy(data['test'])
 
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN, 
                 gen_kwargs={"split_key": "train", 
-                            "tableqa": train_tableqa,
-                            "text_to_sql": train_text_to_sql}),
+                            "df": df_train.reset_index()}),
             datasets.SplitGenerator(
                 name=datasets.Split.VALIDATION, 
                 gen_kwargs={"split_key": "dev", 
-                            "tableqa": dev_tableqa,
-                            "text_to_sql": dev_text_to_sql}),
+                            "df": df_dev.reset_index()}),
             datasets.SplitGenerator(
                 name=datasets.Split.TEST, 
                 gen_kwargs={"split_key": "test", 
-                            "tableqa": test_tableqa,
-                            "text_to_sql": test_text_to_sql}),
+                            "df": df_test.reset_index()}),
         ]
 
-    def clean(self, acc_tableqa):
-        if isinstance(acc_tableqa,str):
-            if acc_tableqa.lower()=='true':
-                acc_tableqa=1
-            else:
-                acc_tableqa=0
-        else:
-            acc_tableqa=int(acc_tableqa)
-        return acc_tableqa
-
-    def _generate_examples(self, split_key, tableqa, text_to_sql):
+    def _generate_examples(self, split_key, df):
         """This function returns the examples in the raw (text) form."""
         logger.info("generating examples from local trained csv")
 
-        positives = []
-        negatives = []
-        for i, id in enumerate(list(tableqa['id'])):
-            tableqa_row = tableqa.loc[tableqa['id']==id,:]
-            text_to_sql_row = text_to_sql.loc[text_to_sql['id']==id,:]
-            acc_tableqa = tableqa_row['acc'].values[0]
-            acc_tableqa = self.clean(acc_tableqa)
-            acc_text_to_sql = text_to_sql_row['acc'].values[0]
-            acc_text_to_sql = self.clean(acc_text_to_sql)
-            if acc_tableqa==1 and acc_text_to_sql==0:
-                label=1
-            else:
-                label=0
-            tbl = tableqa_row['tbl'].values[0]
+        n_ex = df.shape[0]
+        for i in range(n_ex):
+            id = df.loc[i, 'id']
+            tbl = df.loc[i, 'tbl']
             json_path = f"{_dir_squall}/tables/json/{tbl}.json"
-            question = tableqa_row['question'].values[0]
+            question = df.loc[i, 'question']
 
-            sample={
-                "id": id,
-                "tbl": tbl,
-                "json_path": json_path,
-                "question": question,
-                "acc_tableqa": acc_tableqa,
-                "acc_text_to_sql": acc_text_to_sql,
-                "label": label
+            acc_text_to_sql = df.loc[i, 'acc_text_to_sql']
+            ans_text_to_sql = df.loc[i, 'queried_ans']
+
+            acc_tableqa = df.loc[i, 'acc_tableqa']
+            ans_tableqa = df.loc[i, 'pred_ans']
+
+            claim = f'answer : {ans_text_to_sql}'
+            yield i, {
+                'id': id,
+                'tbl': tbl,
+                'json_path': json_path,
+                'question': question,
+                'acc_text_to_sql': acc_text_to_sql,
+                'ans_text_to_sql': ans_text_to_sql,
+                'acc_tableqa': acc_tableqa,
+                'ans_tableqa': ans_tableqa,
+                'label': acc_text_to_sql,
+                'claim': claim,
+                'aug': 0
             }
-            if label==0:
-                negatives.append(sample)
-            else:
-                positives.append(sample)
-        
-        for j in range(len(negatives)//2):
-            if j%2==0:
-                out = random.choice(negatives)
-            else:
-                out = random.choice(positives)
-            yield j, out
 
         
 if __name__=='__main__':
