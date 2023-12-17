@@ -45,10 +45,10 @@ class Selector(datasets.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager):
-        predict_dir = '/scratch/sz4651/Projects/SynTableQA/predict/'
+        predict_dir = f'./predict/'
         dataset = self.config.dataset
         assert dataset in ['squall', 'sede']
-        selector_dev_ratio = 0.3
+        selector_dev_ratio = 0.2
         add_from_train = True
 
         data = {}

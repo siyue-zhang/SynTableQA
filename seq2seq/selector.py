@@ -86,9 +86,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
-    # ensure squall <-> default
-    # squall_tableqa can be plus or default
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
+ 
+    datasets = load_dataset(f"../task/selector.py", dataset='squall')
     train_dataset = datasets["validation"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
     train_dataset = train_dataset.map(
@@ -101,8 +100,3 @@ if __name__=='__main__':
         batched=True,)
     print(train_dataset[2])
     print(tokenizer.decode(train_dataset[2]['input_ids']))
-
-    # outputs = model(**encoding)
-    # print(outputs.logits[0], outputs.logits[0].size)
-    # output_id = int(outputs.logits[0].argmax(dim=0))
-    # print(model.config.id2label[output_id])

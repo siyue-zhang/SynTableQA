@@ -263,10 +263,7 @@ def main():
     
     set_seed(training_args.seed)
 
-    if data_args.task == 'picker':
-        task = "./task/picker.py"
-        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, augmentation=data_args.augmentation)
-    elif data_args.task == 'selector':
+    if data_args.task == 'selector':
         task = "./task/selector.py"
         raw_datasets = load_dataset(task, dataset=data_args.dataset_name)
     elif data_args.dataset_name == 'squall':
@@ -319,7 +316,7 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-    elif data_args.task.lower() in ['picker','selector']:
+    elif data_args.task.lower() == 'selector':
         model = BartForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=name,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -330,10 +327,6 @@ def main():
         )
     else:
         raise NotImplementedError
-    
-    if data_args.task=='selector':
-        model.config.label2id = {"text_to_sql": 0, "tableqa": 1}
-        model.config.id2label = {0: "text_to_sql", 1: "tableqa"}
 
     if data_args.dataset_name=='squall' and data_args.task.lower()=='tableqa':
         from seq2seq.squall_tableqa import preprocess_function
@@ -341,12 +334,9 @@ def main():
         from seq2seq.squall import preprocess_function
     elif data_args.task.lower()=='selector':
         from seq2seq.selector import preprocess_function
-    elif data_args.task.lower()=='picker':
-        from seq2seq.picker import preprocess_function  
     else:
         raise NotImplementedError
     
-
     fn_kwargs={"tokenizer":tokenizer, 
                 "max_source_length": data_args.max_source_length,
                 "max_target_length": data_args.max_target_length,
@@ -411,7 +401,7 @@ def main():
 
     label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
     
-    if data_args.task in ['picker','selector']:
+    if data_args.task == 'selector':
         data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer,
             pad_to_multiple_of=8 if training_args.fp16 else None,
@@ -431,34 +421,26 @@ def main():
         from metric.squall import prepare_compute_metrics
     elif data_args.task.lower()=='selector':
         from metric.selector import prepare_compute_metrics
-    elif data_args.task.lower()=='picker':
-        from metric.picker import prepare_compute_metrics
 
     else:
         raise NotImplementedError
     
-    p = '_plus' if data_args.squall_plus == 'plus' else ''
     if training_args.do_train:            
-        eval_csv={'tableqa': './predict/'+data_args.dataset_name+p+'_tableqa_dev.csv',
-                  'text_to_sql': './predict/'+data_args.dataset_name+p+'_text_to_sql_dev.csv'}
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=eval_dataset, 
             stage=None, 
-            fuzzy=data_args.postproc_fuzzy_string,
-            eval_csv=eval_csv)
+            fuzzy=data_args.postproc_fuzzy_string)
     else:
-        eval_csv={'tableqa': './predict/'+data_args.dataset_name+p+f'_tableqa_{data_args.predict_split}.csv',
-                  'text_to_sql': './predict/'+data_args.dataset_name+p+f'_text_to_sql_{data_args.predict_split}.csv'}
+        p = '_plus' if data_args.squall_plus == 'plus' else ''
         stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 
             stage=stage, 
-            fuzzy=data_args.postproc_fuzzy_string,
-            eval_csv=eval_csv)
+            fuzzy=data_args.postproc_fuzzy_string)
 
-    if data_args.task in ['picker','selector']:
+    if data_args.task == 'selector':
         trainer = Trainer(
             model=model,
             args=training_args,
@@ -513,7 +495,7 @@ def main():
     # Prediction
     if training_args.do_predict:
         logger.info("*** Predict ***")
-        if data_args.task in ['picker', 'selector']:
+        if data_args.task == 'selector':
             predict_results = trainer.predict(
                 predict_dataset,
                 metric_key_prefix="predict",

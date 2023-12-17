@@ -4,10 +4,8 @@ import json
 from metric.squall_evaluator import Evaluator
 
 
-def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None, eval_csv=None):    
-    # tableqa = pd.read_csv(eval_csv['tableqa'], index_col=0)
-    # text_to_sql = pd.read_csv(eval_csv['text_to_sql'], index_col=0)
-    
+def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
+
     def compute_metrics(eval_preds):
         preds, labels = eval_preds
         if isinstance(preds, tuple):

@@ -33,9 +33,8 @@ python ./train.py \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --eval_steps 50 
-
-  # --max_eval_samples 200 \
-  # --max_train_samples 100
+  --eval_steps 50 \
+  --max_eval_samples 200 \
+  --max_train_samples 100
 
 # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
