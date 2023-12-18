@@ -27,6 +27,7 @@ from transformers import (
 )
 from transformers.file_utils import is_offline_mode
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +267,10 @@ def main():
 
     if data_args.task == 'selector':
         task = "./task/selector.py"
-        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, add_from_train=data_args.add_from_train, download_mode="force_redownload")
+        cache_directory = "~/.cache/huggingface/datasets/selector"
+        if os.path.exists(cache_directory):
+            shutil.rmtree(cache_directory)
+        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, add_from_train=data_args.add_from_train)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, data_args.squall_plus)
