@@ -267,10 +267,11 @@ def main():
 
     if data_args.task == 'selector':
         task = "./task/selector.py"
-        cache_directory = "~/.cache/huggingface/datasets/selector"
-        if os.path.exists(cache_directory):
-            shutil.rmtree(cache_directory)
-        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, add_from_train=data_args.add_from_train)
+        raw_datasets = load_dataset(task, 
+                                    dataset=data_args.dataset_name, 
+                                    add_from_train=data_args.add_from_train, 
+                                    download_mode='force_redownload',
+                                    ignore_verifications=True)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, data_args.squall_plus)

@@ -5,12 +5,12 @@ export WANDB_ENTITY=siyue-zhang
 model_name="microsoft/tapex-base-finetuned-tabfact"
 dataset_name="squall"
 output_dir="output/squall_selector"
-checkpoint=200
+checkpoint=150
 
 python ./train.py \
   --task selector \
   --do_predict \
-  --predict_split dev \
+  --predict_split test \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
