@@ -53,7 +53,12 @@ class Selector(datasets.GeneratorBasedBuilder):
         selector_dev_ratio = 0.2
 
         data = {}
-        for split in ['train', 'dev', 'test']:
+        if self.config.add_from_train:
+            scope = ['train', 'dev', 'test']
+        else:
+            scope = ['dev', 'test']
+
+        for split in scope:
             tableqa = predict_dir + dataset+ f'_tableqa_{split}.csv'
             tableqa = pd.read_csv(tableqa, index_col=0)
             text_to_sql = predict_dir + dataset+ f'_text_to_sql_{split}.csv'
@@ -65,14 +70,26 @@ class Selector(datasets.GeneratorBasedBuilder):
 
             data[split] = text_to_sql
         
-        tbl_dev = list(set(data['dev']['tbl'].to_list()))
-        tbl_dev_shuffle = deepcopy(tbl_dev)
-        random.shuffle(tbl_dev_shuffle)
+        split_path = './selector_splits.json'
+        if os.path.exists(split_path):
+            with open(split_path, 'r') as json_file:
+                splits = json.load(json_file)
+            selector_dev_tbls = splits['dev']
+            selector_train_tbls = splits['train']
+            print(f'load tbls from {split_path}.')
+        else:
+            tbl_dev = list(set(data['dev']['tbl'].to_list()))
+            tbl_dev_shuffle = deepcopy(tbl_dev)
+            random.shuffle(tbl_dev_shuffle)
 
-        idx = int(len(tbl_dev_shuffle)*selector_dev_ratio)
-        selector_dev_tbls = tbl_dev_shuffle[:idx]
-        selector_train_tbls = tbl_dev_shuffle[idx:]
-        print('squall dev set is split into train and dev for training selector.')
+            idx = int(len(tbl_dev_shuffle)*selector_dev_ratio)
+            selector_dev_tbls = tbl_dev_shuffle[:idx]
+            selector_train_tbls = tbl_dev_shuffle[idx:]
+            print('squall dev set is split into train and dev for training selector.')
+
+            to_save = {'dev': selector_dev_tbls, 'train': selector_train_tbls}
+            with open(split_path, 'w') as f:
+                json.dump(to_save, f)
 
         df_train = deepcopy(data['dev'])
         df_train = df_train[df_train['tbl'].isin(selector_train_tbls)]
@@ -95,15 +112,15 @@ class Selector(datasets.GeneratorBasedBuilder):
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN, 
                 gen_kwargs={"split_key": "train", 
-                            "df": df_train.reset_index()}),
+                            "df": df_train.reset_index().astype(str)}),
             datasets.SplitGenerator(
                 name=datasets.Split.VALIDATION, 
                 gen_kwargs={"split_key": "dev", 
-                            "df": df_dev.reset_index()}),
+                            "df": df_dev.reset_index().astype(str)}),
             datasets.SplitGenerator(
                 name=datasets.Split.TEST, 
                 gen_kwargs={"split_key": "test", 
-                            "df": df_test.reset_index()}),
+                            "df": df_test.reset_index().astype(str)}),
         ]
 
     def _generate_examples(self, split_key, df):
@@ -125,6 +142,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 
             claim = f'answer : {ans_text_to_sql}'
             query_fuzzy = df.loc[i, 'query_fuzzy']
+            
             yield i, {
                 'id': id,
                 'tbl': tbl,

@@ -266,7 +266,7 @@ def main():
 
     if data_args.task == 'selector':
         task = "./task/selector.py"
-        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, add_from_train=data_args.add_from_train)
+        raw_datasets = load_dataset(task, dataset=data_args.dataset_name, add_from_train=data_args.add_from_train, download_mode="force_redownload")
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, data_args.squall_plus)

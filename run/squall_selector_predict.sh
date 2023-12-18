@@ -10,7 +10,7 @@ checkpoint=200
 python ./train.py \
   --task selector \
   --do_predict \
-  --predict_split test \
+  --predict_split dev \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \

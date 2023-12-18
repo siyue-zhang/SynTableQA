@@ -1,14 +1,14 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1
 
 model_name="t5-large"
 dataset_name="squall"
 output_dir="output/squall_text_to_sql"
-checkpoint=1800
+checkpoint=1600
 
 python ./train.py \
   --task text_to_sql \
   --do_predict \
-  --predict_split test \
+  --predict_split dev \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \

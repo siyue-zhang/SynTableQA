@@ -22,6 +22,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             label = labels[i]
             sample = eval_dataset[i]
             acc_text_to_sql = sample['acc_text_to_sql']
+            ans_text_to_sql = sample['ans_text_to_sql']
             acc_tableqa = sample['acc_tableqa']
             input_tokens.append(tokenizer.decode(sample['input_ids']))
 
@@ -38,7 +39,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 TN+=1
             else:
                 FN+=1
-            if sample['ans_text_to_sql'] and pred==1:
+            if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none', 'na'] and pred==1:
                 score = acc_text_to_sql
             else:
                 score = acc_tableqa

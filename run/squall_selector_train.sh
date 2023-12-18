@@ -21,17 +21,17 @@ python ./train.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
-  --per_device_train_batch_size 4 \
+  --per_device_train_batch_size 8 \
   --per_device_eval_batch_size 8 \
-  --gradient_accumulation_steps 1 \
+  --gradient_accumulation_steps 4 \
   --learning_rate 3e-5 \
   --weight_decay 0.01 \
   --max_grad_norm 0.1 \
   --predict_with_generate \
-  --save_steps 200 \
-  --save_total_limit 1 \
+  --save_steps 50 \
+  --save_total_limit 2 \
   --logging_steps 10 \
-  --warmup_ratio 0.1 \
+  --warmup_ratio 0.2 \
   --evaluation_strategy steps \
   --eval_steps 50 
 
