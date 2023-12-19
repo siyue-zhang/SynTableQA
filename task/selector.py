@@ -33,6 +33,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                     "tbl": datasets.Value("string"),
                     "json_path": datasets.Value("string"),
                     "question": datasets.Value("string"),
+                    "answer": datasets.Value("string"),
                     "acc_tableqa": datasets.Value("int32"),
                     "ans_tableqa": datasets.Value("string"),
                     "acc_text_to_sql": datasets.Value("int32"),
@@ -142,12 +143,14 @@ class Selector(datasets.GeneratorBasedBuilder):
 
             claim = f'answer : {ans_text_to_sql}'
             query_fuzzy = df.loc[i, 'query_fuzzy']
+            answer = df.loc[i, 'answer']
             
             yield i, {
                 'id': id,
                 'tbl': tbl,
                 'json_path': json_path,
                 'question': question,
+                'answer': answer,
                 'acc_text_to_sql': acc_text_to_sql,
                 'ans_text_to_sql': ans_text_to_sql,
                 'query_fuzzy': query_fuzzy,

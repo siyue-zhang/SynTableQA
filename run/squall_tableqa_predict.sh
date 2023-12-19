@@ -8,7 +8,7 @@ checkpoint=4400
 python ./train.py \
   --task tableqa \
   --do_predict \
-  --predict_split dev \
+  --predict_split train \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \

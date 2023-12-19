@@ -62,6 +62,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             to_save = {'id': eval_dataset['id'],
                        'tbl': eval_dataset['tbl'],
                        'question': eval_dataset['question'],
+                       'answer': eval_dataset['answer'],
                        'inputs': input_tokens,
                        'preds': predictions,
                        'labels': labels,
