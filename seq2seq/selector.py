@@ -87,8 +87,8 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
  
-    datasets = load_dataset(f"../task/selector.py", dataset='squall')
-    train_dataset = datasets["validation"]
+    datasets = load_dataset(f"/home/siyue/Projects/SynTableQA/task/selector.py", dataset='squall', add_from_train=True)
+    train_dataset = datasets["train"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
     train_dataset = train_dataset.map(
         preprocess_function,

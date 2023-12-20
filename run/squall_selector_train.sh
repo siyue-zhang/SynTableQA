@@ -2,7 +2,7 @@ export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
-model_name="microsoft/tapex-base-finetuned-tabfact"
+model_name="microsoft/tapex-large-finetuned-tabfact"
 run_name="squall_selector"
 dataset_name="squall"
 output_dir="output/squall_selector"
@@ -24,7 +24,7 @@ python ./train.py \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 8 \
   --gradient_accumulation_steps 4 \
-  --learning_rate 3e-5 \
+  --learning_rate 5e-6 \
   --weight_decay 0.01 \
   --max_grad_norm 0.1 \
   --predict_with_generate \
@@ -33,8 +33,8 @@ python ./train.py \
   --logging_steps 10 \
   --warmup_ratio 0.2 \
   --evaluation_strategy steps \
-  --eval_steps 50 
+  --eval_steps 50 \
+  --add_from_train 
 
-  # --add_from_train \
   # --max_eval_samples 200 \
   # --max_train_samples 100

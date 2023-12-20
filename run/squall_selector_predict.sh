@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
-model_name="microsoft/tapex-base-finetuned-tabfact"
+model_name="microsoft/tapex-large-finetuned-tabfact"
 dataset_name="squall"
 output_dir="output/squall_selector"
-checkpoint=150
+checkpoint=1350
 
 python ./train.py \
   --task selector \

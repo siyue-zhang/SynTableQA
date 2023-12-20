@@ -17,7 +17,11 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         input_tokens = [] 
         predictions = []
         for i in range(preds.shape[0]):
-            pred = preds[i,:].argmax()
+            # can introduce a hyperparameter alpha to trade precision with recall
+            alpha = 1
+            pred = preds[i,:]
+            pred[1] *= alpha
+            pred = pred.argmax()
             predictions.append(pred)
             label = labels[i]
             sample = eval_dataset[i]
@@ -79,6 +83,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         return {"acc": np.round(np.mean(scores),4),
                 "acc_cls": np.round(np.mean(correct_flag),4),
                 "recall": np.round(recall,4),
+                "precision": np.round(precision,4),
                 "f1": f1,
                 "acc_tableqa": np.average(eval_dataset["acc_tableqa"]),
                 "acc_text_to_sql": np.average(eval_dataset["acc_text_to_sql"])}

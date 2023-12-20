@@ -62,7 +62,10 @@ class Selector(datasets.GeneratorBasedBuilder):
         for split in scope:
             tableqa = predict_dir + dataset+ f'_tableqa_{split}.csv'
             tableqa = pd.read_csv(tableqa, index_col=0)
-            text_to_sql = predict_dir + dataset+ f'_text_to_sql_{split}.csv'
+            if split=='train':
+                text_to_sql = predict_dir + dataset+ f'_text_to_sql_{split}_aug.csv'
+            else:
+                text_to_sql = predict_dir + dataset+ f'_text_to_sql_{split}.csv'
             text_to_sql = pd.read_csv(text_to_sql, index_col=0)
 
             text_to_sql.rename(columns={'acc': 'acc_text_to_sql'}, inplace=True)
@@ -94,34 +97,77 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         df_train = deepcopy(data['dev'])
         df_train = df_train[df_train['tbl'].isin(selector_train_tbls)]
+        df_train['aug'] = 0
+        df_train = df_train.reset_index().astype(str)
 
         if self.config.add_from_train:
-            negatives_in_train = deepcopy(data['train'])
-            negatives_in_train = negatives_in_train[negatives_in_train['acc_text_to_sql']==0]
-            n_negative = negatives_in_train.shape[0]
-            print(f'{n_negative} samples in train predictions are negatives (acc_text_to_sql=0)')
-            positives_in_train = data['train'].sample(n=n_negative)
-            df_train =  pd.concat([df_train, negatives_in_train, positives_in_train], ignore_index=True)
-            print('added some training samples.')
+            df_aug = data['train']
+            possible_ans = list(set(df_aug['pred_ans'].to_list()))
+
+            df_ori = df_aug[df_aug['aug']==0].reset_index()
+            df_aug = df_aug[df_aug['aug']==1].reset_index()
+            ### data augmentation for text_to_sql data
+
+            ## for original samples, create negative answers by randomly sampling from other sample
+            # negative to positive 1:4
+            def is_number(s):
+                try:
+                    float(s)  # Use int() if you want to check for integers only
+                    return True
+                except ValueError:
+                    return False
+
+            def is_int(s):
+                try:
+                    int(s)  # Use int() if you want to check for integers only
+                    return True
+                except ValueError:
+                    return False
+
+            for n_row in range(df_ori.shape[0]):
+                if random.random() < 0.2 and df_ori.loc[n_row, 'acc_text_to_sql']==1:
+                    # augment negative sample
+                    ans = deepcopy(df_ori.loc[n_row, 'answer'])
+                    # print('before ', ans)
+                    if is_number(ans):
+                        if is_int(ans):
+                            ans = str(int(ans) + random.randint(-10, 10))
+                        else:
+                            ans = str(float(ans) + random.randint(-10, 10))
+                    while ans == df_ori.loc[n_row, 'answer']:
+                        ans = random.choice(possible_ans)
+                    # print('after ', ans, '\n')
+                    df_ori.loc[n_row, 'queried_ans'] = ans
+                    df_ori.loc[n_row, 'acc_text_to_sql'] = 0
+                    df_ori.loc[n_row, 'aug'] = 1
+            # df_ori = df_ori.iloc[:min(5000, df_ori.shape[0]),:]
+            ## for aug samples, use aug acc and aug_ans rather than queried_ans
+            df_aug['queried_ans'] = df_aug['aug_ans']
+            df_train = pd.concat([df_ori, df_aug, df_train], ignore_index=True).reset_index().astype(str)
+            print('added aug training samples.')
             
         df_dev = deepcopy(data['dev'])
         df_dev = df_dev[df_dev['tbl'].isin(selector_dev_tbls)]
+        df_dev['aug'] = 0
+        df_dev = df_dev.reset_index().astype(str)
 
         df_test = deepcopy(data['test'])
+        df_test['aug'] = 0
+        df_test = df_test.reset_index().astype(str)
 
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN, 
                 gen_kwargs={"split_key": "train", 
-                            "df": df_train.reset_index().astype(str)}),
+                            "df": df_train}),
             datasets.SplitGenerator(
                 name=datasets.Split.VALIDATION, 
                 gen_kwargs={"split_key": "dev", 
-                            "df": df_dev.reset_index().astype(str)}),
+                            "df": df_dev}),
             datasets.SplitGenerator(
                 name=datasets.Split.TEST, 
                 gen_kwargs={"split_key": "test", 
-                            "df": df_test.reset_index().astype(str)}),
+                            "df": df_test}),
         ]
 
     def _generate_examples(self, split_key, df):
@@ -134,11 +180,12 @@ class Selector(datasets.GeneratorBasedBuilder):
             tbl = df.loc[i, 'tbl']
             json_path = f"{_dir_squall}/tables/json/{tbl}.json"
             question = df.loc[i, 'question']
+            aug = int(df.loc[i, 'aug'])
 
-            acc_text_to_sql = df.loc[i, 'acc_text_to_sql']
+            acc_text_to_sql = int(df.loc[i, 'acc_text_to_sql'])
             ans_text_to_sql = df.loc[i, 'queried_ans']
 
-            acc_tableqa = df.loc[i, 'acc_tableqa']
+            acc_tableqa = int(df.loc[i, 'acc_tableqa'])
             ans_tableqa = df.loc[i, 'pred_ans']
 
             claim = f'answer : {ans_text_to_sql}'
@@ -158,12 +205,14 @@ class Selector(datasets.GeneratorBasedBuilder):
                 'ans_tableqa': ans_tableqa,
                 'label': acc_text_to_sql,
                 'claim': claim,
-                'aug': 0
+                'aug': aug
             }
 
         
 if __name__=='__main__':
     from datasets import load_dataset
-    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    sample = dataset["train"][2]
-    print(sample)
+    # dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
+    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", dataset='squall', add_from_train=True)
+    for i in range(50):
+        print(f'example {i}')
+        print(dataset["train"][i], '\n')
