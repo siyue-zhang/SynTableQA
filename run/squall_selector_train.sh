@@ -1,23 +1,23 @@
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
-model_name="microsoft/tapex-large-finetuned-tabfact"
-run_name="squall_selector2"
+model_name="microsoft/tapex-base"
+run_name="squall_selector2_notrain_noaug"
 dataset_name="squall"
-output_dir="output/squall_selector2"
+output_dir="output/squall_selector2_notrain_noaug"
 
 python ./train.py \
   --do_train \
   --do_eval \
-  --num_train_epochs 10 \
+  --num_train_epochs 160 \
   --run_name ${run_name} \
   --task selector \
   --output_dir ${output_dir} \
   --model_name_or_path ${model_name} \
   --overwrite_output_dir \
   --load_best_model_at_end \
-  --metric_for_best_model acc \
+  --metric_for_best_model f1 \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
@@ -31,7 +31,7 @@ python ./train.py \
   --save_steps 50 \
   --save_total_limit 2 \
   --logging_steps 10 \
-  --warmup_ratio 0.2 \
+  --warmup_ratio 0.1 \
   --evaluation_strategy steps \
   --eval_steps 50 \
   --add_from_train 

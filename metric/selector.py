@@ -30,20 +30,24 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             acc_tableqa = sample['acc_tableqa']
             input_tokens.append(tokenizer.decode(sample['input_ids']))
 
-            if pred==label:
-                correct_flag.append(True)
+            if ans_text_to_sql.lower() in ['nan', 'none', 'na'] or acc_text_to_sql==acc_tableqa:
+                pass
             else:
-                correct_flag.append(False)
+                if pred==label:
+                    correct_flag.append(True)
+                else:
+                    correct_flag.append(False)
 
-            if label==1 and pred==1:
-                TP+=1
-            elif label==0 and pred==1:
-                FP+=1
-            elif label==0 and pred==0:
-                TN+=1
-            else:
-                FN+=1
-            if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none', 'na'] and pred==1:
+                if label==1 and pred==1:
+                    TP+=1
+                elif label==0 and pred==1:
+                    FP+=1
+                elif label==0 and pred==0:
+                    TN+=1
+                else:
+                    FN+=1
+                
+            if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none', 'na'] and pred==0:
                 score = acc_text_to_sql
             else:
                 score = acc_tableqa
