@@ -11,6 +11,7 @@ python ./train.py \
   --do_train \
   --do_eval \
   --dataset_name ${dataset_name} \
+  --split_id 1 \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \
   --max_target_length 128 \

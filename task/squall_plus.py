@@ -48,20 +48,19 @@ _URL_wtq = "https://github.com/ppasupat/WikiTableQuestions/archive/refs/heads/ma
 class SquallConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, plus, split_id, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
         super(SquallConfig, self).__init__(**kwargs)
+        self.split_id = split_id
+        self.plus = plus
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
 
-    BUILDER_CONFIGS = [
-        SquallConfig(name = 'default'),
-        SquallConfig(name = 'plus'),
-    ]
+    BUILDER_CONFIG_CLASS = SquallConfig
 
     def _info(self):
         return datasets.DatasetInfo(
@@ -102,14 +101,14 @@ class Squall(datasets.GeneratorBasedBuilder):
     def _generate_examples(self, split_key, wtq_path):
         """This function returns the examples in the raw (text) form."""
         logger.info("generating examples from = %s", wtq_path)
-
+        split_id = self.config.split_id
         wtq_training = f"{wtq_path}/data/training.tsv"
-        squall_train = f"{_dir_squall}/data/train-1.json"
-        squall_dev = f"{_dir_squall}/data/dev-1.json"
+        squall_train = f"{_dir_squall}/data/train-{split_id}.json"
+        squall_dev = f"{_dir_squall}/data/dev-{split_id}.json"
         test = f"{_dir_squall}/data/wtq-test.json"
         test_label = f"{wtq_path}/data/pristine-unseen-tables.tsv"
 
-        plus = self.config.name == 'plus'
+        plus = self.config.plus == 'plus'
 
         if split_key == 'test':
             path = test
@@ -192,7 +191,7 @@ class Squall(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
     from datasets import load_dataset
-    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 'default')
-    # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 'plus')
-    sample = dataset["train"][1110]
+    # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
+    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
+    sample = dataset["train"][10]
     print(sample)

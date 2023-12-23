@@ -96,6 +96,9 @@ class DataTrainingArguments:
     squall_plus: str = field(
         default="default", metadata={"help": "default or plus"}
     )
+    split_id: int = field(
+        default=1, metadata={"help": ( "dataset split id")}
+    )
     task: str = field(
         default="tableqa", metadata={"help": "tableqa, text_to_sql or selector"}
     )
@@ -274,7 +277,7 @@ def main():
                                     ignore_verifications=True)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
-        raw_datasets = load_dataset(task, data_args.squall_plus)
+        raw_datasets = load_dataset(task, plus=data_args.squall_plus, split_id=data_args.split_id)
     else:
         raise NotImplementedError
 
@@ -439,7 +442,8 @@ def main():
             fuzzy=data_args.postproc_fuzzy_string)
     else:
         p = '_plus' if data_args.squall_plus == 'plus' else ''
-        stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}'
+        s = data_args.split_id if data_args.dataset_name=='squall' else ''
+        stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 
