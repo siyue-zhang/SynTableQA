@@ -17,10 +17,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         input_tokens = [] 
         predictions = []
         for i in range(preds.shape[0]):
-            # can introduce a hyperparameter alpha to trade precision with recall
-            alpha = 1
             pred = preds[i,:]
-            pred[1] *= alpha
             pred = pred.argmax()
             predictions.append(pred)
             label = labels[i]
@@ -30,7 +27,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             acc_tableqa = sample['acc_tableqa']
             input_tokens.append(tokenizer.decode(sample['input_ids']))
 
-            if ans_text_to_sql.lower() in ['nan', 'none', 'na'] or acc_text_to_sql==acc_tableqa:
+            if ans_text_to_sql.lower() in ['nan', 'none'] or acc_text_to_sql==acc_tableqa:
                 pass
             else:
                 if pred==label:
@@ -47,7 +44,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 else:
                     FN+=1
                 
-            if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none', 'na'] and pred==0:
+            if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none'] and pred==0:
                 score = acc_text_to_sql
             else:
                 score = acc_tableqa

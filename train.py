@@ -99,11 +99,17 @@ class DataTrainingArguments:
     split_id: int = field(
         default=1, metadata={"help": ( "dataset split id")}
     )
+    test_split: int = field(
+        default=1, metadata={"help": ( "selector test split id")}
+    )
     task: str = field(
         default="tableqa", metadata={"help": "tableqa, text_to_sql or selector"}
     )
     add_from_train: bool = field(
         default=False, metadata={"help": "add samples from train set for training selector"}
+    )
+    add_continue_token: bool = field(
+        default=False, metadata={"help": "add a special token for table is truncated in the input"}
     )
     predict_split: str = field(
         default="test", metadata={"help": "which split to predict"}
@@ -272,9 +278,9 @@ def main():
         task = "./task/selector.py"
         raw_datasets = load_dataset(task, 
                                     dataset=data_args.dataset_name, 
-                                    add_from_train=data_args.add_from_train, 
                                     download_mode='force_redownload',
-                                    ignore_verifications=True)
+                                    ignore_verifications=True,
+                                    test_split = data_args.test_split)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, plus=data_args.squall_plus, split_id=data_args.split_id)
@@ -290,6 +296,7 @@ def main():
 
     config.max_length = 1024
     config.early_stopping = False
+    cont_id = None
     padding = "max_length" if data_args.pad_to_max_length else False
 
     # load main tokenizer
@@ -326,14 +333,23 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
     elif data_args.task.lower() == 'selector':
-        model = BartForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=name,
-            from_tf=bool(".ckpt" in model_args.model_name_or_path),
-            config=config,
-            cache_dir=model_args.cache_dir,
-            revision=model_args.model_revision,
-            use_auth_token=True if model_args.use_auth_token else None,
-        )
+        if training_args.do_predict:
+            model = BartForSequenceClassification.from_pretrained(pretrained_model_name_or_path=name)
+        else:
+            model = BartForSequenceClassification.from_pretrained(
+                pretrained_model_name_or_path=name,
+                from_tf=bool(".ckpt" in model_args.model_name_or_path),
+                config=config,
+                cache_dir=model_args.cache_dir,
+                revision=model_args.model_revision,
+                use_auth_token=True if model_args.use_auth_token else None,
+            )
+            if data_args.add_continue_token:
+                special_tokens_dict = {'additional_special_tokens': ['<cont>']}
+                num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
+                cont_id = tokenizer.convert_tokens_to_ids('<cont>')
+                print(f'add a new token <cont>: {cont_id}')
+                model.resize_token_embeddings(len(tokenizer))
     else:
         raise NotImplementedError
 
@@ -350,7 +366,8 @@ def main():
                 "max_source_length": data_args.max_source_length,
                 "max_target_length": data_args.max_target_length,
                 "ignore_pad_token_for_loss": data_args.ignore_pad_token_for_loss,
-                "padding": padding}
+                "padding": padding,
+                "cont_id": cont_id if cont_id else None}
         
     if training_args.do_train or data_args.predict_split=='train':
         train_dataset = raw_datasets["train"]

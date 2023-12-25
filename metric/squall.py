@@ -136,6 +136,9 @@ def fuzzy_replace(pred, table_id, mapping):
         col = pred[match.start(1):match.end(1)]
         ori1 = pred[match.start(2):match.end(2)]
         ori2 = pred[match.start(3):match.end(3)]
+        if re.search(r"'\s*,\s*'", ori1+ori2):
+            # select sum ( c5_number ) from w where c1 in ( 'argus', 'james carruthers', 'hydrus' )
+            continue
         to_replace = pred[start:end]
 
         token = str(idx) + '_'*(end-start-len(str(idx)))
