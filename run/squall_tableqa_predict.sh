@@ -1,9 +1,10 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
 output_dir="output/squall_tableqa4"
-checkpoint=1400
+#0-9400 1-6400 2-1800 3-7800 4-9400
+checkpoint=9400
 
 python ./train.py \
   --task tableqa \
@@ -20,6 +21,3 @@ python ./train.py \
   --predict_with_generate \
   --generation_max_length 128 \
   --num_beams 5
-
-  # --max_predict_samples 100
-  # --max_eval_samples 100 \

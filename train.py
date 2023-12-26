@@ -108,9 +108,6 @@ class DataTrainingArguments:
     add_from_train: bool = field(
         default=False, metadata={"help": "add samples from train set for training selector"}
     )
-    add_continue_token: bool = field(
-        default=False, metadata={"help": "add a special token for table is truncated in the input"}
-    )
     predict_split: str = field(
         default="test", metadata={"help": "which split to predict"}
     )
@@ -296,7 +293,6 @@ def main():
 
     config.max_length = 1024
     config.early_stopping = False
-    cont_id = None
     padding = "max_length" if data_args.pad_to_max_length else False
 
     # load main tokenizer
@@ -334,8 +330,13 @@ def main():
         )
     elif data_args.task.lower() == 'selector':
         if training_args.do_predict:
-            model = BartForSequenceClassification.from_pretrained(pretrained_model_name_or_path=name)
+            model = BartForSequenceClassification.from_pretrained(
+                pretrained_model_name_or_path=name,
+                )
         else:
+            config.id2label = {0: "text_to_sql", 1: "tableqa"}
+            config.label2id = {"text_to_sql": 0, "tableqa": 1}
+            config.num_labels = 2
             model = BartForSequenceClassification.from_pretrained(
                 pretrained_model_name_or_path=name,
                 from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -344,12 +345,6 @@ def main():
                 revision=model_args.model_revision,
                 use_auth_token=True if model_args.use_auth_token else None,
             )
-            if data_args.add_continue_token:
-                special_tokens_dict = {'additional_special_tokens': ['<cont>']}
-                num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
-                cont_id = tokenizer.convert_tokens_to_ids('<cont>')
-                print(f'add a new token <cont>: {cont_id}')
-                model.resize_token_embeddings(len(tokenizer))
     else:
         raise NotImplementedError
 
@@ -366,8 +361,7 @@ def main():
                 "max_source_length": data_args.max_source_length,
                 "max_target_length": data_args.max_target_length,
                 "ignore_pad_token_for_loss": data_args.ignore_pad_token_for_loss,
-                "padding": padding,
-                "cont_id": cont_id if cont_id else None}
+                "padding": padding,}
         
     if training_args.do_train or data_args.predict_split=='train':
         train_dataset = raw_datasets["train"]

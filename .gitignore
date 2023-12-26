@@ -167,3 +167,4 @@ wandb/
 setup.sh
 monitor/
 backup/
+predict_cv/

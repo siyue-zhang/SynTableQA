@@ -1,11 +1,11 @@
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-export WANDB_PROJECT=SynTableQA
+export WANDB_PROJECT=SynTableQA_Selector
 export WANDB_ENTITY=siyue-zhang
 
-model_name="microsoft/tapex-large-finetuned-tabfact"
-run_name="squall_selector_l_token_tabfact"
+model_name="neulab/omnitab-large"
+run_name="squall_selector_omnitab_upsample"
 dataset_name="squall"
-output_dir="output/squall_selector_l_token_tabfact"
+output_dir="output/squall_selector_omnitab_upsample"
 
 python ./train.py \
   --do_train \
@@ -22,21 +22,21 @@ python ./train.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
-  --per_device_train_batch_size 3 \
+  --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 4 \
-  --gradient_accumulation_steps 4 \
+  --gradient_accumulation_steps 6 \
   --learning_rate 2e-5 \
-  --weight_decay 0.01 \
-  --max_grad_norm 0.1 \
+  --fp16 \
   --predict_with_generate \
   --save_steps 50 \
   --save_total_limit 2 \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --eval_steps 50 \
-  --add_continue_token 
-
+  --eval_steps 50 
 
   # --max_eval_samples 200 \
   # --max_train_samples 100
+  # --resume_from_checkpoint output/squall_tableqa1/checkpoint-${checkpoint} \
+
+

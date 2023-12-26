@@ -10,7 +10,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         preds, labels = eval_preds
         if isinstance(preds, tuple):
             preds = preds[0]
-        
         TP, FP, TN, FN = 0,0,0,0
         correct_flag = []
         scores = []

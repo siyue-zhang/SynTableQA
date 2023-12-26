@@ -1,9 +1,10 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 model_name="t5-large"
 dataset_name="squall"
-output_dir="output/squall_text_to_sql2"
-checkpoint=1400
+output_dir="output/squall_text_to_sql1"
+#0-6600 1-1600 2-5000 3-5600 4-5600
+checkpoint=1600
 
 python ./train.py \
   --task text_to_sql \
@@ -17,10 +18,9 @@ python ./train.py \
   --max_target_length 128 \
   --per_device_eval_batch_size 4 \
   --dataset_name ${dataset_name} \
-  --split_id 2 \
+  --split_id 1 \
   --predict_with_generate \
   --generation_max_length 128 \
   --num_beams 5 \
   --squall_plus default
 
-  # --max_predict_samples 1000

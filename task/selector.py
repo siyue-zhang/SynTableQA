@@ -12,14 +12,14 @@ _dir_squall = "./data/squall"
 class SelectorConfig(datasets.BuilderConfig):
     """BuilderConfig for Selector."""
 
-    def __init__(self, dataset=None, test_split=None, **kwargs):
+    def __init__(self, dataset=None, test_split=1, **kwargs):
         """BuilderConfig for Selector.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
         super(SelectorConfig, self).__init__(**kwargs)
         self.dataset=dataset
-        self.test_split=1
+        self.test_split=test_split
 
 class Selector(datasets.GeneratorBasedBuilder):
 
@@ -42,6 +42,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                     "ans_tableqa": datasets.Value("string"),
                     "label": datasets.Value("int32"),
                     "claim": datasets.Value("string"),
+                    "aug": datasets.Value("int32"),
                 }
             ),
             supervised_keys=None,
@@ -56,8 +57,8 @@ class Selector(datasets.GeneratorBasedBuilder):
         splits = list(range(5))
         dfs_dev = []
         for s in splits:
-            tableqa_dev = pd.read_csv(f"./predict_cv/squall_tableqa_dev{s}.csv")
-            text_to_sql_dev = pd.read_csv(f"./predict_cv/squall_text_to_sql_dev{s}.csv")
+            tableqa_dev = pd.read_csv(f"./predict/squall_tableqa_dev{s}.csv")
+            text_to_sql_dev = pd.read_csv(f"./predict/squall_text_to_sql_dev{s}.csv")
             df = tableqa_dev[['id','tbl','question','answer','src']]
             df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
             df['ans_tableqa'] = tableqa_dev['predictions']
@@ -94,8 +95,8 @@ class Selector(datasets.GeneratorBasedBuilder):
         df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
 
         s = self.config.test_split
-        tableqa_test = pd.read_csv(f"./predict_cv/squall_tableqa_test{s}.csv")
-        text_to_sql_test = pd.read_csv(f"./predict_cv/squall_text_to_sql_test{s}.csv")
+        tableqa_test = pd.read_csv(f"./predict/squall_tableqa_test{s}.csv")
+        text_to_sql_test = pd.read_csv(f"./predict/squall_text_to_sql_test{s}.csv")
         df = tableqa_test[['id','tbl','question','answer','src']]
         df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
         df['ans_tableqa'] =  tableqa_test['predictions']
@@ -138,6 +139,20 @@ class Selector(datasets.GeneratorBasedBuilder):
         def truncate(ans):
             return ans[:min(len(ans), 50)]
         
+        duplicate_list = [
+            'nt-12720',
+            'nt-12868',
+            'nt-10648',
+            'nt-4171',
+            'nt-9266',
+            'nt-7461',
+            'nt-2083',
+            ]
+        
+        df_extra = df[df['id'].isin(duplicate_list)]
+        df_extra = pd.concat([df_extra] * 100).sort_index().reset_index(drop=True)
+        df = pd.concat([df, df_extra]).sort_index().reset_index(drop=True)
+
         n_ex = df.shape[0]
         for i in range(n_ex):
             id = df.loc[i, 'id']
@@ -150,7 +165,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 
             acc_tableqa = int(df.loc[i, 'acc_tableqa'])
             ans_tableqa = df.loc[i, 'ans_tableqa']
-            
+
             claim = f'\nanswer A : {truncate(ans_text_to_sql)}\nanswer B : {truncate(ans_tableqa)}\n'
             query_fuzzy = df.loc[i, 'query_fuzzy']
             answer = df.loc[i, 'answer']
@@ -169,6 +184,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                 'ans_tableqa': ans_tableqa,
                 'label': label,
                 'claim': claim,
+                'aug': 0
             }
 
         

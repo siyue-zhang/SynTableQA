@@ -3,7 +3,7 @@ import json
 import re
 import torch
 
-def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding, cont_id=None):
+def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
     # preprocess the squall datasets for the model input
     tbls = examples["tbl"]
     nls = examples["question"]
@@ -72,22 +72,6 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         max_length=max_source_length, 
         padding=padding, truncation=True)
 
-    if cont_id:
-        inputs = tokenizer.batch_decode(model_inputs['input_ids'])
-        new_inputs = []
-        for i in range(num_ex):
-            n_rows = table_contents[tbls[i]].shape[0]
-            # remove <s> and </s>
-            new_input = inputs[i][4:-4]
-            if f'row {n_rows}' not in new_input:
-                new_input = new_input[:-len('<cont>')] + '<cont>'
-            new_inputs.append(new_input)
-
-        model_inputs = tokenizer(
-            answer=new_inputs,
-            max_length=max_source_length, 
-            padding=padding, truncation=True)
-     
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.
     if padding == "max_length" and ignore_pad_token_for_loss:
@@ -104,13 +88,8 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
  
     datasets = load_dataset(f"/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    train_dataset = datasets["train"]
+    train_dataset = datasets["train"].select(range(10))
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
-
-    special_tokens_dict = {'additional_special_tokens': ['<cont>']}
-    num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
-    cont_id = tokenizer.convert_tokens_to_ids('<cont>')
-    print(f'add a new token <cont>: {cont_id}')
 
     train_dataset = train_dataset.map(
         preprocess_function,
@@ -118,8 +97,7 @@ if __name__=='__main__':
                    "max_source_length": 1024,
                    "max_target_length": 512,
                    "ignore_pad_token_for_loss": True,
-                   "padding": False,
-                   "cont_id": cont_id}, 
+                   "padding": False}, 
         batched=True,)
     print(train_dataset[1])
     print(tokenizer.decode(train_dataset[1]['input_ids']))
