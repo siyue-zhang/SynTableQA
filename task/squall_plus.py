@@ -59,7 +59,7 @@ class SquallConfig(datasets.BuilderConfig):
         self.plus = plus
         self.aug = aug
         if aug:
-            with open('./openai/aug_questions.json', encoding="utf-8") as f:
+            with open('aug_questions.json', encoding="utf-8") as f:
                 tmp = json.load(f)
             self.aug_dict = tmp
 
