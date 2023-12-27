@@ -102,6 +102,9 @@ class DataTrainingArguments:
     test_split: int = field(
         default=1, metadata={"help": ( "selector test split id")}
     )
+    augmentation: bool = field(
+        default=False, metadata={"help": "add data augmentation for training selector"}
+    )
     task: str = field(
         default="tableqa", metadata={"help": "tableqa, text_to_sql or selector"}
     )
@@ -277,10 +280,16 @@ def main():
                                     dataset=data_args.dataset_name, 
                                     download_mode='force_redownload',
                                     ignore_verifications=True,
-                                    test_split = data_args.test_split)
+                                    test_split = data_args.test_split,
+                                    aug=data_args.augmentation)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
-        raw_datasets = load_dataset(task, plus=data_args.squall_plus, split_id=data_args.split_id)
+        raw_datasets = load_dataset(task, 
+                                    plus=data_args.squall_plus, 
+                                    split_id=data_args.split_id,
+                                    download_mode='force_redownload',
+                                    ignore_verifications=True,
+                                    aug=data_args.augmentation)
     else:
         raise NotImplementedError
 
@@ -454,7 +463,8 @@ def main():
     else:
         p = '_plus' if data_args.squall_plus == 'plus' else ''
         s = data_args.split_id if data_args.dataset_name=='squall' else ''
-        stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}{s}'
+        a = '_aug' if data_args.augmentation else ''
+        stage = f'{data_args.dataset_name}{p}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 

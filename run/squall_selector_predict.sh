@@ -5,13 +5,13 @@ export WANDB_ENTITY=siyue-zhang
 model_name="neulab/omnitab-large"
 dataset_name="squall"
 output_dir="output/squall_selector_omnitab"
-checkpoint=1250
+checkpoint=1200
 
 python ./train.py \
   --task selector \
   --test_split 1 \
   --do_predict \
-  --predict_split test \
+  --predict_split train \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \

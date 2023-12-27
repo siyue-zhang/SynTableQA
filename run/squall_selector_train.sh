@@ -3,13 +3,14 @@ export WANDB_PROJECT=SynTableQA_Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_selector_omnitab_upsample"
+run_name="squall_selector_omnitab_aug"
 dataset_name="squall"
-output_dir="output/squall_selector_omnitab_upsample"
+output_dir="output/squall_selector_omnitab_aug"
 
 python ./train.py \
   --do_train \
   --do_eval \
+  --augmentation \
   --num_train_epochs 50 \
   --run_name ${run_name} \
   --task selector \

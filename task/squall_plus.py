@@ -21,6 +21,7 @@ import json
 import os
 import datasets
 import pandas as pd
+from copy import deepcopy
 
 logger = datasets.logging.get_logger(__name__)
 
@@ -48,7 +49,7 @@ _URL_wtq = "https://github.com/ppasupat/WikiTableQuestions/archive/refs/heads/ma
 class SquallConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, plus, split_id, **kwargs):
+    def __init__(self, plus, split_id, aug=False, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -56,6 +57,11 @@ class SquallConfig(datasets.BuilderConfig):
         super(SquallConfig, self).__init__(**kwargs)
         self.split_id = split_id
         self.plus = plus
+        self.aug = aug
+        if aug:
+            with open('./openai/aug_questions.json', encoding="utf-8") as f:
+                tmp = json.load(f)
+            self.aug_dict = tmp
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
@@ -122,6 +128,20 @@ class Squall(datasets.GeneratorBasedBuilder):
         with open(path, encoding="utf-8") as f:
             examples = json.load(f)
         
+        if self.config.aug and split_key == 'test':
+            examples = []
+            aug_nts = list(self.config.aug_dict.keys())
+            for part in [squall_train, squall_dev]:
+                with open(part, encoding="utf-8") as f:
+                    tmp = json.load(f)
+                for ex in tmp:
+                    if ex['nt'] in aug_nts:
+                        for question in self.config.aug_dict[ex['nt']]:
+                            new_ex = deepcopy(ex)
+                            new_ex['question'] = question.strip()
+                            new_ex['src'] = 'squall_aug'
+                            examples.append(new_ex)
+
         # get all table and question ids
         tbls = {ex['tbl'] for ex in examples}
         nts = {ex['nt'] for ex in examples}
@@ -154,8 +174,12 @@ class Squall(datasets.GeneratorBasedBuilder):
                     question = ' '.join(sample["nl"])
             else:
                 question = sample["nl"]
+
+            if 'question' in sample:
+                question = sample['question']
+
             # get sql query and answer text
-            if split_key == 'test':
+            if split_key == 'test' and not self.config.aug:
                 query = 'unk'
                 answer = test_label[test_label["id"]==sample["nt"]]["targetValue"].tolist()[0]
                 if isinstance(answer, list):
@@ -192,6 +216,9 @@ class Squall(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
-    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
-    sample = dataset["train"][10]
+    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
+                           plus='default', 
+                           split_id=1,
+                           aug=True)
+    sample = dataset["test"][7]
     print(sample)
