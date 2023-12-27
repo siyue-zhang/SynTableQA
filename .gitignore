@@ -167,5 +167,4 @@ wandb/
 setup.sh
 monitor/
 backup/
-predict/
 openai/
