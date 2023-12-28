@@ -1,8 +1,15 @@
 from openai import OpenAI
 from prompts import *
-import json
 import pandas as pd
 import copy
+
+
+client = OpenAI(
+    api_key='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'
+)
+model = 'gpt-3.5-turbo'
+model = 'gpt-4'
+
 
 df = pd.read_csv("squall_selector_test_llm.csv")
 response = []
@@ -40,6 +47,15 @@ for i, row in df.iterrows():
     context = 'Q:' + context + '\n\nA:'
     content = normal_sample_0 + '\n' + normal_sample_1 + '\n' + context
 
+    completion = client.chat.completions.create(
+    model = model,
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": content}
+    ]
+    )
+    res = completion.choices[0].message.content
+
     response.append(res)
     df.loc[i, 'response'] = res
 
@@ -48,19 +64,4 @@ for i, row in df.iterrows():
 
 df.to_csv("squall_selector_test_llm.csv", index=False)
 
-# client = OpenAI(
-#     api_key='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'
-# )
 
-
-
-
-# completion = client.chat.completions.create(
-#   model="gpt-4",
-#   messages=[
-#     {"role": "system", "content": "You are an assistant to select the correct answer."},
-#     {"role": "user", "content": content}
-#   ]
-# )
-
-# print(completion.choices[0].message)
