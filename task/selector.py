@@ -94,7 +94,8 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         df_train = dfs_dev[dfs_dev['tbl'].isin(selector_train_tbls)]
         if self.config.aug:
-            splits = list(range(5))
+            # splits = list(range(5))
+            splits = [1]
             dfs_aug = []
             for s in splits:
                 tableqa_dev = pd.read_csv(f"./predict/squall_aug_tableqa_test{s}.csv")
@@ -155,6 +156,7 @@ class Selector(datasets.GeneratorBasedBuilder):
         logger.info("generating examples from local trained csv")
 
         def truncate(ans):
+            ans = str(ans)
             return ans[:min(len(ans), 50)]
 
         n_ex = df.shape[0]
