@@ -371,7 +371,8 @@ def make_query(sql, is_list, c, pred, replace=True):
     for result, in c:
         result = str(result)
         answer_list.append(result)
-    
+        
+    pred['nl'] = pred['nl'].lower()
     if replace:
         if any(item in pred['nl'] for item in ['how many', 
                                                'what is the number', 

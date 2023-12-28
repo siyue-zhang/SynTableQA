@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=SynTableQA_Selector
 export WANDB_ENTITY=siyue-zhang
 
@@ -25,7 +25,7 @@ python ./train.py \
   --dataset_name ${dataset_name} \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 4 \
-  --gradient_accumulation_steps 6 \
+  --gradient_accumulation_steps 12 \
   --learning_rate 2e-5 \
   --fp16 \
   --predict_with_generate \
