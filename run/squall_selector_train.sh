@@ -29,7 +29,7 @@ python ./train.py \
   --fp16 \
   --predict_with_generate \
   --save_steps 50 \
-  --save_total_limit 2 \
+  --save_total_limit 3 \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \

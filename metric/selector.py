@@ -43,7 +43,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 else:
                     FN+=1
                 
-            if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none'] and pred==0:
+            # if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none'] and pred==0:
+            if pred==0:
                 score = acc_text_to_sql
             else:
                 score = acc_tableqa
