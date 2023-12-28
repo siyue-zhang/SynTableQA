@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
-output_dir="output/squall_selector_omnitab_aug_3k"
-checkpoint=1850
+output_dir="output/squall_selector_omnitab_single"
+checkpoint=450
 
 python ./train.py \
   --task selector \

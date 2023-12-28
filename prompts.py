@@ -1,5 +1,5 @@
 
-# nt-13417  203_37
+# nt-13417 203_37
 normal_sample_0 = """
 Q: how many tracks were produced by milanna miles and rick long? 
 answer A : 0 
@@ -12,7 +12,7 @@ under the producer(s) column. So, based on the given table, there are at least t
 were produced by milanna miles and rick long. So, Answer B is more correct than Answer A.
 """
 
-# nt-970    203_535
+# nt-970 203_535
 normal_sample_1 = """
 Q: which countries had the same number of gold medals as belarus? 
 answer A : 2 
@@ -22,11 +22,11 @@ col : id | agg | rank | rank_number | nation | gold | gold_number | silver | sil
 A: This is a table of records of various countries, which contains nation, number of gold, silver, \
 and bronze, and total number columns. Based on row 5, Belarus has 3 gold medals under gold column. \
 Based on row 4, Ethiopia has 3 gold medals under gold column. Based on row 3, France has 3 gold medals \
-under gold column. Answer A is a number which is not the country asked by the question. So Answer B \
-is more correct than Answer A.
+under gold column. Answer A is a number which is not the country asked by the question. \
+So Answer B is more correct than Answer A.
 """
 
-# nt-2474   204_469
+# nt-2474 204_469
 normal_sample_2 = """
 Q: who was the last coach to only have 1 loss? 
 answer A : ed sabre 
@@ -43,7 +43,7 @@ So Answer A is more correct than Answer B.
 
 
 
-# nt-11898	204_40
+# nt-11898 204_40
 large_sample_0 = """
 what was the last race of the season? 
 answer A : portimao 
@@ -60,7 +60,7 @@ Answer B MX Open is not under the season column in any row. So Answer A is more 
 
 
 
-# nu-714    204_326
+# nu-714 204_326 A
 test_sample_0 ="""
 Q: Name the format with the highest value in `` decimal 128 ''.
 answer A : exponent range 
@@ -73,3 +73,46 @@ A:
 # ChatCompletionMessage(content='This is a table comparing the qualities of various decimal formats. 
 # Based on the table, the highest value in "decimal128" column is 12288, which corresponds to the "exponent range" 
 # in the format row. So, Answer A is the correct one.', role='assistant', function_call=None, tool_calls=None)
+
+
+# nu-0 203_733 B
+test_sample_1="""
+Q: which country had the most cyclists finish within the top 10? 
+answer A : ita
+answer B : Italy
+col : id | agg | rank | rank_number | cyclist | cyclist_first | cyclist_second | team | time | time_number | uci_protour_points | uci_protour_points_number row 1 : 1 | 0 | 1 | 1.0 | alejandro valverde (esp) | alejandro valverde | esp | caisse d'epargne | 5h 29' 10" | 5.0 | 40 | 40.0 row 2 : 2 | 0 | 2 | 2.0 | alexandr kolobnev (rus) | alexandr kolobnev | rus | team csc saxo bank | s.t | nan | 30 | 30.0 row 3 : 3 | 0 | 3 | 3.0 | davide rebellin (ita) | davide rebellin | ita | gerolsteiner | s.t | nan | 25 | 25.0 row 4 : 4 | 0 | 4 | 4.0 | paolo bettini (ita) | paolo bettini | ita | quick step | s.t | nan | 20 | 20.0 row 5 : 5 | 0 | 5 | 5.0 | franco pellizotti (ita) | franco pellizotti | ita | liquigas | s.t | nan | 15 | 15.0 row 6 : 6 | 0 | 6 | 6.0 | denis menchov (rus) | denis menchov | rus | rabobank | s.t | nan | 11 | 11.0 row 7 : 7 | 0 | 7 | 7.0 | samuel sanchez (esp) | samuel sanchez | esp | euskaltel-euskadi | s.t | nan | 7 | 7.0 row 8 : 8 | 0 | 8 | 8.0 | stephane goubert (fra) | stephane goubert | fra | ag2r-la mondiale | + 2" | 2.0 | 5 | 5.0 row 9 : 9 | 0 | 9 | 9.0 | haimar zubeldia (esp) | haimar zubeldia | esp | euskaltel-euskadi | + 2" | 2.0 | 3 | 3.0 row 10 : 10 | 0 | 10 | 10.0 | david moncoutie (fra) | david moncoutie | fra | cofidis | + 2" | 2.0 | 1 | 1.0</s>
+
+A:
+"""
+
+# nu-87	203_588 B
+test_sample_2="""
+what was the first interval of five years to have more than 100,000 deaths? 
+answer A : 1965
+answer B : 1965-1970
+col : id | agg | period | period_minimum_number | period_minimum_parsed | period_minimum_year | period_maximum_number | period_maximum_parsed | period_maximum_year | live_births_per_year | live_births_per_year_number | deaths_per_year | deaths_per_year_number | natural_change_per_year | natural_change_per_year_number | cbr | cbr_number | cdr | cdr_number | nc | nc_number | tfr | tfr_number | imr | imr_number row 1 : 1 | 0 | 1950-1955 | 1950 | 1950 | 1950 | 1955 | 1955 | 1955 | 139000 | 139000.0 | 66000 | 66000.0 | 74000 | 74000.0 | 52.6 | 52.6 | 24.8 | 24.8 | 27.8 | 27.8 | 6.86 | 6.86 | 174 | 174.0 row 2 : 2 | 0 | 1955-1960 | 1955 | 1955 | 1955 | 1960 | 1960 | 1960 | 164000 | 164000.0 | 76000 | 76000.0 | 88000 | 88000.0 | 53.8 | 53.8 | 24.9 | 24.9 | 29 | 29.0 | 6.96 | 6.96 | 171 | 171.0 row 3 : 3 | 0 | 1960-1965 | 1960 | 1960 | 1960 | 1965 | 1965 | 1965 | 195000 | 195000.0 | 89000 | 89000.0 | 105000 | 105000.0 | 55.5 | 55.5 | 25.5 | 25.5 | 30.1 | 30.1 | 7.13 | 7.13 | 167 | 167.0 row 4 : 4 | 0 | 1965-1970 | 1965 | 1965 | 1965 | 1970 | 1970 | 1970 | 229000 | 229000.0 | 105000 | 105000.0 | 124000 | 124000.0 | 56.2 | 56.2 | 25.8 | 25.8 | 30.4 | 30.4 | 7.32 | 7.32 | 164 | 164.0 row 5 : 5 | 0 | 1970-1975 | 1970 | 1970 | 1970 | 1975 | 1975 | 1975 | 263000 | 263000.0 | 121000 | 121000.0 | 142000 | 142000.0 | 55.8 | 55.8 | 25.6 | 25.6 | 30.2 | 30.2 | 7.52 | 7.52 | 162 | 162.0 row 6 : 6 | 0 | 1975-1980 | 1975 | 1975 | 1975 | 1980 | 1980 | 1980 | 301000 | 301000.0 | 138000 | 138000.0 | 164000 | 164000.0 | 55.1 | 55.1 | 25.1 | 25.1 | 29.9 | 29.9 | 7.63 | 7.63 | 161 | 161.0 row 7 : 7 | 0 | 1980-1985 | 1980 | 1980 | 1980 | 1985 | 1985 | 1985 | 350000 | 350000.0 | 157000 | 157000.0 | 193000 | 193000.0 | 55.4 | 55.4 | 24.8 | 24.8 | 30.6 | 30.6 | 7.76 | 7.76 | 159 | 159.0 row 8 : 8 | 0 | 1985-1990 | 1985 | 1985 | 1985 | 1990 | 1990 | 1990 | 406000 | 406000.0 | 179000 | 179000.0 | 227000 | 227000.0 | 55.9 | 55.9 | 24.6 | 24.6 | 31.3 | 31.3 | 7.81 | 7.81 | 155 | 155.0 row 9 : 9 | 0 | 1990-1995 | 1990 | 1990 | 1990 | 1995 | 1995 | 1995 | 471000 | 471000.0 | 192000 | 192000.0 | 279000 | 279000.0 | 55.5 | 55.5 | 22.7 | 22.7 | 32.8 | 32.8 | 7.78 | 7.78 | 146 | 146.0 row 10 : 10 | 0 | 1995-2000 | 1995 | 1995 | 1995 | 2000 | 2000 | 2000 | 538000 | 538000.0 | 194000 | 194000.0 | 344000 | 344000.0 | 53.5 | 53.5 | 19.3 | 19.3 | 34.2 | 34.2 | 7.6 | 7.6 | 131 | 131.0 row 11 : 11 | 0 | 2000-
+
+A:
+"""
+
+# nu-190 203_641 B
+test_sample_3="""
+what is the last film that lars von trier made? 
+answer A : nymphomaniac: volume i
+answer B : Nymphomaniac: Volume II
+col : id | agg | year | year_number | film | rotten_tomatoes | rotten_tomatoes_number | metacritic | metacritic_number | imdb | imdb_number | imdb_number1 | imdb_number2 row 1 : 1 | 0 | 1982 | 1982 | images of liberation | None | nan | None | nan | 5.1/10 | 5.1 | 5.1 | 10 row 2 : 2 | 0 | 1984 | 1984 | the element of crime | 77% | 77.0 | None | nan | 6.9/10 | 6.9 | 6.9 | 10 row 3 : 3 | 0 | 1987 | 1987 | epidemic | 33% | 33.0 | 66% | 66.0 | 6.1/10 | 6.1 | 6.1 | 10 row 4 : 4 | 0 | 1991 | 1991 | europa | 85% | 85.0 | 66% | 66.0 | 7.7/10 | 7.7 | 7.7 | 10 row 5 : 5 | 0 | 1996 | 1996 | breaking the waves | 86% | 86.0 | 76% | 76.0 | 7.9/10 | 7.9 | 7.9 | 10 row 6 : 6 | 0 | 1998 | 1998 | the idiots | 70% | 70.0 | 47% | 47.0 | 6.9/10 | 6.9 | 6.9 | 10 row 7 : 7 | 0 | 2000 | 2000 | dancer in the dark | 68% | 68.0 | 61% | 61.0 | 8.0/10 | 8.0 | 8.0 | 10 row 8 : 8 | 0 | 2003 | 2003 | the five obstructions | 88% | 88.0 | 79% | 79.0 | 7.5/10 | 7.5 | 7.5 | 10 row 9 : 9 | 0 | 2003 | 2003 | dogville | 70% | 70.0 | 59% | 59.0 | 8.0/10 | 8.0 | 8.0 | 10 row 10 : 10 | 0 | 2005 | 2005 | manderlay | 51% | 51.0 | 46% | 46.0 | 7.4/10 | 7.4 | 7.4 | 10 row 11 : 11 | 0 | 2006 | 2006 | the boss of it all | 74% | 74.0 | 71% | 71.0 | 6.7/10 | 6.7 | 6.7 | 10 row 12 : 12 | 0 | 2009 | 2009 | antichrist | 48% | 48.0 | 49% | 49.0 | 6.6/10 | 6.6 | 6.6 | 10 row 13 : 13 | 0 | 2011 | 2011 | melancholia | 77% | 77.0 | 80% | 80.0 | 7.1/10 | 7.1 | 7.1 | 10 row 14 : 14 | 0 | 2013 | 2013 | nymphomaniac: volume i | 77% | 77.0 | 63% | 63.0 | 7.5/10 | 7.5 | 7.5 | 10 row 15 : 15 | 0 | 2013 | 2013 | nymphomaniac: volume ii | 79% | 79.0 | 76% | 76.0 | 7.2/10 | 7.2 | 7.2 | 10
+
+A:
+"""
+
+
+# nu-27 203_307 A
+test_sample_4="""
+who was the top scorer in the last season? 
+answer A : simon makienok christoffersen (10)
+answer B : Bent Christensen
+col : id | agg | season | season_minimum_number | season_minimum_parsed | season_minimum_year | season_maximum_number | season_maximum_parsed | season_maximum_year | league_pos. | league_pos._number | league_competition | league_top_scorer | league_top_scorer_first | league_top_scorer_second | league_top_scorer_second_number | danish_cup | europe | europe_list | europe_length | others | others_list | others_length row 1 : 1 | 0 | 1981-82 | 1981 | 1981 | 1981 | 1982 | 1982 | 1982 | 4 | 4.0 | 1982 1st division | michael laudrup (15) | michael laudrup | 15 | 15.0 | 4th round | None | | 0 | None | | 0 row 2 : 2 | 0 | 1982-83 | 1982 | 1982 | 1982 | 1983 | 1983 | 1983 | 4 | 4.0 | 1983 1st division | brian chr√∏is (12) | brian chr√∏is | 12 | 12.0 | 4th round | None | | 0 | None | | 0 row 3 : 3 | 0 | 1983-84 | 1983 | 1983 | 1983 | 1984 | 1984 | 1984 | 4 | 4.0 | 1984 1st division | jens kolding (11) | jens kolding | 11 | 11.0 | 3rd round | None | | 0 | None | | 0 row 4 : 4 | 0 | 1984-85 | 1984 | 1984 | 1984 | 1985 | 1985 | 1985 | 1 | 1.0 | 1985 1st division | claus nielsen (17) | claus nielsen | 17 | 17.0 | 3rd round | None | | 0 | None | | 0 row 5 : 5 | 0 | 1985-86 | 1985 | 1985 | 1985 | 1986 | 1986 | 1986 | 2 | 2.0 | 1986 1st division | claus nielsen (16) | claus nielsen | 16 | 16.0 | quarter-final | None | | 0 | None | | 0 row 6 : 6 | 0 | 1986-87 | 1986 | 1986 | 1986 | 1987 | 1987 | 1987 | 1 | 1.0 | 1987 1st division | claus nielsen (20) | claus nielsen | 20 | 20.0 | 4th round | ec1 quarter-final | ec1 quarter-final | 1 | None | | 0 row 7 : 7 | 0 | 1987-88 | 1987 | 1987 | 1987 | 1988 | 1988 | 1988 | 1 | 1.0 | 1988 1st division | bent christensen (21) | bent christensen | 21 | 21.0 | finalist | ec3 2nd round | ec3 2nd round | 1 | None | | 0 row 8 : 8 | 0 | 1988-89 | 1988 | 1988 | 1988 | 1989 | 1989 | 1989 | 2 | 2.0 | 1989 1st division | bent christensen (10) | bent christensen | 10 | 10.0 | winner | ec1 1st round | ec1 1st round | 1 | None | | 0 row 9 : 9 | 0 | 1989-90 | 1989 | 1989 | 1989 | 1990 | 1990 | 1990 | 1 | 1.0 | 1990 1st division | bent christensen (17) | bent christensen | 17 | 17.0 | quarter-final | ec1 1st round | ec1 1st round | 1 | None | | 0 row 10 : 10 | 0 | 1990-91 | 1990 | 1990 | 1990 | 1991 | 1991 | 1991 | 1 | 1.0 | 1991 superliga | bent christensen (11) | bent christensen | 11 | 11.0 | semi-final | ec3 semi-final | ec3 semi-final | 1 | None | | 0 row 11 : 11 | 0 | 1991-92 | 1991 | 1991 | 1991 | 1992 | 1992 | 1992 | 7 | 7.0 | 1991-92 superliga | kim vilfort (9) | kim vilfort | 9 | 9.0 | 4th round | ec1 2nd round | ec1 2nd round | 1 | None | | 0 row 12 : 12 | 0 | 1992-93 | 1992 | 1992 | 1992 | 1993 | 1993 | 1993 | 3 | 3.0 | 1992-93 superliga | kim vilfort (10) | kim vilfort | 10 | 10.0 | 5th round | None | | 0 | None | | 0 row 13 :
+
+A:
+"""
+
