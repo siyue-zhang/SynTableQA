@@ -1,11 +1,12 @@
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=SynTableQA_Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_selector_omnitab_single"
+run_name="squall_selector_omnitab_single_res"
 dataset_name="squall"
-output_dir="output/squall_selector_omnitab_single"
+output_dir="output/squall_selector_omnitab_single_res"
+checkpoint=
 
 python ./train.py \
   --do_train \
@@ -16,6 +17,7 @@ python ./train.py \
   --test_split 1 \
   --output_dir ${output_dir} \
   --model_name_or_path ${model_name} \
+  --resume_from_checkpoint output/squall_tableqa1/checkpoint-${checkpoint} \
   --overwrite_output_dir \
   --load_best_model_at_end \
   --metric_for_best_model acc \

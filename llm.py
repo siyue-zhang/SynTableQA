@@ -7,14 +7,16 @@ import copy
 client = OpenAI(
     api_key='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'
 )
-model = 'gpt-3.5-turbo'
-model = 'gpt-4'
+# model = 'gpt-3.5-turbo'
+# model = 'gpt-4'
+model = ''
 
 
 df = pd.read_csv("squall_selector_test_llm.csv")
 response = []
 for i, row in df.iterrows():
-    if i > 1000:
+    print(i)
+    if i > 5:
         break
 
     res = None
@@ -26,6 +28,16 @@ for i, row in df.iterrows():
 
     if 'response' in row and str(row['response'])!='nan':
         res = row['response']
+        if 'answer b is more correct than answer a' in res.lower():
+            # B is tableqa, which is 1 in preds
+            df.loc[i, 'preds'] = 1
+        elif 'answer a is more correct than answer b' in res.lower():
+            # A is text_to_sql, which is 0 in preds
+            df.loc[i, 'preds'] = 0
+        elif res.lower() in ['a', 'b']:
+            pass
+        else:
+            print(f'response not clear - {i} - {df.loc[i, "id"]}')
         response.append(res)
         continue
 
@@ -46,6 +58,7 @@ for i, row in df.iterrows():
 
     context = 'Q:' + context + '\n\nA:'
     content = normal_sample_0 + '\n' + normal_sample_1 + '\n' + context
+    df.loc[i, 'content'] = content
 
     completion = client.chat.completions.create(
     model = model,
@@ -59,7 +72,8 @@ for i, row in df.iterrows():
     response.append(res)
     df.loc[i, 'response'] = res
 
-    print(context,'\n---------------------\n')
+    # print(context)
+    print('\n---------------------\n')
 
 
 df.to_csv("squall_selector_test_llm.csv", index=False)
