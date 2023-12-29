@@ -56,6 +56,8 @@ class Selector(datasets.GeneratorBasedBuilder):
         train_dev_ratio = 0.2
             
         splits = list(range(5))
+        # splits = [1]
+        
         dfs_dev = []
         for s in splits:
             tableqa_dev = pd.read_csv(f"./predict/squall_tableqa_dev{s}.csv")
@@ -94,8 +96,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         df_train = dfs_dev[dfs_dev['tbl'].isin(selector_train_tbls)]
         if self.config.aug:
-            # splits = list(range(5))
-            splits = [1]
+            splits = list(range(5))
             dfs_aug = []
             for s in splits:
                 tableqa_dev = pd.read_csv(f"./predict/squall_aug_tableqa_test{s}.csv")
