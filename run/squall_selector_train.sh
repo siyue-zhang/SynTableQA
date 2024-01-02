@@ -1,17 +1,16 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=SynTableQA_Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_selector_omnitab+"
+run_name="squall_selector_omnitab_upsample"
 dataset_name="squall"
-output_dir="output/squall_selector_omnitab+"
-# checkpoint=6400
+output_dir="output/squall_selector_omnitab_upsample"
 
 python ./train.py \
   --do_train \
   --do_eval \
-  --augmentation \
+  --fp16 \
   --num_train_epochs 50 \
   --run_name ${run_name} \
   --task selector \
@@ -26,7 +25,7 @@ python ./train.py \
   --dataset_name ${dataset_name} \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 4 \
-  --gradient_accumulation_steps 6 \
+  --gradient_accumulation_steps 12 \
   --learning_rate 2e-5 \
   --predict_with_generate \
   --save_steps 50 \
@@ -36,7 +35,6 @@ python ./train.py \
   --evaluation_strategy steps \
   --eval_steps 50 
 
-  # --fp16 \
   # --augmentation \
   # --max_eval_samples 200 \
   # --max_train_samples 100

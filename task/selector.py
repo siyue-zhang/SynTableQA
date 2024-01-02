@@ -95,6 +95,53 @@ class Selector(datasets.GeneratorBasedBuilder):
                 json.dump(to_save, f)
 
         df_train = dfs_dev[dfs_dev['tbl'].isin(selector_train_tbls)]
+
+        df_train = df_train.reset_index(drop=True) 
+        # negative_map = {}
+        dup_list = [
+            'nt-10143', 'nt-12186', 'nt-10437', 'nt-73',
+            'nt-10884', 'nt-12032', 
+            'nt-7477', 'nt-13307', 'nt-2973', 'nt-13295',
+            'nt-12171', 'nt-4918', 'nt-7104', 'nt-7998',
+            'nt-1630', 'nt-2160', 'nt-5946',' nt-1630'
+            ]
+        duplicates = []
+        for _ in range(10):
+            duplicate = deepcopy(df_train)
+            duplicate = duplicate[duplicate['id'].isin(dup_list)]
+            # duplicate = duplicate[duplicate['acc_tableqa']==1]
+        #     for i in range(df_train.shape[0]):
+        #         acc_tableqa = duplicate.loc[i, 'acc_tableqa']
+        #         acc_text_to_sql = duplicate.loc[i, 'acc_text_to_sql']
+        #         tbl = duplicate.loc[i, 'tbl']
+        #         if tbl not in negative_map:
+        #             json_path = f"./data/squall/tables/json/{tbl}.json"
+        #             with open(json_path, "r") as file:
+        #                 data = json.load(file)
+        #             cells = []
+        #             for l in data['contents']:
+        #                 for d in l:
+        #                     tmp = d['data']
+        #                     if isinstance(tmp[0],list):
+        #                         tmp = ['|'.join([str(xx) for xx in x]) for x in tmp]
+        #                     cells += tmp
+        #             negative_map[tbl] = cells
+        #         if acc_tableqa==0:
+        #             neg = deepcopy(duplicate.loc[i, 'ans_text_to_sql'])
+        #             while neg==duplicate.loc[i, 'ans_text_to_sql']:
+        #                 neg = random.choice(negative_map[tbl])
+        #             duplicate.loc[i, 'ans_tableqa'] = neg
+        #         else:
+        #             neg = deepcopy(duplicate.loc[i, 'ans_tableqa'])
+        #             while neg==duplicate.loc[i, 'ans_tableqa']:
+        #                 neg = random.choice(negative_map[tbl])
+        #             duplicate.loc[i, 'ans_text_to_sql'] = neg
+        #         duplicate['src']='squall_aug'
+            duplicates.append(duplicate)
+        df_train = pd.concat([df_train]+duplicates, ignore_index=True).reset_index()
+        print('\n------')
+        print(f'acc_tableqa: {sum(df_train["acc_tableqa"])}, acc_text_to_sql: {sum(df_train["acc_text_to_sql"])}\n')
+
         if self.config.aug:
             splits = list(range(5))
             dfs_aug = []
@@ -109,9 +156,10 @@ class Selector(datasets.GeneratorBasedBuilder):
                 df_aug['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
                 df_aug = df_aug[df_aug['acc_tableqa'] != df_aug['acc_text_to_sql']]
                 df_aug['label'] = [ 0 if int(x)==1 else 1 for x in df_aug['acc_text_to_sql'].to_list()]
+
                 dfs_aug.append(df_aug)
             df_train = pd.concat([df_train]+dfs_aug, ignore_index=True).reset_index().astype('str')
-                    
+  
         df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
 
         s = self.config.test_split
@@ -199,9 +247,9 @@ class Selector(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
+    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
-                           aug=True)
+                           aug=False)
     for i in range(5):
         print(f'example {i}')
         print(dataset["train"][i], '\n')
