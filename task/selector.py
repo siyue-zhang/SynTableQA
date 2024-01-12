@@ -106,7 +106,7 @@ class Selector(datasets.GeneratorBasedBuilder):
             'nt-1630', 'nt-2160', 'nt-5946',' nt-1630'
             ]
         duplicates = []
-        for _ in range(10):
+        for _ in range(20):
             duplicate = deepcopy(df_train)
             duplicate = duplicate[duplicate['id'].isin(dup_list)]
             # duplicate = duplicate[duplicate['acc_tableqa']==1]
