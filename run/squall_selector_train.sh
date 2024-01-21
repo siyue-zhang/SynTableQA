@@ -1,17 +1,17 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export WANDB_PROJECT=SynTableQA_Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_selector_omnitab_up"
+run_name="squall_plus_selector_omnitab"
 dataset_name="squall"
-output_dir="output/squall_selector_omnitab_up"
+output_dir="output/squall_plus_selector_omnitab"
 
 python ./train.py \
   --do_train \
   --do_eval \
   --fp16 \
-  --num_train_epochs 50 \
+  --num_train_epochs 100 \
   --run_name ${run_name} \
   --task selector \
   --test_split 1 \

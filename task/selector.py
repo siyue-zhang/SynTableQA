@@ -53,15 +53,15 @@ class Selector(datasets.GeneratorBasedBuilder):
         predict_dir = f'./predict/'
         dataset = self.config.dataset
         assert dataset in ['squall', 'sede']
-        train_dev_ratio = 0.2
+        train_dev_ratio = 0.01
             
         splits = list(range(5))
         # splits = [1]
         
         dfs_dev = []
         for s in splits:
-            tableqa_dev = pd.read_csv(f"./predict/squall_tableqa_dev{s}.csv")
-            text_to_sql_dev = pd.read_csv(f"./predict/squall_text_to_sql_dev{s}.csv")
+            tableqa_dev = pd.read_csv(f"./predict/squall_plus_tableqa_dev{s}.csv")
+            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus_text_to_sql_dev{s}.csv")
             df = tableqa_dev[['id','tbl','question','answer','src']]
             df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
             df['ans_tableqa'] = tableqa_dev['predictions']
@@ -97,18 +97,18 @@ class Selector(datasets.GeneratorBasedBuilder):
         df_train = dfs_dev[dfs_dev['tbl'].isin(selector_train_tbls)]
 
         df_train = df_train.reset_index(drop=True) 
-        # negative_map = {}
-        dup_list = [
-            'nt-10143', 'nt-12186', 'nt-10437', 'nt-73',
-            'nt-10884', 'nt-12032', 
-            'nt-7477', 'nt-13307', 'nt-2973', 'nt-13295',
-            'nt-12171', 'nt-4918', 'nt-7104', 'nt-7998',
-            'nt-1630', 'nt-2160', 'nt-5946',' nt-1630'
-            ]
-        duplicates = []
-        for _ in range(20):
-            duplicate = deepcopy(df_train)
-            duplicate = duplicate[duplicate['id'].isin(dup_list)]
+        # # negative_map = {}
+        # dup_list = [
+        #     'nt-10143', 'nt-12186', 'nt-10437', 'nt-73',
+        #     'nt-10884', 'nt-12032', 
+        #     'nt-7477', 'nt-13307', 'nt-2973', 'nt-13295',
+        #     'nt-12171', 'nt-4918', 'nt-7104', 'nt-7998',
+        #     'nt-1630', 'nt-2160', 'nt-5946',' nt-1630'
+        #     ]
+        # duplicates = []
+        # for _ in range(20):
+        #     duplicate = deepcopy(df_train)
+        #     duplicate = duplicate[duplicate['id'].isin(dup_list)]
             # duplicate = duplicate[duplicate['acc_tableqa']==1]
         #     for i in range(df_train.shape[0]):
         #         acc_tableqa = duplicate.loc[i, 'acc_tableqa']
@@ -137,8 +137,8 @@ class Selector(datasets.GeneratorBasedBuilder):
         #                 neg = random.choice(negative_map[tbl])
         #             duplicate.loc[i, 'ans_text_to_sql'] = neg
         #         duplicate['src']='squall_aug'
-            duplicates.append(duplicate)
-        df_train = pd.concat([df_train]+duplicates, ignore_index=True).reset_index()
+            # duplicates.append(duplicate)
+        # df_train = pd.concat([df_train]+duplicates, ignore_index=True).reset_index()
         print('\n------')
         print(f'acc_tableqa: {sum(df_train["acc_tableqa"])}, acc_text_to_sql: {sum(df_train["acc_text_to_sql"])}\n')
 

@@ -9,8 +9,8 @@ checkpoint=9400
 python ./train.py \
   --task tableqa \
   --do_predict \
-  --augmentation \
-  --predict_split test \
+  --squall_plus plus \
+  --predict_split dev \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -22,3 +22,5 @@ python ./train.py \
   --predict_with_generate \
   --generation_max_length 128 \
   --num_beams 5
+
+  # --augmentation \

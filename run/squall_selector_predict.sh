@@ -4,8 +4,8 @@ export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
-output_dir="output/squall_selector_omnitab+6k"
-checkpoint=950
+output_dir="output/squall_plus_selector_omnitab"
+checkpoint=2150
 
 python ./train.py \
   --task selector \
