@@ -89,7 +89,8 @@ if __name__=='__main__':
  
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
-                           aug=True)
+                           ignore_verifications=True,
+                           model='tableqa')
     train_dataset = datasets["train"].select(range(10))
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
 

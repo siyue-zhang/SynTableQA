@@ -102,14 +102,8 @@ class DataTrainingArguments:
     test_split: int = field(
         default=1, metadata={"help": ( "selector test split id")}
     )
-    augmentation: bool = field(
-        default=False, metadata={"help": "add data augmentation for training selector"}
-    )
     task: str = field(
         default="tableqa", metadata={"help": "tableqa, text_to_sql or selector"}
-    )
-    add_from_train: bool = field(
-        default=False, metadata={"help": "add samples from train set for training selector"}
     )
     predict_split: str = field(
         default="test", metadata={"help": "which split to predict"}
@@ -280,16 +274,14 @@ def main():
                                     dataset=data_args.dataset_name, 
                                     download_mode='force_redownload',
                                     ignore_verifications=True,
-                                    test_split = data_args.test_split,
-                                    aug=data_args.augmentation)
+                                    test_split = data_args.test_split)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, 
                                     plus=data_args.squall_plus, 
                                     split_id=data_args.split_id,
                                     download_mode='force_redownload',
-                                    ignore_verifications=True,
-                                    aug=data_args.augmentation)
+                                    ignore_verifications=True)
     else:
         raise NotImplementedError
 
@@ -343,9 +335,9 @@ def main():
                 pretrained_model_name_or_path=name,
                 )
         else:
-            config.id2label = {0: "text_to_sql", 1: "tableqa"}
-            config.label2id = {"text_to_sql": 0, "tableqa": 1}
-            config.num_labels = 2
+            config.id2label = {0: "text_to_sql", 1: "tableqa", 2: "neutral"}
+            config.label2id = {"text_to_sql": 0, "tableqa": 1, "neutral": 2}
+            config.num_labels = 3
             model = BartForSequenceClassification.from_pretrained(
                 pretrained_model_name_or_path=name,
                 from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -463,8 +455,7 @@ def main():
     else:
         p = '_plus' if data_args.squall_plus == 'plus' else ''
         s = data_args.split_id if data_args.dataset_name=='squall' else ''
-        a = '_aug' if data_args.augmentation else ''
-        stage = f'{data_args.dataset_name}{p}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}'
+        stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 
