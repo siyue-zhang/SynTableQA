@@ -4,14 +4,13 @@ export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
-# output_dir="output/squall_plus_selector_omnitab"
-# checkpoint=2150
-output_dir="squall_selector_tableqa_omnitab"
-checkpoint=150
+output_dir="output/squall_plus_selector_omnitab"
+checkpoint=600
+# output_dir="output/squall_plus_selector_tapex"
+# checkpoint=800
 
 python ./train.py \
   --task selector \
-  --model tableqa \
   --test_split 1 \
   --do_predict \
   --predict_split dev \

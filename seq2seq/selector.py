@@ -87,7 +87,7 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
  
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
                            ignore_verifications=True,
                            model='tableqa')

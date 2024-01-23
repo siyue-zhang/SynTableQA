@@ -335,9 +335,9 @@ def main():
                 pretrained_model_name_or_path=name,
                 )
         else:
-            config.id2label = {0: "text_to_sql", 1: "tableqa", 2: "neutral"}
-            config.label2id = {"text_to_sql": 0, "tableqa": 1, "neutral": 2}
-            config.num_labels = 3
+            config.id2label = {0: "text_to_sql", 1: "tableqa"}
+            config.label2id = {"text_to_sql": 0, "tableqa": 1}
+            config.num_labels = 2
             model = BartForSequenceClassification.from_pretrained(
                 pretrained_model_name_or_path=name,
                 from_tf=bool(".ckpt" in model_args.model_name_or_path),

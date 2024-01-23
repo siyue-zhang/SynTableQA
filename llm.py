@@ -7,16 +7,16 @@ import copy
 client = OpenAI(
     api_key='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'
 )
-# model = 'gpt-3.5-turbo'
+model = 'gpt-3.5-turbo'
 # model = 'gpt-4'
-model = ''
+# model = ''
 
 
 df = pd.read_csv("squall_selector_test_llm.csv")
 response = []
 for i, row in df.iterrows():
     print(i)
-    if i > 5:
+    if i > 10:
         break
 
     res = None
@@ -28,12 +28,14 @@ for i, row in df.iterrows():
 
     if 'response' in row and str(row['response'])!='nan':
         res = row['response']
-        if 'answer b is more correct than answer a' in res.lower():
+        if 'b is more likely to be correct' in res.lower():
             # B is tableqa, which is 1 in preds
             df.loc[i, 'preds'] = 1
-        elif 'answer a is more correct than answer b' in res.lower():
+            df.loc[i, 'score'] = row['acc_tableqa']
+        elif 'a is more likely to be correct' in res.lower():
             # A is text_to_sql, which is 0 in preds
             df.loc[i, 'preds'] = 0
+            df.loc[i, 'score'] = row['acc_text_to_sql']
         elif res.lower() in ['a', 'b']:
             pass
         else:
@@ -41,9 +43,16 @@ for i, row in df.iterrows():
         response.append(res)
         continue
 
-    if acc_tableqa==acc_text_to_sql or ans_text_to_sql in ['', 'nan', 'na']:
+    if ans_text_to_sql in ['', 'nan', 'na']:
         res = 'B'
         df.loc[i, 'score'] = row['acc_tableqa']
+        df.loc[i, 'response'] = res
+        response.append(res)
+        continue
+
+    if acc_tableqa==acc_text_to_sql:
+        res = 'A'
+        df.loc[i, 'score'] = row['acc_text_to_sql']
         df.loc[i, 'response'] = res
         response.append(res)
         continue
@@ -55,17 +64,19 @@ for i, row in df.iterrows():
     context = context.replace(
         f'answer A : {ans_text_to_sql}\nanswer B : {ans_tableqa}',
         f'answer A : {new_ans_text_to_sql}\nanswer B : {new_ans_tableqa}')
-
+    
     context = 'Q:' + context + '\n\nA:'
-    content = normal_sample_0 + '\n' + normal_sample_1 + '\n' + context
+    # content = normal_sample_0 + '\n' + normal_sample_1 + '\n' + context
+    content = context
     df.loc[i, 'content'] = content
 
     completion = client.chat.completions.create(
-    model = model,
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": content}
-    ]
+        model = model,
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content}
+        ],
+        temperature=0 # consistent output
     )
     res = completion.choices[0].message.content
 

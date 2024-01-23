@@ -27,47 +27,43 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             acc_tableqa = sample['acc_tableqa']
             input_tokens.append(tokenizer.decode(sample['input_ids']))
 
-            # if ans_text_to_sql.lower() in ['nan', 'none'] or acc_text_to_sql==acc_tableqa:
-            #     pass
-            # else:
-            if pred==label:
-                correct_flag.append(True)
+            if ans_text_to_sql.lower() in ['nan', 'none', ''] or acc_text_to_sql==acc_tableqa:
+                pass
             else:
-                correct_flag.append(False)
+                if pred==label:
+                    correct_flag.append(True)
+                else:
+                    correct_flag.append(False)
 
-            # if label==1 and pred==1:
-            #     TP+=1
-            # elif label==0 and pred==1:
-            #     FP+=1
-            # elif label==0 and pred==0:
-            #     TN+=1
-            # else:
-            #     FN+=1
+                if label==1 and pred==1:
+                    TP+=1
+                elif label==0 and pred==1:
+                    FP+=1
+                elif label==0 and pred==0:
+                    TN+=1
+                else:
+                    FN+=1
                 
             # if len(ans_text_to_sql)>0 and ans_text_to_sql.lower() not in ['nan', 'none'] and pred==0:
-            # if pred==0:
-            #     score = acc_text_to_sql
-            # else:
-            #     score = acc_tableqa
-            if pred in [0,2]:
-                score=acc_text_to_sql
+            if pred==0:
+                score = acc_text_to_sql
             else:
-                score=acc_tableqa
-            print('AAA ', pred, label, score)
+                score = acc_tableqa
+          
             scores.append(score)
             
-        # if TP+FP==0:
-        #     precision=0
-        # else:
-        #     precision = TP/(TP+FP)
-        # if TP+FN==0:
-        #     recall=0
-        # else:
-        #     recall = TP/(TP+FN)
-        # if precision * recall == 0:
-        #     f1=0
-        # else:
-        #     f1=np.round(2 * (precision * recall) / (precision + recall), 4)
+        if TP+FP==0:
+            precision=0
+        else:
+            precision = TP/(TP+FP)
+        if TP+FN==0:
+            recall=0
+        else:
+            recall = TP/(TP+FN)
+        if precision * recall == 0:
+            f1=0
+        else:
+            f1=np.round(2 * (precision * recall) / (precision + recall), 4)
         
         if stage:
             to_save = {'id': eval_dataset['id'],
@@ -89,9 +85,9 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         
         return {"acc": np.round(np.mean(scores),4),
                 "acc_cls": np.round(np.mean(correct_flag),4),
-                # "recall": np.round(recall,4),
-                # "precision": np.round(precision,4),
-                # "f1": f1,
+                "recall": np.round(recall,4),
+                "precision": np.round(precision,4),
+                "f1": f1,
                 "acc_tableqa": np.average(eval_dataset["acc_tableqa"]),
                 "acc_text_to_sql": np.average(eval_dataset["acc_text_to_sql"])}
     

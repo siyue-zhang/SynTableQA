@@ -1,5 +1,8 @@
 system_prompt = """
-You are supposed to choose an answer from A and B based on the question and the table provided. You should always choose an answer.
+You are an assistant helping users choose the correct answer to the question and the table provided. \
+Your should choose one from the answer A and B provided and explain the reasoning. \
+In the last sentence of your response, you should write either "A is more likely to be correct." or "B is more likely to be correct." \
+If there is not enough information in the table, you should respond "A is more likely to be correct.". \
 """
 
 # nt-13417 203_37
@@ -11,7 +14,7 @@ answer B : 2
 
 A: This is a table of music tracks, which contains track title, producer, and length  columns. \
 Each row represents a track. There are two rows, 5 and 7, which has milanna miles and rick long \
-under the producer(s)  column. So, based on the given table, there are at least two tracks \
+under the producer(s) column. So, based on the given table, there are at least two tracks \
 were produced by milanna miles and rick long. So, Answer B is more correct than Answer A.
 """
 

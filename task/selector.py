@@ -58,28 +58,16 @@ class Selector(datasets.GeneratorBasedBuilder):
         
         dfs_dev = []
         for s in splits:
-            tableqa_dev = pd.read_csv(f"./predict/squall_tableqa_dev{s}.csv")
-            text_to_sql_dev = pd.read_csv(f"./predict/squall_text_to_sql_dev{s}.csv")
+            tableqa_dev = pd.read_csv(f"./predict/squall_plus_tableqa_dev{s}.csv")
+            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus_text_to_sql_dev{s}.csv")
             df = tableqa_dev[['id','tbl','question','answer','src']]
             df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
             df['ans_tableqa'] = tableqa_dev['predictions']
             df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
             df['ans_text_to_sql'] = text_to_sql_dev['queried_ans']
             df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
-            labels = []
-            for a, b in zip(df['acc_text_to_sql'].to_list(), df['acc_tableqa'].to_list()):
-                a = int(a)
-                b = int(b)
-                if a==b:
-                    label = 2
-                elif a==1:
-                    label = 0
-                else:
-                    label = 1
-                labels.append(label)
-            df['labels'] = labels
-            # df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
-            # df['label'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
+            df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
+            df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
             dfs_dev.append(df)
         dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
         tbls = list(set(dfs_dev['tbl'].to_list()))
@@ -124,12 +112,10 @@ class Selector(datasets.GeneratorBasedBuilder):
         for a, b in zip(df['acc_text_to_sql'].to_list(), df['acc_tableqa'].to_list()):
             a = int(a)
             b = int(b)
-            if a==b:
-                label = 2
-            elif a==1:
-                label = 0
-            else:
+            if a==0 and b==1:
                 label = 1
+            else:
+                label = 0
             labels.append(label)
         df['labels'] = labels
         df_test = df.reset_index().astype('str')
@@ -195,7 +181,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
+    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
                            ignore_verifications=True)
     for i in range(5):
