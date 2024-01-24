@@ -128,25 +128,26 @@ class Squall(datasets.GeneratorBasedBuilder):
         with open(path, encoding="utf-8") as f:
             examples = json.load(f)
         
-        if self.config.aug and split_key == 'test':
-            examples = []
-            aug_nts = list(self.config.aug_dict.keys())
-            for part in [squall_train, squall_dev]:
-                with open(part, encoding="utf-8") as f:
-                    tmp = json.load(f)
-                for ex in tmp:
-                    if ex['nt'] in aug_nts:
-                        for question in self.config.aug_dict[ex['nt']]:
-                            new_ex = deepcopy(ex)
-                            new_ex['question'] = question.strip()
-                            new_ex['src'] = 'squall_aug'
-                            examples.append(new_ex)
+        # if self.config.aug and split_key == 'test':
+        #     examples = []
+        #     aug_nts = list(self.config.aug_dict.keys())
+        #     for part in [squall_train, squall_dev]:
+        #         with open(part, encoding="utf-8") as f:
+        #             tmp = json.load(f)
+        #         for ex in tmp:
+        #             if ex['nt'] in aug_nts:
+        #                 for question in self.config.aug_dict[ex['nt']]:
+        #                     new_ex = deepcopy(ex)
+        #                     new_ex['question'] = question.strip()
+        #                     new_ex['src'] = 'squall_aug'
+        #                     examples.append(new_ex)
 
         # get all table and question ids
         tbls = {ex['tbl'] for ex in examples}
         nts = {ex['nt'] for ex in examples}
         # load wtq examples if additional examples are needed in plus version
         if split_key != 'test' and plus:
+
             with open(wtq_training, encoding="utf-8") as f:
                 for idx, line in enumerate(f):
                     # skip the header
@@ -158,7 +159,10 @@ class Squall(datasets.GeneratorBasedBuilder):
                     if tbl in tbls and nt not in nts:
                         # print('\n', nt, question, tbl, answer_text, '\n')
                         examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text, 'src': 'wtq'})
-  
+                    if tbl not in tbls:
+                        # print(f'wtq {tbl} not exist in squall')
+                        examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text, 'src': 'wtq'})
+
         for i, sample in enumerate(examples):
             # print(sample)
             # get table id
@@ -216,9 +220,8 @@ class Squall(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
-    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
-                           plus='default', 
-                           split_id=1,
-                           aug=True)
+    dataset = load_dataset("//home/siyue/Projects/SynTableQA/task/squall_plus.py", 
+                           plus='plus', 
+                           split_id=1)
     sample = dataset["test"][7]
     print(sample)

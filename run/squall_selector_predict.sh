@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=2
 export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
-output_dir="output/squall_plus_selector_omnitab"
-checkpoint=600
+output_dir="output/squall_plus_selector_omnitab_aug_aft"
+checkpoint=500
 # output_dir="output/squall_plus_selector_tapex"
 # checkpoint=800
 
@@ -13,7 +13,7 @@ python ./train.py \
   --task selector \
   --test_split 1 \
   --do_predict \
-  --predict_split dev \
+  --predict_split train \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \

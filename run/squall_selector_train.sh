@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=2
 export WANDB_PROJECT=new_selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_selector_omnitab"
+run_name="squall_plus_selector_omnitab_aug"
 dataset_name="squall"
-output_dir="output/squall_plus_selector_omnitab"
+output_dir="output/squall_plus_selector_omnitab_aug"
 
 # model_name="microsoft/tapex-base"
 # run_name="squall_plus_selector_tapex"
@@ -40,6 +40,7 @@ python ./train.py \
   --evaluation_strategy steps \
   --eval_steps 50
 
+  # --resume_from_checkpoint output/squall_plus_selector_omnitab_aug/checkpoint-650 \
   # --max_eval_samples 200 \
   # --max_train_samples 100
   # --resume_from_checkpoint output/squall_tableqa1/checkpoint-${checkpoint} \
