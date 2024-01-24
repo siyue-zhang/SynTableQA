@@ -94,9 +94,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
-    # ensure squall <-> default
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 'plus')
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
+                            plus='plus', 
+                            split_id=1)
     train_dataset = datasets["validation"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(

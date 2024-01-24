@@ -49,7 +49,7 @@ _URL_wtq = "https://github.com/ppasupat/WikiTableQuestions/archive/refs/heads/ma
 class SquallConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, plus, split_id, aug=False, **kwargs):
+    def __init__(self, plus, split_id, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -57,11 +57,6 @@ class SquallConfig(datasets.BuilderConfig):
         super(SquallConfig, self).__init__(**kwargs)
         self.split_id = split_id
         self.plus = plus
-        self.aug = aug
-        if aug:
-            with open('aug_questions.json', encoding="utf-8") as f:
-                tmp = json.load(f)
-            self.aug_dict = tmp
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
@@ -103,19 +98,51 @@ class Squall(datasets.GeneratorBasedBuilder):
                 gen_kwargs={"split_key": "test", "wtq_path": wtq_data_dir}),
         ]
 
+    def get_tbls_nts(self, path):
+        with open(path, encoding="utf-8") as f:
+            examples = json.load(f)
+        tbls = {ex['tbl'] for ex in examples}
+        nts = {ex['nt'] for ex in examples}
+        return list(tbls), list(nts)
+
+    def split_list(self, lst, n):
+        # Calculate the number of items in each split
+        avg = len(lst) // n
+        remainder = len(lst) % n
+
+        # Initialize the starting index for each split
+        start = 0
+
+        # Iterate over each split
+        for i in range(n):
+            # Calculate the end index for the current split
+            end = start + avg + (1 if i < remainder else 0)
+
+            # Yield the current split
+            yield lst[start:end]
+
+            # Update the starting index for the next split
+            start = end    
 
     def _generate_examples(self, split_key, wtq_path):
         """This function returns the examples in the raw (text) form."""
         logger.info("generating examples from = %s", wtq_path)
+        # load raw data from wtq and squall
         split_id = self.config.split_id
         wtq_training = f"{wtq_path}/data/training.tsv"
         squall_train = f"{_dir_squall}/data/train-{split_id}.json"
         squall_dev = f"{_dir_squall}/data/dev-{split_id}.json"
         test = f"{_dir_squall}/data/wtq-test.json"
         test_label = f"{wtq_path}/data/pristine-unseen-tables.tsv"
-
+        # if load squall or squall_plus version
         plus = self.config.plus == 'plus'
+        if plus:
+            # get all SQUALL table ids
+            train_tbl, _ = self.get_tbls_nts(squall_train)
+            dev_tbl, _ = self.get_tbls_nts(squall_dev)
+            squall_tbls = train_tbl + dev_tbl
 
+        # get squall examples
         if split_key == 'test':
             path = test
             test_label = pd.read_table(test_label)
@@ -124,30 +151,17 @@ class Squall(datasets.GeneratorBasedBuilder):
         else:
             path = squall_dev
 
-        # load squall examples
+        # load examples from SQUALL splits
         with open(path, encoding="utf-8") as f:
             examples = json.load(f)
         
-        # if self.config.aug and split_key == 'test':
-        #     examples = []
-        #     aug_nts = list(self.config.aug_dict.keys())
-        #     for part in [squall_train, squall_dev]:
-        #         with open(part, encoding="utf-8") as f:
-        #             tmp = json.load(f)
-        #         for ex in tmp:
-        #             if ex['nt'] in aug_nts:
-        #                 for question in self.config.aug_dict[ex['nt']]:
-        #                     new_ex = deepcopy(ex)
-        #                     new_ex['question'] = question.strip()
-        #                     new_ex['src'] = 'squall_aug'
-        #                     examples.append(new_ex)
-
         # get all table and question ids
         tbls = {ex['tbl'] for ex in examples}
         nts = {ex['nt'] for ex in examples}
+
         # load wtq examples if additional examples are needed in plus version
         if split_key != 'test' and plus:
-
+            new_examples = []
             with open(wtq_training, encoding="utf-8") as f:
                 for idx, line in enumerate(f):
                     # skip the header
@@ -156,20 +170,32 @@ class Squall(datasets.GeneratorBasedBuilder):
                     nt, question, tbl, answer_text = line.strip("\n").split("\t")
                     tbl = tbl.split('csv/')
                     tbl = tbl[1].replace('-','_') + tbl[2].split('.')[0]
+                    # table exits in SQUALL but question doesn't exist in SQUALL
                     if tbl in tbls and nt not in nts:
-                        # print('\n', nt, question, tbl, answer_text, '\n')
                         examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text, 'src': 'wtq'})
-                    if tbl not in tbls:
-                        # print(f'wtq {tbl} not exist in squall')
-                        examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text, 'src': 'wtq'})
+                    # table doesn't exist in SQUALL
+                    if tbl not in squall_tbls:
+                        new_examples.append({'nt':nt, 'tbl':tbl, 'nl': question, 'tgt': answer_text, 'src': 'wtq'})
+            
+            # wtq example's table exist in SQUALL
+            new_tbls = sorted(list(set([x['tbl'] for x in new_examples])))
+            # split tables into 5 folds
+            result_splits = list(self.split_list(new_tbls, 5))
+            # print(result_splits)
+            
+            new_tbls_dev = result_splits[split_id]
+            new_tbls_train = [x for x in new_tbls if x not in new_tbls_dev]
+            # put some examples into train set, and the rest into dev set by table id
+            if split_key == 'train':
+                examples += [x for x in new_examples if x['tbl'] in new_tbls_train]
+            else:
+                examples += [x for x in new_examples if x['tbl'] in new_tbls_dev]
 
+        # generate each example
         for i, sample in enumerate(examples):
-            # print(sample)
-            # get table id
             tbl = sample["tbl"]
             db_path = f"{_dir_squall}/tables/db/{tbl}.db"
             json_path = f"{_dir_squall}/tables/json/{tbl}.json"
-            # get question and question id
             nt = sample["nt"]
             if isinstance(sample["nl"], list):
                 if sample["nl"][-1] in '.?':
@@ -183,7 +209,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                 question = sample['question']
 
             # get sql query and answer text
-            if split_key == 'test' and not self.config.aug:
+            if split_key == 'test':
                 query = 'unk'
                 answer = test_label[test_label["id"]==sample["nt"]]["targetValue"].tolist()[0]
                 if isinstance(answer, list):
@@ -220,8 +246,8 @@ class Squall(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
-    dataset = load_dataset("//home/siyue/Projects/SynTableQA/task/squall_plus.py", 
+    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                            plus='plus', 
-                           split_id=1)
+                           split_id=3)
     sample = dataset["test"][7]
     print(sample)
