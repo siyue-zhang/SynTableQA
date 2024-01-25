@@ -1,6 +1,4 @@
 [submodule "data/squall"]
 	path = data/squall
 	url = https://github.com/tzshi/squall.git
-[submodule "data/sede"]
-	path = data/sede
-	url = https://github.com/hirupert/sede.git
+
