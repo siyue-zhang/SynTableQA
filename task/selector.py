@@ -52,7 +52,7 @@ class Selector(datasets.GeneratorBasedBuilder):
         predict_dir = f'./predict/'
         dataset = self.config.dataset
         assert dataset in ['squall', 'sede']
-        train_dev_ratio = 0.2
+        train_dev_ratio = 0.1
             
         splits = list(range(5))
         
@@ -98,30 +98,30 @@ class Selector(datasets.GeneratorBasedBuilder):
         df_train = df_train.reset_index(drop=True) 
 
         ####
-        options = df_train['ans_tableqa'].to_list() + df_train['ans_text_to_sql'].to_list()
-        options = list(set(options))
-        dfs_aug = []
-        for _ in range(5):
-            df_aug = deepcopy(df_train)
-            for i in range(df_aug.shape[0]):
-                if df_aug.loc[i, 'acc_tableqa'] == 1:
-                    cor = df_aug.loc[i, 'ans_tableqa']
-                    df_aug.loc[i, 'ans_text_to_sql'] = cor
-                    while df_aug.loc[i, 'ans_text_to_sql']==cor:
-                        df_aug.loc[i, 'ans_text_to_sql'] = random.choice(options)
-                else:
-                    cor = df_aug.loc[i, 'ans_text_to_sql']
-                    df_aug.loc[i, 'ans_tableqa'] = cor
-                    while df_aug.loc[i, 'ans_tableqa']==cor:
-                        df_aug.loc[i, 'ans_tableqa'] = random.choice(options)
-            dfs_aug.append(df_aug)
-        df_train = pd.concat(dfs_aug, ignore_index=True).reset_index()
+        # options = df_train['ans_tableqa'].to_list() + df_train['ans_text_to_sql'].to_list()
+        # options = list(set(options))
+        # dfs_aug = []
+        # for _ in range(5):
+        #     df_aug = deepcopy(df_train)
+        #     for i in range(df_aug.shape[0]):
+        #         if df_aug.loc[i, 'acc_tableqa'] == 1:
+        #             cor = df_aug.loc[i, 'ans_tableqa']
+        #             df_aug.loc[i, 'ans_text_to_sql'] = cor
+        #             while df_aug.loc[i, 'ans_text_to_sql']==cor:
+        #                 df_aug.loc[i, 'ans_text_to_sql'] = random.choice(options)
+        #         else:
+        #             cor = df_aug.loc[i, 'ans_text_to_sql']
+        #             df_aug.loc[i, 'ans_tableqa'] = cor
+        #             while df_aug.loc[i, 'ans_tableqa']==cor:
+        #                 df_aug.loc[i, 'ans_tableqa'] = random.choice(options)
+        #     dfs_aug.append(df_aug)
+        # df_train = pd.concat(dfs_aug, ignore_index=True).reset_index()
         ####
                     
         df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
 
         s = self.config.test_split
-        tableqa_test = pd.read_csv(f"./predict/squall_tableqa_test{s}.csv")
+        tableqa_test = pd.read_csv(f"./predict/squall_plus_tableqa_test{s}.csv")
         text_to_sql_test = pd.read_csv(f"./predict/squall_text_to_sql_test{s}.csv")
         df = tableqa_test[['id','tbl','question','answer','src']]
         df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
@@ -204,7 +204,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
+    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
                            ignore_verifications=True)
     for i in range(5):

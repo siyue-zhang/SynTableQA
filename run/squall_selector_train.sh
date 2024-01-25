@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT=new_selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_selector_omnitab_aug"
+run_name="squall_plus_selector_omnitab"
 dataset_name="squall"
-output_dir="output/squall_plus_selector_omnitab_aug"
+output_dir="output/squall_plus_selector_omnitab"
 
 # model_name="microsoft/tapex-base"
 # run_name="squall_plus_selector_tapex"
@@ -24,7 +24,7 @@ python ./train.py \
   --model_name_or_path ${model_name} \
   --overwrite_output_dir \
   --load_best_model_at_end \
-  --metric_for_best_model acc_cls \
+  --metric_for_best_model acc \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \

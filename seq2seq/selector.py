@@ -41,6 +41,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     columns[cc['col']] = cc['data']
                     if len(cc['data'])>max_rows:
                         max_rows=len(cc['data'])
+                    # only keep original column
+                    break
             # ensure each column has same length
             for col in columns:
                 if len(columns[col])<max_rows:
@@ -87,10 +89,9 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
  
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
-                           ignore_verifications=True,
-                           model='tableqa')
+                           ignore_verifications=True)
     train_dataset = datasets["train"].select(range(10))
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")
 

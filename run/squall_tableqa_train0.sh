@@ -3,9 +3,9 @@ export WANDB_PROJECT=TQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_tableqa0"
+run_name="squall_plus_tableqa0+"
 dataset_name="squall"
-output_dir="output/squall_plus_tableqa0"
+output_dir="output/squall_plus_tableqa0+"
 
 python ./train.py \
   --do_train \
@@ -23,7 +23,7 @@ python ./train.py \
   --per_device_train_batch_size 6 \
   --gradient_accumulation_steps 4 \
   --per_device_eval_batch_size 6 \
-  --num_train_epochs 100 \
+  --num_train_epochs 50 \
   --warmup_ratio 0.1 \
   --learning_rate 2e-5 \
   --fp16 \
@@ -37,9 +37,9 @@ python ./train.py \
   --run_name ${run_name} \
   --task tableqa \
   --output_dir ${output_dir} \
-  --save_total_limit 2
-
+  --save_total_limit 2 
+  # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint}
   # --max_eval_samples 10 \
   # --max_train_samples 100
 
-# --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
+

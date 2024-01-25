@@ -330,22 +330,12 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
     elif data_args.task.lower() == 'selector':
-        if training_args.do_predict:
-            model = BartForSequenceClassification.from_pretrained(
-                pretrained_model_name_or_path=name,
-                )
-        else:
-            config.id2label = {0: "text_to_sql", 1: "tableqa"}
-            config.label2id = {"text_to_sql": 0, "tableqa": 1}
-            config.num_labels = 2
-            model = BartForSequenceClassification.from_pretrained(
-                pretrained_model_name_or_path=name,
-                from_tf=bool(".ckpt" in model_args.model_name_or_path),
-                config=config,
-                cache_dir=model_args.cache_dir,
-                revision=model_args.model_revision,
-                use_auth_token=True if model_args.use_auth_token else None,
-            )
+        config.id2label = {0: "text_to_sql", 1: "tableqa"}
+        config.label2id = {"text_to_sql": 0, "tableqa": 1}
+        config.num_labels = 2
+        model = BartForSequenceClassification.from_pretrained(
+            pretrained_model_name_or_path=name,
+            config=config)
     else:
         raise NotImplementedError
 

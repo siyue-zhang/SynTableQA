@@ -248,6 +248,6 @@ if __name__=='__main__':
     # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                            plus='plus', 
-                           split_id=3)
+                           split_id=1)
     sample = dataset["test"][7]
     print(sample)

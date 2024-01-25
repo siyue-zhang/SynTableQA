@@ -43,6 +43,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     columns[cc['col']] = cc['data']
                     if len(cc['data'])>max_rows:
                         max_rows=len(cc['data'])
+                    # only keep the original column for tableqa task
+                    break
             # ensure each column has same length
             for col in columns:
                 if len(columns[col])<max_rows:
@@ -61,7 +63,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                 else:
                     nl_header = header
                 nl_headers.append(nl_header)
-            df.columns = nl_headers            
+            df.columns = nl_headers
+
             # save the table
             table_contents[tbl] = df
 
