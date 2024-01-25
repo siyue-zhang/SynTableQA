@@ -96,27 +96,6 @@ class Selector(datasets.GeneratorBasedBuilder):
         if 'index' in df_train.columns:
             df_train = df_train.drop('index', axis=1)
         df_train = df_train.reset_index(drop=True) 
-
-        ####
-        # options = df_train['ans_tableqa'].to_list() + df_train['ans_text_to_sql'].to_list()
-        # options = list(set(options))
-        # dfs_aug = []
-        # for _ in range(5):
-        #     df_aug = deepcopy(df_train)
-        #     for i in range(df_aug.shape[0]):
-        #         if df_aug.loc[i, 'acc_tableqa'] == 1:
-        #             cor = df_aug.loc[i, 'ans_tableqa']
-        #             df_aug.loc[i, 'ans_text_to_sql'] = cor
-        #             while df_aug.loc[i, 'ans_text_to_sql']==cor:
-        #                 df_aug.loc[i, 'ans_text_to_sql'] = random.choice(options)
-        #         else:
-        #             cor = df_aug.loc[i, 'ans_text_to_sql']
-        #             df_aug.loc[i, 'ans_tableqa'] = cor
-        #             while df_aug.loc[i, 'ans_tableqa']==cor:
-        #                 df_aug.loc[i, 'ans_tableqa'] = random.choice(options)
-        #     dfs_aug.append(df_aug)
-        # df_train = pd.concat(dfs_aug, ignore_index=True).reset_index()
-        ####
                     
         df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
 
