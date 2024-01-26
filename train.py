@@ -94,7 +94,7 @@ class DataTrainingArguments:
         default="squall", metadata={"help": "squall, spider or selector"}
     )
     squall_plus: bool = field(
-        default=True, metadata={"help": "whether to use plus version"}
+        default=False, metadata={"help": "whether to use plus version"}
     )
     spider_syn: bool = field(
         default=True, metadata={"help": "whether to use syn version"}
@@ -462,7 +462,8 @@ def main():
             fuzzy=data_args.postproc_fuzzy_string)
     else:
         p = '_plus' if data_args.squall_plus else ''
-        s = data_args.split_id if data_args.dataset_name=='squall' else ''
+        p = '_syn' if data_args.spider_syn else ''
+        s = data_args.split_id
         stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
