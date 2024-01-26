@@ -9,9 +9,10 @@ def fetch_table_data(connection, table_name):
 def read_sqlite_database(db_path):
     connection = sqlite3.connect(db_path)
     connection.row_factory = sqlite3.Row  # Use Row factory to get rows as dictionaries
+    connection.text_factory = lambda b: b.decode(errors = 'ignore')
 
     # Get a list of all tables in the database
-    print('reading database ...')
+    # print('reading database ...')
     cursor = connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = [table[0] for table in cursor.fetchall()]
@@ -36,5 +37,6 @@ def execute_query(db_path, query):
             for cell in row:
                 ret.append(str(cell))
     connection.close()
-    ret = [x for x in ret if x.lower().strip() not in ['', 'none', 'null']]
+    if ret == []:
+        ret = ['None']
     return ret
