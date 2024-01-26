@@ -135,7 +135,7 @@ class Squall(datasets.GeneratorBasedBuilder):
         test = f"{_dir_squall}/data/wtq-test.json"
         test_label = f"{wtq_path}/data/pristine-unseen-tables.tsv"
         # if load squall or squall_plus version
-        plus = self.config.plus == 'plus'
+        plus = self.config.plus
         if plus:
             # get all SQUALL table ids
             train_tbl, _ = self.get_tbls_nts(squall_train)
@@ -247,7 +247,7 @@ if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
-                           plus='plus', 
+                           plus=True, 
                            split_id=1)
     sample = dataset["test"][7]
     print(sample)

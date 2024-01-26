@@ -91,10 +91,13 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
     dataset_name: str = field(
-        default="squall", metadata={"help": "squall or selector"}
+        default="squall", metadata={"help": "squall, spider or selector"}
     )
-    squall_plus: str = field(
-        default="default", metadata={"help": "default or plus"}
+    squall_plus: bool = field(
+        default=True, metadata={"help": "whether to use plus version"}
+    )
+    spider_syn: bool = field(
+        default=True, metadata={"help": "whether to use syn version"}
     )
     split_id: int = field(
         default=1, metadata={"help": ( "dataset split id")}
@@ -282,6 +285,13 @@ def main():
                                     split_id=data_args.split_id,
                                     download_mode='force_redownload',
                                     ignore_verifications=True)
+    elif data_args.dataset_name == 'spider':
+        task = "./task/spider_syn.py"
+        raw_datasets = load_dataset(task, 
+                                    syn=data_args.spider_syn, 
+                                    split_id=data_args.split_id,
+                                    download_mode='force_redownload',
+                                    ignore_verifications=True)
     else:
         raise NotImplementedError
 
@@ -343,6 +353,10 @@ def main():
         from seq2seq.squall_tableqa import preprocess_function
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
         from seq2seq.squall import preprocess_function
+    # elif data_args.dataset_name=='spider' and data_args.task.lower()=='tableqa':
+    #     from seq2seq.spider_tableqa import preprocess_function
+    elif data_args.dataset_name=='spider' and data_args.task.lower()=='text_to_sql':
+        from seq2seq.spider import preprocess_function
     elif data_args.task.lower()=='selector':
         from seq2seq.selector import preprocess_function
     else:
@@ -430,6 +444,10 @@ def main():
         from metric.squall_tableqa import prepare_compute_metrics
     elif data_args.dataset_name=='squall' and data_args.task.lower()=='text_to_sql':
         from metric.squall import prepare_compute_metrics
+    # elif data_args.dataset_name=='spider' and data_args.task.lower()=='tableqa':
+    #     from metric.spider_tableqa import prepare_compute_metrics
+    elif data_args.dataset_name=='spider' and data_args.task.lower()=='text_to_sql':
+        from metric.spider import prepare_compute_metrics
     elif data_args.task.lower()=='selector':
         from metric.selector import prepare_compute_metrics
 
@@ -443,7 +461,7 @@ def main():
             stage=None, 
             fuzzy=data_args.postproc_fuzzy_string)
     else:
-        p = '_plus' if data_args.squall_plus == 'plus' else ''
+        p = '_plus' if data_args.squall_plus else ''
         s = data_args.split_id if data_args.dataset_name=='squall' else ''
         stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(

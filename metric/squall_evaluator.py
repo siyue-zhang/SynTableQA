@@ -50,7 +50,7 @@ from codecs import open
 from math import isnan, isinf
 from abc import ABCMeta, abstractmethod
 import sqlite3
-from stanfordnlp.server import CoreNLPClient
+# from stanfordnlp.server import CoreNLPClient
 # import func_timeout
 
 ################ String Normalization ################
