@@ -97,7 +97,7 @@ class DataTrainingArguments:
         default=False, metadata={"help": "whether to use plus version"}
     )
     spider_syn: bool = field(
-        default=True, metadata={"help": "whether to use syn version"}
+        default=False, metadata={"help": "whether to use syn version"}
     )
     split_id: int = field(
         default=1, metadata={"help": ( "dataset split id")}

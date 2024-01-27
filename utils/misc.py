@@ -37,6 +37,4 @@ def execute_query(db_path, query):
             for cell in row:
                 ret.append(str(cell))
     connection.close()
-    if ret == []:
-        ret = ['None']
     return ret

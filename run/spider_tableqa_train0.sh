@@ -2,10 +2,10 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 export WANDB_PROJECT=spider_exp
 export WANDB_ENTITY=siyue-zhang
 
-model_name="t5-large"
-run_name="spider_text_to_sql0"
+model_name="neulab/omnitab-large"
+run_name="spider_tableqa0"
 dataset_name="spider"
-output_dir="output/spider_text_to_sql0"
+output_dir="output/spider_tableqa0"
 
 python ./train.py \
   --do_train \
@@ -13,14 +13,14 @@ python ./train.py \
   --num_train_epochs 50 \
   --run_name ${run_name} \
   --spider_syn True \
-  --task text_to_sql \
+  --task tableqa \
   --output_dir ${output_dir} \
   --model_name_or_path ${model_name} \
   --overwrite_output_dir \
   --load_best_model_at_end \
   --metric_for_best_model acc \
   --max_source_length 1024 \
-  --max_target_length 256 \
+  --max_target_length 128 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --per_device_train_batch_size 2 \

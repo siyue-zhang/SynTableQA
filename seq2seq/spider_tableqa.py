@@ -3,23 +3,6 @@ import sys
 sys.path.append('./')
 from utils.misc import read_sqlite_database
 
-def normalize(query: str) -> str:
-    def comma_fix(s):
-        # Remove spaces in front of commas
-        return s.replace(" , ", ", ")
-
-    def white_space_fix(s):
-        # Remove double and triple spaces
-        return " ".join(s.split())
-
-    def lower(s):
-        # Convert everything except text between (single or double) quotation marks to lower case
-        return re.sub(
-            r"\b(?<!['\"])(\w+)(?!['\"])\b", lambda match: match.group(1).lower(), s
-        )
-
-    return comma_fix(white_space_fix(lower(query)))
-
 
 def serialize_db(db_id, database_dict, tokenizer, max_source_length):
 
@@ -49,12 +32,11 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     num_ex = len(examples["query"])
     inputs, outputs = [], []
     db_dicts = {}
-    db_contents = {}
     for i in range(num_ex):
         query = examples["query"][i]
         question = examples["question"][i]
         db_id = examples["db_id"][i]
-        print(i, ' ', db_id, '\n')
+
         db_path = examples["db_path"][i]
         output = examples["answer"][i]
         db_path = db_path + "/" + db_id + "/" + db_id + ".sqlite"
@@ -73,22 +55,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     header = [item for index, item in enumerate(table['header']) if index not in empty_cols]
                     rows = [[item for index, item in enumerate(row) if index not in empty_cols] for row in table['rows']]
                     database_dict[tab] = {'header': header, 'rows': rows}
-            db_dicts[db_id] = database_dict
-
-        database_dict = db_dicts[db_id]
-
-        if db_id not in db_contents:
             db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length-20)
-            db_contents[db_id] = db_content
+            db_dicts[db_id] = db_content
 
-        input = question + ' ' + db_contents[db_id]
-        print(input, '\n')
-        print(output, '\n')
-        if output=='':
-            assert 1==2
-        
-        input = input.replace('<', '!>')
-        output = output.replace('<', '!>')
+        input = question + ' ' + db_dicts[db_id]
 
         inputs.append(input)
         outputs.append(output)

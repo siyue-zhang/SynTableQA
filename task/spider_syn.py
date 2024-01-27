@@ -20,6 +20,7 @@
 import json
 import os
 import sys
+sys.path.append('./')
 from utils.get_tables import dump_db_json_schema
 from utils.misc import execute_query
 import datasets
@@ -181,13 +182,20 @@ class Spider(datasets.GeneratorBasedBuilder):
             path = db_path + "/" + db_id + "/" + db_id + ".sqlite"
             query = sample["query"]
 
+            # skip all inexecutable query
             try:
                 answer = execute_query(path, query)
             except Exception as e:
-                # print(f'error target query: {query} ; database: {db_id}')
                 continue
+
+            # skip all examples whose query result is none: empty database like music_2, wrong query
+            if list(set([a.lower() for a in answer])) in [['none'], [''], []]:
+                continue
+            
+            # skip all examples with a lot of answers
             if len(answer)>20:
                 continue
+            
             answer = '|'.join(answer)
 
             yield idx, {
@@ -214,6 +222,7 @@ if __name__=='__main__':
     from datasets import load_dataset
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", 
                            syn=True, 
-                           split_id=1,)
+                           split_id=1,
+                           download_mode='force_redownload',ignore_verifications=True,)
     sample = dataset["test"][87]
     print(sample)

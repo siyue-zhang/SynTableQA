@@ -271,7 +271,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'query_pred': decoded_preds,
                        'query_fuzzy':fuzzy_query,
                        'queried_ans': predicted,
-                       'src': eval_dataset['src']}
+                       'src': eval_dataset['src'],
+                       'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/{stage}.csv', na_rep='')
             print('predictions saved! ', stage)
