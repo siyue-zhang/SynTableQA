@@ -162,6 +162,7 @@ cython_debug/
 
 data/
 output/
+output_new/
 wandb/
 *.slurm
 setup.sh

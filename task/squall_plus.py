@@ -49,7 +49,7 @@ _URL_wtq = "https://github.com/ppasupat/WikiTableQuestions/archive/refs/heads/ma
 class SquallConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, plus, split_id, **kwargs):
+    def __init__(self, plus, split_id, downsize=None, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -57,6 +57,9 @@ class SquallConfig(datasets.BuilderConfig):
         super(SquallConfig, self).__init__(**kwargs)
         self.split_id = split_id
         self.plus = plus
+        self.downsize = downsize
+        if self.downsize:
+            assert self.plus == False
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
@@ -124,6 +127,23 @@ class Squall(datasets.GeneratorBasedBuilder):
             # Update the starting index for the next split
             start = end    
 
+    def downsize_examples(self, factor, examples):
+
+        splits = range(5)
+        tbl_splits = []
+        for s in splits:
+            with open(f"./data/squall/data/dev-{s}.json", 'r') as file:
+                data = json.load(file)
+            tbls = list(set([example['tbl'] for example in data]))
+            tbl_splits.append(tbls)
+        downsized_tbl_splits = [l[:len(l)//factor] for l in tbl_splits]
+        flattened_tbls = [item for sublist in downsized_tbl_splits for item in sublist]
+        examples = [ex for ex in examples if ex['tbl'] in flattened_tbls]
+
+        return examples
+
+
+
     def _generate_examples(self, split_key, wtq_path):
         """This function returns the examples in the raw (text) form."""
         logger.info("generating examples from = %s", wtq_path)
@@ -134,6 +154,7 @@ class Squall(datasets.GeneratorBasedBuilder):
         squall_dev = f"{_dir_squall}/data/dev-{split_id}.json"
         test = f"{_dir_squall}/data/wtq-test.json"
         test_label = f"{wtq_path}/data/pristine-unseen-tables.tsv"
+
         # if load squall or squall_plus version
         plus = self.config.plus
         if plus:
@@ -155,6 +176,10 @@ class Squall(datasets.GeneratorBasedBuilder):
         with open(path, encoding="utf-8") as f:
             examples = json.load(f)
         
+
+        if split_key != 'test' and self.config.downsize:
+            examples = self.downsize_examples(self.config.downsize, examples)
+
         # get all table and question ids
         tbls = {ex['tbl'] for ex in examples}
         nts = {ex['nt'] for ex in examples}
@@ -247,7 +272,8 @@ if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
-                           plus=True, 
-                           split_id=1)
-    sample = dataset["test"][7]
+                           plus=False, 
+                           split_id=1,
+                           downsize=10)
+    sample = dataset["train"][7]
     print(sample)

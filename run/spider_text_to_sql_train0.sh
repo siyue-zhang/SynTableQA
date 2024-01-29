@@ -3,11 +3,11 @@ export WANDB_PROJECT=spider_exp
 export WANDB_ENTITY=siyue-zhang
 
 model_name="t5-large"
-run_name="spider_text_to_sql0"
+run_name="spider_syn_text_to_sql0"
 dataset_name="spider"
-output_dir="output/spider_text_to_sql0"
+output_dir="output/spider_syn_text_to_sql0"
 
-python ./train.py \
+python ./run.py \
   --do_train \
   --do_eval \
   --num_train_epochs 50 \
@@ -20,7 +20,7 @@ python ./train.py \
   --load_best_model_at_end \
   --metric_for_best_model acc \
   --max_source_length 1024 \
-  --max_target_length 256 \
+  --max_target_length 128 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --per_device_train_batch_size 2 \

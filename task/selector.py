@@ -72,7 +72,7 @@ class Selector(datasets.GeneratorBasedBuilder):
         dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
         tbls = list(set(dfs_dev['tbl'].to_list()))
 
-        split_path = './selector_splits.json'
+        split_path = './task/selector_splits.json'
         if os.path.exists(split_path):
             with open(split_path, 'r') as json_file:
                 splits = json.load(json_file)

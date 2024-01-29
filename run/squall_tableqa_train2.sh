@@ -11,7 +11,7 @@ python ./train.py \
   --do_train \
   --do_eval \
   --dataset_name ${dataset_name} \
-  --squall_plus plus \
+  --squall_plus True \
   --split_id 2 \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \

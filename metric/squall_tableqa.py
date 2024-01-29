@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import json
 from metric.squall_evaluator import Evaluator
 
 def postprocess_text(preds, labels):

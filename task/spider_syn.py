@@ -85,6 +85,7 @@ class Spider(datasets.GeneratorBasedBuilder):
                     }
                 ),
                 "answer": datasets.Value("string"),
+                "src":datasets.Value("string"),
             }
         )
         return datasets.DatasetInfo(
@@ -129,7 +130,7 @@ class Spider(datasets.GeneratorBasedBuilder):
                 spider[i]["question"]=spider_syn[i]["SpiderSynQuestion"]
 
         dbs = list(set([x['db_id'] for x in spider]))
-        split_path = './spider_splits.json'
+        split_path = './task/spider_splits.json'
         if os.path.exists(split_path):
             with open(split_path, 'r') as json_file:
                 db_splits = json.load(json_file)
@@ -198,6 +199,11 @@ class Spider(datasets.GeneratorBasedBuilder):
             
             answer = '|'.join(answer)
 
+            if self.config.syn:
+                src = 'syn'
+            else:
+                src = 'spider'
+
             yield idx, {
                 "query": sample["query"],
                 "question": sample["question"],
@@ -214,7 +220,8 @@ class Spider(datasets.GeneratorBasedBuilder):
                     {"column_id": column_id, "other_column_id": other_column_id}
                     for column_id, other_column_id in schema["foreign_keys"]
                 ],
-                "answer": answer
+                "answer": answer,
+                "src": src
             }
 
 

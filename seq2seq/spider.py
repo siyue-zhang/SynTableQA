@@ -21,24 +21,16 @@ def normalize(query: str) -> str:
     return comma_fix(white_space_fix(query))
 
 
-def serialize_db(db_id, database_dict, tokenizer, max_source_length):
+def serialize_db(db_id, database_dict):
 
-    num_row_limit = 50
-    max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
-    max_row = min(num_row_limit, max_row)
-
-    num_tokens = 99999999
-    while num_tokens>max_source_length:
-        max_row -= 1
-        ret = f"{db_id}\n"
-        for tab in database_dict:
-            ret += f'[{tab}] '
-            ret += f'col : ' + ' | '.join([col.lower() for col in database_dict[tab]['header']]) + ' '
-            for i, row in enumerate(database_dict[tab]['rows']):
-                ret += f'row {i+1} : ' + ' | '.join(row) + ' '
-                if i+1==max_row:
-                    break
-        num_tokens = len(tokenizer.encode(ret))
+    ret = f"{db_id}\n"
+    for tab in database_dict:
+        ret += f'[{tab}] '
+        ret += f'col : ' + ' | '.join([col.lower() for col in database_dict[tab]['header']]) + ' '
+        for i, row in enumerate(database_dict[tab]['rows']):
+            ret += f'row {i+1} : ' + ' | '.join(row) + ' '
+            if i==4:
+                break
 
     return ret
 
@@ -69,7 +61,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     header = [item for index, item in enumerate(table['header']) if index not in empty_cols]
                     rows = [[item for index, item in enumerate(row) if index not in empty_cols] for row in table['rows']]
                     database_dict[tab] = {'header': header, 'rows': rows}
-            db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length-20)
+            db_content = serialize_db(db_id, database_dict)
             db_dicts[db_id] = db_content
 
         input = question + ' ' + db_dicts[db_id]
@@ -113,8 +105,8 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,
                             download_mode='force_redownload',ignore_verifications=True,)
-    train_dataset = datasets["test"]
-    tokenizer = T5Tokenizer.from_pretrained("t5-small")
+    train_dataset = datasets["validation"]
+    tokenizer = T5Tokenizer.from_pretrained("t5-large")
     train_dataset = train_dataset.map(
         preprocess_function,
         fn_kwargs={"tokenizer":tokenizer, 
