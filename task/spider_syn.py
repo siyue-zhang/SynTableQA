@@ -197,7 +197,11 @@ class Spider(datasets.GeneratorBasedBuilder):
             if len(answer)>20:
                 continue
             
-            answer = '|'.join(answer)
+            ordering_keywords = ['in descending', 'in ascending']
+            if any(keyword in sample["question"] for keyword in ordering_keywords):
+                answer = ','.join(answer)
+            else:
+                answer = '|'.join(answer)
 
             if self.config.syn:
                 src = 'syn'

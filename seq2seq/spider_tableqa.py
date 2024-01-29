@@ -6,6 +6,25 @@ from utils.misc import read_sqlite_database
 
 def serialize_db(db_id, database_dict, tokenizer, max_source_length):
 
+    ret = f"{db_id}\n"
+    for tab in database_dict:
+        ret += f'[{tab}] '
+        ret += f'col : ' + ' | '.join([col.lower() for col in database_dict[tab]['header']]) + ' '
+        for i, row in enumerate(database_dict[tab]['rows']):
+            ret += f'row {i+1} : ' + ' | '.join(row) + ' '
+
+    if len(ret)>5000:
+        raw_tokens = 5000
+    else:
+        raw_tokens = len(tokenizer(answer=ret)['input_ids'])
+    print(db_id, raw_tokens)
+
+    if db_id=='student_assessment':
+        print(ret)
+        print(len(tokenizer(answer=ret)['input_ids']))
+        assert 1==2
+
+
     num_row_limit = 50
     max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
     max_row = min(num_row_limit, max_row)
@@ -24,7 +43,7 @@ def serialize_db(db_id, database_dict, tokenizer, max_source_length):
         num_tokens = len(tokenizer(answer=ret)['input_ids'])
         if max_row==1:
             break
-    return ret
+    return ret, raw_tokens<max_source_length
 
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
@@ -33,12 +52,13 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     num_ex = len(examples["query"])
     inputs, outputs = [], []
     db_dicts = {}
+    flags = {}
+    counter = 0
     for i in range(num_ex):
         query = examples["query"][i]
         question = examples["question"][i]
         db_id = examples["db_id"][i]
         # print(db_id)
-
         db_path = examples["db_path"][i]
         output = examples["answer"][i]
         db_path = db_path + "/" + db_id + "/" + db_id + ".sqlite"
@@ -57,14 +77,18 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     header = [item for index, item in enumerate(table['header']) if index not in empty_cols]
                     rows = [[item for index, item in enumerate(row) if index not in empty_cols] for row in table['rows']]
                     database_dict[tab] = {'header': header, 'rows': rows}
-            db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length-50)
+            db_content, flag = serialize_db(db_id, database_dict, tokenizer, max_source_length-50)
             db_dicts[db_id] = db_content
+            flags[db_id] = flag
 
         input = question + ' ' + db_dicts[db_id]
+        counter += int(flags[db_id])
         # print(input, '\n-------------\n')
         inputs.append(input)
         outputs.append(output)
-    
+
+    print(num_ex, counter, '\n-------------\n')
+
     # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
         answer=inputs,
@@ -94,7 +118,7 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=0, syn=True,)
-    train_dataset = datasets["validation"]
+    train_dataset = datasets["train"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,
