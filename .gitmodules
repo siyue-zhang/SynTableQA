@@ -1,6 +1,7 @@
 [submodule "data/squall"]
 	path = data/squall
 	url = https://github.com/tzshi/squall.git
+	
 [submodule "data/Spider-Syn"]
 	path = data/Spider-Syn
 	url = https://github.com/ygan/Spider-Syn.git
