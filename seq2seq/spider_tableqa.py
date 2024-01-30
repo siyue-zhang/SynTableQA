@@ -1,33 +1,11 @@
 import re
 import sys
+import random
 sys.path.append('./')
 from utils.misc import read_sqlite_database
 
 
 def serialize_db(db_id, database_dict, tokenizer, max_source_length):
-
-    keys = list(database_dict.keys())
-    keys = keys[:min(5,len(keys))]
-    database_dict = {k:database_dict[k] for k in keys}
-
-    # ret = f"{db_id}\n"
-    # max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
-    # for tab in database_dict:
-    #     ret += f'[{tab}] '
-    #     ret += f'col : ' + ' | '.join([col.lower() for col in database_dict[tab]['header']]) + ' '
-    #     for i, row in enumerate(database_dict[tab]['rows']):
-    #         ret += f'row {i+1} : ' + ' | '.join(row) + ' '
-
-    # raw_tokens = len(tokenizer(answer=ret)['input_ids'])
-    # print('\n', db_id, '\nnum_tokens: ', raw_tokens)
-    # print('num_tab: ', len(database_dict))
-    # print('max_row: ', max_row)
-
-    # if db_id=='customers_card_transactions':
-    #     print(ret)
-    #     print(len(tokenizer(answer=ret)['input_ids']))
-    #     assert 1==2
-
 
     num_row_limit = 50
     max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
@@ -47,11 +25,6 @@ def serialize_db(db_id, database_dict, tokenizer, max_source_length):
         num_tokens = len(tokenizer(answer=ret)['input_ids'])
         if max_row==1:
             break
-
-    # if db_id=='customers_card_transactions':
-    #     print(ret)
-    #     print(len(tokenizer(answer=ret)['input_ids']))
-    #     assert 1==2
         
     return ret
 
@@ -62,13 +35,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     num_ex = len(examples["query"])
     inputs, outputs = [], []
     db_contents = {}
-    serialized_db_contents = {}
-    counter = 0
     for i in range(num_ex):
         query = examples["query"][i]
         question = examples["question"][i]
         db_id = examples["db_id"][i]
-        # print(db_id)
         db_path = examples["db_path"][i]
         output = examples["answer"][i]
         db_path = db_path + "/" + db_id + "/" + db_id + ".sqlite"
@@ -89,15 +59,29 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     database_dict[tab] = {'header': header, 'rows': rows}
             db_contents[db_id] = database_dict
 
-            serialized_db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length-50)
-            serialized_db_contents[db_id] = serialized_db_content
+        database_dict = db_contents[db_id]
 
-        input = question + ' ' + serialized_db_contents[db_id]
-        # print(input, '\n-------------\n')
+        # randomnly pick 3 tables, and 5 columns
+        keys = list(database_dict.keys())
+        keys = random.sample(keys, min(3,len(keys)))
+        database_dict = {k:database_dict[k] for k in keys}
+        for k in database_dict:
+            col_indices = random.sample(range(len(database_dict[k]['header'])), min(5,len(database_dict[k]['header'])))
+            new_header = [database_dict[k]['header'][i] for i in col_indices]
+            new_rows = []
+            for row in database_dict[k]['rows']:
+                new_row = [row[i] for i in col_indices]
+                new_rows.append(new_row)
+            database_dict[k]['header'] = new_header
+            database_dict[k]['rows'] = new_rows
+
+        # serilize db
+        serialized_db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length)
+        input = question + ' ' + serialized_db_content
+        
+        # print(db_id, '\b', input, '\n-------------\n')
         inputs.append(input)
         outputs.append(output)
-
-    print('\n', num_ex, counter, '\n-------------\n')
 
     # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
@@ -127,7 +111,7 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,)
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,)
     train_dataset = datasets["train"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
