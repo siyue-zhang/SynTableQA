@@ -58,8 +58,6 @@ class SquallConfig(datasets.BuilderConfig):
         self.split_id = split_id
         self.plus = plus
         self.downsize = downsize
-        if self.downsize:
-            assert self.plus == False
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
@@ -177,7 +175,7 @@ class Squall(datasets.GeneratorBasedBuilder):
             examples = json.load(f)
         
 
-        if split_key != 'test' and self.config.downsize:
+        if split_key == 'train' and self.config.downsize:
             examples = self.downsize_examples(self.config.downsize, examples)
 
         # get all table and question ids

@@ -25,6 +25,7 @@ from utils.get_tables import dump_db_json_schema
 from utils.misc import execute_query
 import datasets
 
+from utils.misc import read_sqlite_database
 
 logger = datasets.logging.get_logger(__name__)
 
@@ -171,6 +172,7 @@ class Spider(datasets.GeneratorBasedBuilder):
 
     def _generate_examples(self, split_key, data, db_path):
         """This function returns the examples in the raw (text) form."""
+        max_rows = {}
 
         for idx, sample in enumerate(data):
             db_id = sample["db_id"]
@@ -207,6 +209,15 @@ class Spider(datasets.GeneratorBasedBuilder):
                 src = 'syn'
             else:
                 src = 'spider'
+
+            if db_id not in max_rows:
+                database_dict = read_sqlite_database(db_path + "/" + db_id + "/" + db_id + ".sqlite")
+                max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
+                max_rows[db_id] = max_row
+                
+            if max_rows[db_id]>100:
+                continue
+
 
             yield idx, {
                 "query": sample["query"],

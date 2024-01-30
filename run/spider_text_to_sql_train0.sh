@@ -32,12 +32,12 @@ python ./run.py \
   --predict_with_generate \
   --generation_max_length 128 \
   --num_beams 5 \
-  --save_steps 200 \
+  --save_steps 50 \
   --save_total_limit 2 \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --eval_steps 100
+  --eval_steps 50
   # --max_eval_samples 100 
   # --max_train_samples 5000
 

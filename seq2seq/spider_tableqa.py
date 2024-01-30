@@ -6,23 +6,27 @@ from utils.misc import read_sqlite_database
 
 def serialize_db(db_id, database_dict, tokenizer, max_source_length):
 
-    ret = f"{db_id}\n"
-    for tab in database_dict:
-        ret += f'[{tab}] '
-        ret += f'col : ' + ' | '.join([col.lower() for col in database_dict[tab]['header']]) + ' '
-        for i, row in enumerate(database_dict[tab]['rows']):
-            ret += f'row {i+1} : ' + ' | '.join(row) + ' '
+    keys = list(database_dict.keys())
+    keys = keys[:min(5,len(keys))]
+    database_dict = {k:database_dict[k] for k in keys}
 
-    if len(ret)>5000:
-        raw_tokens = 5000
-    else:
-        raw_tokens = len(tokenizer(answer=ret)['input_ids'])
-    print(db_id, raw_tokens)
+    # ret = f"{db_id}\n"
+    # max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
+    # for tab in database_dict:
+    #     ret += f'[{tab}] '
+    #     ret += f'col : ' + ' | '.join([col.lower() for col in database_dict[tab]['header']]) + ' '
+    #     for i, row in enumerate(database_dict[tab]['rows']):
+    #         ret += f'row {i+1} : ' + ' | '.join(row) + ' '
 
-    if db_id=='student_assessment':
-        print(ret)
-        print(len(tokenizer(answer=ret)['input_ids']))
-        assert 1==2
+    # raw_tokens = len(tokenizer(answer=ret)['input_ids'])
+    # print('\n', db_id, '\nnum_tokens: ', raw_tokens)
+    # print('num_tab: ', len(database_dict))
+    # print('max_row: ', max_row)
+
+    # if db_id=='customers_card_transactions':
+    #     print(ret)
+    #     print(len(tokenizer(answer=ret)['input_ids']))
+    #     assert 1==2
 
 
     num_row_limit = 50
@@ -43,7 +47,13 @@ def serialize_db(db_id, database_dict, tokenizer, max_source_length):
         num_tokens = len(tokenizer(answer=ret)['input_ids'])
         if max_row==1:
             break
-    return ret, raw_tokens<max_source_length
+
+    # if db_id=='customers_card_transactions':
+    #     print(ret)
+    #     print(len(tokenizer(answer=ret)['input_ids']))
+    #     assert 1==2
+        
+    return ret
 
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
@@ -51,8 +61,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
     num_ex = len(examples["query"])
     inputs, outputs = [], []
-    db_dicts = {}
-    flags = {}
+    db_contents = {}
+    serialized_db_contents = {}
     counter = 0
     for i in range(num_ex):
         query = examples["query"][i]
@@ -63,7 +73,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         output = examples["answer"][i]
         db_path = db_path + "/" + db_id + "/" + db_id + ".sqlite"
 
-        if db_id not in db_dicts:
+        if db_id not in db_contents:
             database_dict = read_sqlite_database(db_path)
             # remove empty columns
             for tab in database_dict:
@@ -77,17 +87,17 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     header = [item for index, item in enumerate(table['header']) if index not in empty_cols]
                     rows = [[item for index, item in enumerate(row) if index not in empty_cols] for row in table['rows']]
                     database_dict[tab] = {'header': header, 'rows': rows}
-            db_content, flag = serialize_db(db_id, database_dict, tokenizer, max_source_length-50)
-            db_dicts[db_id] = db_content
-            flags[db_id] = flag
+            db_contents[db_id] = database_dict
 
-        input = question + ' ' + db_dicts[db_id]
-        counter += int(flags[db_id])
+            serialized_db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length-50)
+            serialized_db_contents[db_id] = serialized_db_content
+
+        input = question + ' ' + serialized_db_contents[db_id]
         # print(input, '\n-------------\n')
         inputs.append(input)
         outputs.append(output)
 
-    print(num_ex, counter, '\n-------------\n')
+    print('\n', num_ex, counter, '\n-------------\n')
 
     # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
@@ -117,7 +127,7 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=0, syn=True,)
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,)
     train_dataset = datasets["train"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(

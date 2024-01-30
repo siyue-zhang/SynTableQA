@@ -272,9 +272,10 @@ def main():
             fuzzy=data_args.postproc_fuzzy_string)
     else:
         p = '_plus' if data_args.squall_plus else ''
-        p = '_syn' if data_args.spider_syn else ''
+        y = '_syn' if data_args.spider_syn else ''
+        d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
         s = data_args.split_id
-        stage = f'{data_args.dataset_name}{p}_{data_args.task.lower()}_{data_args.predict_split}{s}'
+        stage = f'{data_args.dataset_name}{p}{y}{d}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 
