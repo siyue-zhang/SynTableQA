@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=1
 export WANDB_PROJECT=spider_exp
 export WANDB_ENTITY=siyue-zhang
 
@@ -38,6 +38,6 @@ python ./run.py \
   --run_name ${run_name} \
   --task tableqa \
   --output_dir ${output_dir} \
-  --save_total_limit 2 \
-  --max_eval_samples 100 \
-  --max_train_samples 5000
+  --save_total_limit 2 
+  # --max_eval_samples 100 \
+  # --max_train_samples 5000

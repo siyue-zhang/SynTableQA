@@ -61,12 +61,12 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
         database_dict = db_contents[db_id]
 
-        # randomnly pick 3 tables, and 5 columns
+        # randomnly pick 5 tables, and 5 columns
         keys = list(database_dict.keys())
-        keys = random.sample(keys, min(3,len(keys)))
+        keys = random.sample(keys, min(5,len(keys)))
         database_dict = {k:database_dict[k] for k in keys}
         for k in database_dict:
-            col_indices = random.sample(range(len(database_dict[k]['header'])), min(5,len(database_dict[k]['header'])))
+            col_indices = sorted(random.sample(range(len(database_dict[k]['header'])), min(5,len(database_dict[k]['header']))))
             new_header = [database_dict[k]['header'][i] for i in col_indices]
             new_rows = []
             for row in database_dict[k]['rows']:
