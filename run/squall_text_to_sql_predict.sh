@@ -2,9 +2,9 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 model_name="t5-large"
 dataset_name="squall"
-output_dir="output/squall_d5_text_to_sql0"
+output_dir="output/squall_d10_text_to_sql1"
 #0|-6600 1-1600 2|-5000 3-5600 4|-5600
-checkpoint=650
+checkpoint=350
 
 python ./run.py \
   --task text_to_sql \
@@ -19,9 +19,9 @@ python ./run.py \
   --max_target_length 128 \
   --per_device_eval_batch_size 4 \
   --dataset_name ${dataset_name} \
-  --split_id 0 \
+  --split_id 1 \
   --predict_with_generate \
   --generation_max_length 128 \
   --num_beams 5 \
-  --squall_downsize 5
+  --squall_downsize 10
 

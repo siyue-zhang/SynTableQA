@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export WANDB_PROJECT=SynTableQA
 export WANDB_ENTITY=siyue-zhang
 
@@ -24,7 +24,7 @@ python ./run.py \
   --split_id 1 \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 8 \
-  --gradient_accumulation_steps 32 \
+  --gradient_accumulation_steps 8 \
   --postproc_fuzzy_string True \
   --learning_rate 3e-4 \
   --weight_decay 0.01 \
