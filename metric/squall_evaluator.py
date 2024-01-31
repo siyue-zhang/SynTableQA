@@ -387,7 +387,7 @@ def make_query(sql, is_list, c, pred, replace=True):
         elif any(item in pred['nl'] for item in ['above or below', 'above/below']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'below', '1':'above'}
             answer_list = [replace_dict[answer_list[0]]]
-        elif any(pred['nl'].startswith(prefix) for prefix in ['is', 'was', 'does', 'do', 'did', 'were']) and answer_list[0] in ['0','1']:
+        elif any(pred['nl'].startswith(prefix) for prefix in ['is', 'was', 'does', 'do', 'did', 'were', 'are']) and answer_list[0] in ['0','1']:
             replace_dict = {'0':'no', '1':'yes'}
             answer_list = [replace_dict[answer_list[0]]]
         elif any(item in pred['nl'] for item in ['month']) and answer_list[0] in [str(n) for n in range(1,13)]:
