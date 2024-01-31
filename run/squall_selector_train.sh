@@ -1,18 +1,13 @@
-export CUDA_VISIBLE_DEVICES=0
-export WANDB_PROJECT=new_selector
+export CUDA_VISIBLE_DEVICES=0,1
+export WANDB_PROJECT=Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_selector_omnitab"
+run_name="squall_plus_selector_omnitab_aug"
 dataset_name="squall"
-output_dir="output/squall_plus_selector_omnitab"
+output_dir="output/squall_plus_selector_omnitab_aug"
 
-# model_name="microsoft/tapex-base"
-# run_name="squall_plus_selector_tapex"
-# dataset_name="squall"
-# output_dir="output/squall_plus_selector_tapex"
-
-python ./train.py \
+python ./run.py \
   --do_train \
   --do_eval \
   --fp16 \
@@ -29,8 +24,8 @@ python ./train.py \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
   --per_device_train_batch_size 4 \
-  --per_device_eval_batch_size 4 \
-  --gradient_accumulation_steps 24 \
+  --per_device_eval_batch_size 6 \
+  --gradient_accumulation_steps 8 \
   --learning_rate 2e-5 \
   --predict_with_generate \
   --save_steps 50 \

@@ -43,6 +43,7 @@ class Selector(datasets.GeneratorBasedBuilder):
                     "ans_tableqa": datasets.Value("string"),
                     "label": datasets.Value("int32"),
                     "claim": datasets.Value("string"),
+                    "src": datasets.Value("string"),
                 }
             ),
             supervised_keys=None,
@@ -95,6 +96,7 @@ class Selector(datasets.GeneratorBasedBuilder):
         df_train = dfs_dev[dfs_dev['tbl'].isin(selector_train_tbls)]
         if 'index' in df_train.columns:
             df_train = df_train.drop('index', axis=1)
+        df_train['src'] = 'raw'
         df_train = df_train.reset_index(drop=True) 
                     
         df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
@@ -148,6 +150,11 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         n_ex = df.shape[0]
         for i in range(n_ex):
+            if 'src' not in df or df.loc[i, 'src']!='aug':
+                src = 'raw'
+            else:
+                src = 'aug'
+
             id = df.loc[i, 'id']
             tbl = df.loc[i, 'tbl']
             json_path = f"{_dir_squall}/tables/json/{tbl}.json"
@@ -177,13 +184,14 @@ class Selector(datasets.GeneratorBasedBuilder):
                 'ans_tableqa': ans_tableqa,
                 'label': label,
                 'claim': claim,
+                'src': src
             }
 
         
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
+    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
                            ignore_verifications=True)
     for i in range(5):

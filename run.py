@@ -174,9 +174,13 @@ def main():
         raise NotImplementedError
 
     # load preprocess_function
-    preprocess_module = 'seq2seq.' + data_args.dataset_name
-    if data_args.task.lower()=='tableqa':
-        preprocess_module += '_tableqa'
+    preprocess_module = 'seq2seq.'
+    if data_args.task.lower()=='selector':
+        preprocess_module += 'selector'
+    else:
+        preprocess_module += data_args.dataset_name
+        if data_args.task.lower()=='tableqa':
+            preprocess_module += '_tableqa'
     preprocess_function = import_module(preprocess_module).preprocess_function
     
     fn_kwargs={"tokenizer":tokenizer, 
@@ -258,12 +262,15 @@ def main():
         )
 
     # load prepare_compute_metrics
-    metric_module = 'metric.' + data_args.dataset_name
-    if data_args.task.lower()=='tableqa':
-        metric_module += '_tableqa'
+    metric_module = 'metric.'
+    if data_args.task.lower()=='selector':
+        metric_module += 'selector'
+    else:
+        metric_module += data_args.dataset_name
+        if data_args.task.lower()=='tableqa':
+            metric_module += '_tableqa'
     prepare_compute_metrics = import_module(metric_module).prepare_compute_metrics
 
-    
     if training_args.do_train:            
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
