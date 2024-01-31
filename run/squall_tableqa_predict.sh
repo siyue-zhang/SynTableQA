@@ -4,13 +4,13 @@ model_name="neulab/omnitab-large"
 dataset_name="squall"
 output_dir="output_new/squall_plus_tableqa1"
 #0-9400 1-6400 2-1800 3-7800 4-9400
-checkpoint=2600
+checkpoint=5200
 
 python ./run.py \
   --task tableqa \
   --do_predict \
   --squall_plus True \
-  --predict_split train \
+  --predict_split dev \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
