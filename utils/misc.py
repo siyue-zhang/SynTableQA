@@ -38,3 +38,5 @@ def execute_query(db_path, query):
                 ret.append(str(cell))
     connection.close()
     return ret
+
+

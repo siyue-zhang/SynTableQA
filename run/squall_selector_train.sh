@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT=Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_selector_omnitab_aug"
+run_name="squall_plus_d10_selector_omnitab"
 dataset_name="squall"
-output_dir="output/squall_plus_selector_omnitab_aug"
+output_dir="output/squall_plus_d10_selector_omnitab"
 
 python ./run.py \
   --do_train \
@@ -25,7 +25,7 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 6 \
-  --gradient_accumulation_steps 8 \
+  --gradient_accumulation_steps 16 \
   --learning_rate 2e-5 \
   --predict_with_generate \
   --save_steps 50 \
@@ -33,7 +33,8 @@ python ./run.py \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --eval_steps 50
+  --eval_steps 50 \
+  --squall_downsize 10
 
   # --resume_from_checkpoint output/squall_plus_selector_omnitab_aug/checkpoint-650 \
   # --max_eval_samples 200 \

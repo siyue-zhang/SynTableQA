@@ -24,8 +24,9 @@ sys.path.append('./')
 from utils.get_tables import dump_db_json_schema
 from utils.misc import execute_query
 import datasets
-
+from copy import deepcopy
 from utils.misc import read_sqlite_database
+from sentence_transformers import SentenceTransformer, util
 
 logger = datasets.logging.get_logger(__name__)
 
@@ -45,7 +46,7 @@ Spider is a large-scale complex and cross-domain semantic parsing and text-toSQL
 class SpiderConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, split_id, syn=True, **kwargs):
+    def __init__(self, split_id, syn=True, select=True, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -53,6 +54,7 @@ class SpiderConfig(datasets.BuilderConfig):
         super(SpiderConfig, self).__init__(**kwargs)
         self.split_id = split_id
         self.syn = syn
+        self.select = select
 
 class Spider(datasets.GeneratorBasedBuilder):
     VERSION = datasets.Version("1.0.0")
@@ -86,7 +88,10 @@ class Spider(datasets.GeneratorBasedBuilder):
                     }
                 ),
                 "answer": datasets.Value("string"),
-                "src":datasets.Value("string"),
+                "src": datasets.Value("string"),
+                "selected_tables": datasets.features.Sequence(datasets.Value("string")),
+                "selected_columns": datasets.features.Sequence(datasets.features.Sequence(datasets.Value("string"))),
+                "modified": datasets.Value("bool")
             }
         )
         return datasets.DatasetInfo(
@@ -173,6 +178,9 @@ class Spider(datasets.GeneratorBasedBuilder):
     def _generate_examples(self, split_key, data, db_path):
         """This function returns the examples in the raw (text) form."""
         max_rows = {}
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        buf_db = {}
+        buf_tab = {}
 
         for idx, sample in enumerate(data):
             db_id = sample["db_id"]
@@ -218,6 +226,62 @@ class Spider(datasets.GeneratorBasedBuilder):
             if max_rows[db_id]>100:
                 continue
 
+            modified=False
+            ### select tables based on semantic similarity
+            if self.config.select:
+                tables = {}
+                for i in range(len(schema['table_names_original'])):
+                    cols = [name for j, name in schema['column_names_original'] if j ==i]
+                    tables[schema['table_names_original'][i]] = cols
+
+                num_tab = 3
+                num_col = 8
+                emb_query = None
+                all_table_names = list(tables.keys())
+
+                if len(tables)<=num_tab:
+                    selected_table_names = all_table_names
+                else:
+                    modified = True
+                    emb_query = model.encode(sample["question"])
+                    table_sentences = []
+                    if db_id not in buf_db:
+                        for i, table in enumerate(schema["table_names_original"]):
+                            sentence = table + ': '
+                            sentence += ', '.join([column_name for table_id, column_name in schema["column_names_original"] if table_id==i])
+                            table_sentences.append(sentence)
+                        embs = [model.encode(s) for s in table_sentences]
+                        buf_db[db_id] = embs
+                    embs = buf_db[db_id]
+                    sim = [util.cos_sim(emb_query, emb).item() for emb in embs]
+
+                    combined_list = list(zip(tables, sim))
+                    sorted_list = sorted(combined_list, key=lambda x: x[1], reverse=True)
+                    selected_table_names = [x for x, _ in sorted_list[:num_tab]]
+
+                selected_tables = {'names': selected_table_names, 'columns': []}
+                for tab in selected_table_names:
+                    if len(tables[tab])<=num_col:
+                        selected_tables['columns'].append(tables[tab])
+                    else:
+                        modified = True
+                        buf_name = db_id + '.' + tab
+                        if emb_query is None:
+                            emb_query = model.encode(sample["question"])
+
+                        if buf_name not in buf_tab:
+                            embs = [model.encode(s) for s in tables[tab]]
+                            buf_tab[buf_name] = embs
+
+                        col_embs = buf_tab[buf_name]
+                        sim = [util.cos_sim(emb_query, emb).item() for emb in col_embs]
+
+                        combined_list = list(zip(tables[tab], sim))
+                        sorted_list = sorted(combined_list, key=lambda x: x[1], reverse=True)
+                        selected_column_names = [x for x, _ in sorted_list[:num_col]]
+                        selected_tables['columns'].append(selected_column_names)
+            else:
+                selected_tables={'names':[], 'columns':[]}
 
             yield idx, {
                 "query": sample["query"],
@@ -236,7 +300,10 @@ class Spider(datasets.GeneratorBasedBuilder):
                     for column_id, other_column_id in schema["foreign_keys"]
                 ],
                 "answer": answer,
-                "src": src
+                "src": src,
+                "selected_tables": selected_tables['names'],
+                "selected_columns": selected_tables['columns'],
+                "modified": modified
             }
 
 

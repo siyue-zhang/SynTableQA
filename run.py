@@ -100,7 +100,8 @@ def main():
                                     dataset=data_args.dataset_name, 
                                     download_mode='force_redownload',
                                     ignore_verifications=True,
-                                    test_split = data_args.test_split)
+                                    test_split = data_args.test_split,
+                                    downsize=data_args.squall_downsize,)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, 

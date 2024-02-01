@@ -12,7 +12,7 @@ _dir_squall = "./data/squall"
 class SelectorConfig(datasets.BuilderConfig):
     """BuilderConfig for Selector."""
 
-    def __init__(self, dataset=None, test_split=1, model=None, **kwargs):
+    def __init__(self, dataset=None, test_split=1, model=None, downsize=None, **kwargs):
         """BuilderConfig for Selector.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -21,6 +21,7 @@ class SelectorConfig(datasets.BuilderConfig):
         self.dataset=dataset
         self.test_split=test_split
         self.model=model
+        self.downsize=downsize
 
 class Selector(datasets.GeneratorBasedBuilder):
 
@@ -58,9 +59,13 @@ class Selector(datasets.GeneratorBasedBuilder):
         splits = list(range(5))
         
         dfs_dev = []
+        if self.config.downsize:
+            d = f'_d{self.config.downsize}'
+        else:
+            d = ''
         for s in splits:
             tableqa_dev = pd.read_csv(f"./predict/squall_plus_tableqa_dev{s}.csv")
-            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus_text_to_sql_dev{s}.csv")
+            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus{d}_text_to_sql_dev{s}.csv")
             df = tableqa_dev[['id','tbl','question','answer','src']]
             df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
             df['ans_tableqa'] = tableqa_dev['predictions']
@@ -73,7 +78,7 @@ class Selector(datasets.GeneratorBasedBuilder):
         dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
         tbls = list(set(dfs_dev['tbl'].to_list()))
 
-        split_path = './task/selector_splits.json'
+        split_path = f'./task/selector{d}_splits.json'
         if os.path.exists(split_path):
             with open(split_path, 'r') as json_file:
                 splits = json.load(json_file)
@@ -103,7 +108,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         s = self.config.test_split
         tableqa_test = pd.read_csv(f"./predict/squall_plus_tableqa_test{s}.csv")
-        text_to_sql_test = pd.read_csv(f"./predict/squall_text_to_sql_test{s}.csv")
+        text_to_sql_test = pd.read_csv(f"./predict/squall{d}_text_to_sql_test{s}.csv")
         df = tableqa_test[['id','tbl','question','answer','src']]
         df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
         df['ans_tableqa'] =  tableqa_test['predictions']
@@ -191,9 +196,10 @@ class Selector(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
     from datasets import load_dataset
     # dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", dataset='squall')
-    dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
+    dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
-                           ignore_verifications=True)
+                           ignore_verifications=True,
+                           downsize=5)
     for i in range(5):
         print(f'example {i}')
         print(dataset["train"][i], '\n')

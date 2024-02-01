@@ -61,25 +61,27 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
         database_dict = db_contents[db_id]
 
-        # randomnly pick 5 tables, and 5 columns
-        keys = list(database_dict.keys())
-        keys = random.sample(keys, min(5,len(keys)))
-        database_dict = {k:database_dict[k] for k in keys}
-        for k in database_dict:
-            col_indices = sorted(random.sample(range(len(database_dict[k]['header'])), min(5,len(database_dict[k]['header']))))
-            new_header = [database_dict[k]['header'][i] for i in col_indices]
-            new_rows = []
-            for row in database_dict[k]['rows']:
-                new_row = [row[i] for i in col_indices]
-                new_rows.append(new_row)
-            database_dict[k]['header'] = new_header
-            database_dict[k]['rows'] = new_rows
+        selected_tables = examples["selected_tables"][i]
+        selected_columns = examples["selected_columns"][i]
+
+        if len(selected_tables)>0 and examples["modified"][i]:
+            database_dict = {k:database_dict[k] for k in selected_tables}
+            for tab in database_dict:
+                cols = selected_columns[selected_tables.index(tab)]
+                new_header=[]
+                n_rows = len(database_dict[tab]['rows'])
+                new_rows=[[] for _ in range(n_rows)]
+                for i, col in enumerate(database_dict[tab]['header']):
+                    if col in cols:
+                        new_header.append(col)
+                        for j in range(n_rows):
+                            new_rows[j].append(database_dict[tab]['rows'][j][i])
+                database_dict[tab]={'header':new_header, 'rows':new_rows}
 
         # serilize db
         serialized_db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length)
         input = question + ' ' + serialized_db_content
         
-        # print(db_id, '\b', input, '\n-------------\n')
         inputs.append(input)
         outputs.append(output)
 
@@ -111,7 +113,7 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,)
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,select=True)
     train_dataset = datasets["train"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
