@@ -261,6 +261,10 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             
             # print('\n', question, '\n', 'pred: ', pred, '\n', 'target: ', target , '\n', queried, '\n', answer)
 
+            ordering_keywords = ['descending', 'ascending', 'sorted by']
+            if any(keyword in question for keyword in ordering_keywords):
+                queried = [', '.join(queried)]
+                
             predicted_values = to_value_list(queried)
             target_values = to_value_list(answer.split("|"))
             correct = check_denotation(target_values, predicted_values)

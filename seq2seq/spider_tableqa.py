@@ -114,7 +114,7 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/spider_syn.py", split_id=1, syn=True,select=True)
-    train_dataset = datasets["train"]
+    train_dataset = datasets["test"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,

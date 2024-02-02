@@ -39,7 +39,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
     num_ex = len(examples["query"])
     inputs, outputs = [], []
-    db_dicts = {}
+    db_contents = {}
     for i in range(num_ex):
         query = examples["query"][i]
         question = examples["question"][i]
@@ -47,7 +47,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         db_path = examples["db_path"][i]
         db_path = db_path + "/" + db_id + "/" + db_id + ".sqlite"
 
-        if db_id not in db_dicts:
+        if db_id not in db_contents:
             database_dict = read_sqlite_database(db_path)
             # remove empty columns
             for tab in database_dict:
@@ -61,15 +61,21 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                     header = [item for index, item in enumerate(table['header']) if index not in empty_cols]
                     rows = [[item for index, item in enumerate(row) if index not in empty_cols] for row in table['rows']]
                     database_dict[tab] = {'header': header, 'rows': rows}
-            db_content = serialize_db(db_id, database_dict)
-            db_dicts[db_id] = db_content
+            db_contents[db_id] = database_dict
 
-        input = question + ' ' + db_dicts[db_id]
+        database_dict = db_contents[db_id]
+        selected_tables = examples["selected_tables"][i]
+        database_dict = {k:database_dict[k] for k in selected_tables}
+
+        serilized = serialize_db(db_id, database_dict)
+
+        input = question + ' ' + serilized
         output = normalize(query)
         
         input = input.replace('<', '!>')
         output = output.replace('<', '!>')
         # print(input,'\n', output, '\n', '--------')
+        # assert 1==2
 
         inputs.append(input)
         outputs.append(output)

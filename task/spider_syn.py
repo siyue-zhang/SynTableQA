@@ -207,9 +207,9 @@ class Spider(datasets.GeneratorBasedBuilder):
             if len(answer)>20:
                 continue
             
-            ordering_keywords = ['in descending', 'in ascending']
+            ordering_keywords = ['descending', 'ascending', 'sorted by']
             if any(keyword in sample["question"] for keyword in ordering_keywords):
-                answer = ','.join(answer)
+                answer = ', '.join(answer)
             else:
                 answer = '|'.join(answer)
 
@@ -235,7 +235,7 @@ class Spider(datasets.GeneratorBasedBuilder):
                     tables[schema['table_names_original'][i]] = cols
 
                 num_tab = 3
-                num_col = 8
+                num_col = 10
                 emb_query = None
                 all_table_names = list(tables.keys())
 

@@ -3,9 +3,9 @@ export WANDB_PROJECT=spider_exp
 export WANDB_ENTITY=siyue-zhang
 
 model_name="t5-large"
-run_name="spider_syn_text_to_sql0"
+run_name="spider_syn_text_to_sql0_f"
 dataset_name="spider"
-output_dir="output/spider_syn_text_to_sql0"
+output_dir="output/spider_syn_text_to_sql0_f"
 
 python ./run.py \
   --do_train \

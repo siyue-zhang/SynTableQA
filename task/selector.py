@@ -108,7 +108,7 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         s = self.config.test_split
         tableqa_test = pd.read_csv(f"./predict/squall_plus_tableqa_test{s}.csv")
-        text_to_sql_test = pd.read_csv(f"./predict/squall{d}_text_to_sql_test{s}.csv")
+        text_to_sql_test = pd.read_csv(f"./predict/squall{d}_plus_text_to_sql_test{s}.csv")
         df = tableqa_test[['id','tbl','question','answer','src']]
         df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
         df['ans_tableqa'] =  tableqa_test['predictions']

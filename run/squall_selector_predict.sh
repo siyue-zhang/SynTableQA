@@ -4,8 +4,8 @@ export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
-output_dir="output/squall_plus_d10_selector_omnitab"
-checkpoint=200
+output_dir="output/squall_plus_selector_omnitab"
+checkpoint=1200
 # output_dir="output/squall_plus_selector_tapex"
 # checkpoint=800
 
@@ -20,7 +20,7 @@ python ./run.py \
   --max_source_length 1024 \
   --per_device_eval_batch_size 8 \
   --dataset_name ${dataset_name} \
-  --predict_with_generate \
-  --squall_downsize 10
+  --predict_with_generate 
 
+  # --squall_downsize 10
 #   --max_predict_samples 20
