@@ -1,11 +1,11 @@
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-export WANDB_PROJECT=spider_exp
+export WANDB_PROJECT=Spider_CV
 export WANDB_ENTITY=siyue-zhang
 
 model_name="t5-large"
-run_name="spider_syn_text_to_sql0_f"
+run_name="spider_syn_text_to_sql2"
 dataset_name="spider"
-output_dir="output/spider_syn_text_to_sql0_f"
+output_dir="output/spider_syn_text_to_sql2"
 
 python ./run.py \
   --do_train \
@@ -22,10 +22,10 @@ python ./run.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --dataset_name ${dataset_name} \
-  --split_id 0 \
+  --split_id 2 \
   --per_device_train_batch_size 2 \
   --per_device_eval_batch_size 8 \
-  --gradient_accumulation_steps 16 \
+  --gradient_accumulation_steps 8 \
   --postproc_fuzzy_string True \
   --learning_rate 3e-4 \
   --weight_decay 0.01 \

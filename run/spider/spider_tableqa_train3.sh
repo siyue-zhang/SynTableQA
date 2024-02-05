@@ -1,11 +1,11 @@
 export CUDA_VISIBLE_DEVICES=0
-export WANDB_PROJECT=spider_exp
+export WANDB_PROJECT=Spider_CV
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="spider_syn_tableqa0"
+run_name="spider_syn_tableqa3"
 dataset_name="spider"
-output_dir="output/spider_syn_tableqa0"
+output_dir="output/spider_syn_tableqa3"
 
 
 python ./run.py \
@@ -13,7 +13,7 @@ python ./run.py \
   --do_eval \
   --dataset_name ${dataset_name} \
   --spider_syn True \
-  --split_id 0 \
+  --split_id 3 \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \
   --max_target_length 128 \
@@ -31,8 +31,8 @@ python ./run.py \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
-  --eval_steps 100 \
-  --save_steps 200 \
+  --eval_steps 50 \
+  --save_steps 50 \
   --num_beams 5 \
   --generation_max_length 128 \
   --run_name ${run_name} \

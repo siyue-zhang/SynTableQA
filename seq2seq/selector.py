@@ -74,7 +74,6 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         max_length=max_source_length, 
         padding=padding, truncation=True)
 
-
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.
     if padding == "max_length" and ignore_pad_token_for_loss:
@@ -90,8 +89,9 @@ if __name__=='__main__':
     from datasets import load_dataset
     from transformers import TapexTokenizer
  
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/selector.py", 
-                           dataset='squall', test_split=1, download_mode='force_redownload',
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
+                           dataset='squall', test_split=1, 
+                        #    download_mode='force_redownload',
                            ignore_verifications=True)
     train_dataset = datasets["train"].select(range(10))
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base-finetuned-tabfact")

@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT=Selector
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_selector_aug"
-dataset_name="squall"
-output_dir="output/squall_plus_selector_aug"
+run_name="spider_syn_selector"
+dataset_name="spider"
+output_dir="output/spider_syn_selector"
 
 python ./run.py \
   --do_train \
@@ -13,8 +13,8 @@ python ./run.py \
   --fp16 \
   --num_train_epochs 50 \
   --run_name ${run_name} \
+  --spider_syn True \
   --task selector \
-  --aug True \
   --test_split 1 \
   --output_dir ${output_dir} \
   --model_name_or_path ${model_name} \

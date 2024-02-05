@@ -52,9 +52,12 @@ class Selector(datasets.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager):
-        predict_dir = f'./predict/'
         dataset = self.config.dataset
         assert dataset in ['squall', 'spider']
+        if dataset=='squall':
+            dt = 'squall_plus'
+        else:
+            dt = 'spider_syn'
         train_dev_ratio = 0.1
             
         splits = list(range(5))
@@ -63,22 +66,22 @@ class Selector(datasets.GeneratorBasedBuilder):
         d = f'_d{self.config.downsize}' if self.config.downsize else ''
         a = '_aug' if self.config.aug else ''
         for s in splits:
-            tableqa_dev = pd.read_csv(f"./predict/squall_plus{a}_tableqa_dev{s}.csv")
-            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus{d}{a}_text_to_sql_dev{s}.csv")
+            tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
+            text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
             df = tableqa_dev[['id','tbl','question','answer','src']]
             df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
             df['ans_tableqa'] = tableqa_dev['predictions']
             df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
             df['ans_text_to_sql'] = text_to_sql_dev['queried_ans']
             df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
-            df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
+            # df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
             df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
             dfs_dev.append(df)
         
-        dfs_dev = pd.concat(dfs_dev, ignore_index=True).drop_duplicates().reset_index()
+        dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
         tbls = list(set(dfs_dev['tbl'].to_list()))
 
-        split_path = f'./task/selector{d}_splits.json'
+        split_path = f'./task/selector{d}_splits_single.json'
         if os.path.exists(split_path):
             with open(split_path, 'r') as json_file:
                 splits = json.load(json_file)
@@ -107,8 +110,8 @@ class Selector(datasets.GeneratorBasedBuilder):
         df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
 
         s = self.config.test_split
-        tableqa_test = pd.read_csv(f"./predict/squall_plus_tableqa_test{s}.csv")
-        text_to_sql_test = pd.read_csv(f"./predict/squall{d}_plus_text_to_sql_test{s}.csv")
+        tableqa_test = pd.read_csv(f"./predict/{dataset}/{dt}_tableqa_test{s}.csv")
+        text_to_sql_test = pd.read_csv(f"./predict/{dataset}/{dt}{d}_text_to_sql_test{s}.csv")
         df = tableqa_test[['id','tbl','question','answer','src']]
         df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
         df['ans_tableqa'] =  tableqa_test['predictions']
@@ -119,12 +122,13 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         labels = []
         for a, b in zip(df['acc_text_to_sql'].to_list(), df['acc_tableqa'].to_list()):
-            a = int(a)
-            b = int(b)
-            if a==0 and b==1:
-                label = 1
-            else:
-                label = 0
+            # a = int(a)
+            # b = int(b)
+            # if a==0 and b==1:
+            #     label = 1
+            # else:
+            #     label = 0
+            label=int(a)
             labels.append(label)
         df['labels'] = labels
         df_test = df.reset_index().astype('str')
@@ -171,7 +175,8 @@ class Selector(datasets.GeneratorBasedBuilder):
             acc_tableqa = int(df.loc[i, 'acc_tableqa'])
             ans_tableqa = df.loc[i, 'ans_tableqa']
 
-            claim = f'\nanswer A : {truncate(ans_text_to_sql)}\nanswer B : {truncate(ans_tableqa)}\n'
+            # claim = f'\nanswer A : {truncate(ans_text_to_sql)}\nanswer B : {truncate(ans_tableqa)}\n'
+            claim = f'\nanswer : {truncate(ans_text_to_sql)}\n'
             query_fuzzy = df.loc[i, 'query_fuzzy']
             answer = df.loc[i, 'answer']
             label = df.loc[i, 'labels']
