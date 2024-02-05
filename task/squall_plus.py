@@ -49,7 +49,7 @@ _URL_wtq = "https://github.com/ppasupat/WikiTableQuestions/archive/refs/heads/ma
 class SquallConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, plus, split_id, downsize=None, **kwargs):
+    def __init__(self, plus, split_id, downsize=None, aug=False, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -58,6 +58,7 @@ class SquallConfig(datasets.BuilderConfig):
         self.split_id = split_id
         self.plus = plus
         self.downsize = downsize
+        self.aug = aug
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
@@ -214,6 +215,21 @@ class Squall(datasets.GeneratorBasedBuilder):
             else:
                 examples += [x for x in new_examples if x['tbl'] in new_tbls_dev]
 
+
+        if self.config.aug:
+            with open(f"llm/aug_questions.json", 'r') as file:
+                aug_questions = json.load(file)
+            examples_copy = deepcopy(examples)
+            for sample in examples_copy:
+                nt = sample['nt']
+                if nt in aug_questions:
+                    n_aug = len(aug_questions[nt])
+                    for j in range(n_aug):
+                        tmp = deepcopy(sample)
+                        tmp['question'] = aug_questions[nt][j]
+                        tmp['src'] = 'aug'
+                        examples.append(tmp)
+
         # generate each example
         for i, sample in enumerate(examples):
             tbl = sample["tbl"]
@@ -265,13 +281,12 @@ class Squall(datasets.GeneratorBasedBuilder):
 
         
 
-
 if __name__=='__main__':
     from datasets import load_dataset
-    # dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", plus='default', split_id=0)
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
-                           plus=False, 
+                           plus=True, 
                            split_id=1,
-                           downsize=10)
-    sample = dataset["train"][7]
+                           downsize=None,
+                           aug=True)
+    sample = dataset["validation"][7]
     print(sample)

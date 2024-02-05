@@ -12,7 +12,7 @@ _dir_squall = "./data/squall"
 class SelectorConfig(datasets.BuilderConfig):
     """BuilderConfig for Selector."""
 
-    def __init__(self, dataset=None, test_split=1, model=None, downsize=None, **kwargs):
+    def __init__(self, dataset=None, test_split=1, model=None, downsize=None, aug=False, **kwargs):
         """BuilderConfig for Selector.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -22,6 +22,7 @@ class SelectorConfig(datasets.BuilderConfig):
         self.test_split=test_split
         self.model=model
         self.downsize=downsize
+        self.aug=aug
 
 class Selector(datasets.GeneratorBasedBuilder):
 
@@ -53,19 +54,17 @@ class Selector(datasets.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         predict_dir = f'./predict/'
         dataset = self.config.dataset
-        assert dataset in ['squall', 'sede']
+        assert dataset in ['squall', 'spider']
         train_dev_ratio = 0.1
             
         splits = list(range(5))
         
         dfs_dev = []
-        if self.config.downsize:
-            d = f'_d{self.config.downsize}'
-        else:
-            d = ''
+        d = f'_d{self.config.downsize}' if self.config.downsize else ''
+        a = '_aug' if self.config.aug else ''
         for s in splits:
-            tableqa_dev = pd.read_csv(f"./predict/squall_plus_tableqa_dev{s}.csv")
-            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus{d}_text_to_sql_dev{s}.csv")
+            tableqa_dev = pd.read_csv(f"./predict/squall_plus{a}_tableqa_dev{s}.csv")
+            text_to_sql_dev = pd.read_csv(f"./predict/squall_plus{d}{a}_text_to_sql_dev{s}.csv")
             df = tableqa_dev[['id','tbl','question','answer','src']]
             df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
             df['ans_tableqa'] = tableqa_dev['predictions']
@@ -75,7 +74,8 @@ class Selector(datasets.GeneratorBasedBuilder):
             df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
             df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
             dfs_dev.append(df)
-        dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
+        
+        dfs_dev = pd.concat(dfs_dev, ignore_index=True).drop_duplicates().reset_index()
         tbls = list(set(dfs_dev['tbl'].to_list()))
 
         split_path = f'./task/selector{d}_splits.json'
@@ -199,7 +199,7 @@ if __name__=='__main__':
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
                            ignore_verifications=True,
-                           downsize=5)
+                           downsize=None)
     for i in range(5):
         print(f'example {i}')
         print(dataset["train"][i], '\n')

@@ -61,6 +61,9 @@ class DataTrainingArguments:
     spider_syn: bool = field(
         default=False, metadata={"help": "whether to use syn version"}
     )
+    aug: bool = field(
+        default=False, metadata={"help": "add on augmentation samples"}
+    )
     split_id: int = field(
         default=1, metadata={"help": ( "dataset split id")}
     )

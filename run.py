@@ -101,13 +101,15 @@ def main():
                                     download_mode='force_redownload',
                                     ignore_verifications=True,
                                     test_split = data_args.test_split,
-                                    downsize=data_args.squall_downsize,)
+                                    downsize=data_args.squall_downsize,
+                                    aug=data_args.aug)
     elif data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, 
                                     plus=data_args.squall_plus, 
                                     downsize=data_args.squall_downsize,
                                     split_id=data_args.split_id,
+                                    aug=data_args.aug,
                                     download_mode='force_redownload',
                                     ignore_verifications=True)
     elif data_args.dataset_name == 'spider':
@@ -282,8 +284,9 @@ def main():
         p = '_plus' if data_args.squall_plus else ''
         y = '_syn' if data_args.spider_syn else ''
         d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
+        a = '_aug' if data_args.aug else ''
         s = data_args.split_id
-        stage = f'{data_args.dataset_name}{p}{y}{d}_{data_args.task.lower()}_{data_args.predict_split}{s}'
+        stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 
