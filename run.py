@@ -117,7 +117,7 @@ def main():
         raw_datasets = load_dataset(task, 
                                     syn=data_args.spider_syn, 
                                     split_id=data_args.split_id,
-                                    download_mode='force_redownload',
+                                    # download_mode='force_redownload',
                                     ignore_verifications=True)
     else:
         raise NotImplementedError
@@ -233,6 +233,10 @@ def main():
             predict_dataset = train_dataset
         elif data_args.predict_split=='dev':
             predict_dataset = eval_dataset
+            # to be commented
+            if data_args.max_predict_samples is not None:
+                max_predict_samples = min(len(predict_dataset), data_args.max_predict_samples)
+                predict_dataset = predict_dataset.select(range(max_predict_samples))
         else:
             predict_dataset = raw_datasets["test"]
             if data_args.max_predict_samples is not None:

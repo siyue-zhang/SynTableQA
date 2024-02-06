@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from metric.squall_evaluator import to_value_list, check_denotation
-
+from fuzzywuzzy import fuzz
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
     def compute_metrics(eval_preds):
@@ -23,21 +23,40 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             question = eval_dataset['question'][i]
             ordering_keywords = ['descending', 'ascending', 'sorted by']
             if any(keyword in question for keyword in ordering_keywords):
-                pred = ', '.join([x.strip() for x in pred.split(',')])
+                pred_list = [x.strip() for x in pred.split(",")]
+                ans_list = answer.split(", ")
+            else:
+                pred_list = [x.strip() for x in pred.split("|")]
+                ans_list = answer.split("|")
 
-            pred = pred.split("|")
-            pred = [x.strip() for x in pred]
+            options = eval_dataset['options'][i]
 
-            ans = answer.split("|")
-            if len(pred)!=len(ans):
+            if len(pred_list)!=len(ans_list):
                 correct = False
             else:
-
                 if fuzzy:
-                    pass
+                    new_pred_list = []
+                    for p in pred_list:
+                        if p in options or p.replace('-','').replace('.','',1).isdigit():
+                            pass
+                        else:
+                            ratio = [fuzz.ratio(p.lower(), s.lower()) for s in options]
+                            for r, rr in enumerate(ratio):
+                                if rr > 80:
+                                    p = options[r]
+                        new_pred_list.append(p)
+                    
+                    if new_pred_list!=pred_list:
+                        print(f"{pred_list}\n has been replaced by \n{new_pred_list}", '\n')
 
-                predicted_values = to_value_list(pred)
-                target_values = to_value_list(ans)
+                    pred_list = new_pred_list
+
+                if any(keyword in question for keyword in ordering_keywords):
+                    pred_list = [", ".join(pred_list)]
+                    ans_list = [", ".join(ans_list)]
+                
+                predicted_values = to_value_list(pred_list)
+                target_values = to_value_list(ans_list)
                 correct = check_denotation(target_values, predicted_values)
             correct_flag.append(correct)
 

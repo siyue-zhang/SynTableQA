@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
 model_name="neulab/omnitab-large"
 dataset_name="spider"
@@ -10,6 +10,7 @@ python ./run.py \
   --do_predict \
   --spider_syn True \
   --predict_split dev \
+  --postproc_fuzzy_string True \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -20,6 +21,7 @@ python ./run.py \
   --split_id 0 \
   --predict_with_generate \
   --generation_max_length 128 \
-  --num_beams 5
-
+  --num_beams 5 \
+  --max_predict_samples 200 \
+  --max_train_samples 10
   # --augmentation \

@@ -35,6 +35,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     num_ex = len(examples["query"])
     inputs, outputs = [], []
     db_contents = {}
+    options = []
     for i in range(num_ex):
         query = examples["query"][i]
         question = examples["question"][i]
@@ -77,6 +78,15 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                         for j in range(n_rows):
                             new_rows[j].append(database_dict[tab]['rows'][j][i])
                 database_dict[tab]={'header':new_header, 'rows':new_rows}
+        
+        option = []
+        for t in database_dict:
+            rows = database_dict[t]['rows']
+            for r in rows:
+                for item in r:
+                    option.append(item)
+        option = list(set(option))
+        options.append(option)
 
         # serilize db
         serialized_db_content = serialize_db(db_id, database_dict, tokenizer, max_source_length)
@@ -106,6 +116,9 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         ]
 
     model_inputs["labels"] = labels["input_ids"]
+
+    model_inputs["options"] = options
+    
     return model_inputs
 
 
