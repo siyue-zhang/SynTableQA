@@ -3,9 +3,9 @@ export WANDB_PROJECT=TQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_tableqa0+"
+run_name="squall_plus_tableqa0"
 dataset_name="squall"
-output_dir="output/squall_plus_tableqa0+"
+output_dir="output/squall_plus_tableqa0"
 
 python ./train.py \
   --do_train \

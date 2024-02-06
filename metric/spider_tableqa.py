@@ -18,12 +18,27 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         predictions = decoded_preds
         correct_flag = []
         for i, pred in enumerate(predictions):
-            answer = eval_dataset['answer'][i]        
+            answer = eval_dataset['answer'][i]
             # print('\n', question, '\n', 'pred: ', pred, '\n', 'target: ', target , '\n', queried, '\n', answer)
+            question = eval_dataset['question'][i]
+            ordering_keywords = ['descending', 'ascending', 'sorted by']
+            if any(keyword in question for keyword in ordering_keywords):
+                pred = ', '.join([x.strip() for x in pred.split(',')])
 
-            predicted_values = to_value_list(pred.split("|"))
-            target_values = to_value_list(answer.split("|"))
-            correct = check_denotation(target_values, predicted_values)
+            pred = pred.split("|")
+            pred = [x.strip() for x in pred]
+
+            ans = answer.split("|")
+            if len(pred)!=len(ans):
+                correct = False
+            else:
+
+                if fuzzy:
+                    pass
+
+                predicted_values = to_value_list(pred)
+                target_values = to_value_list(ans)
+                correct = check_denotation(target_values, predicted_values)
             correct_flag.append(correct)
 
         if stage:
