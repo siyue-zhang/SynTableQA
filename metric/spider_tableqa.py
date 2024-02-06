@@ -30,6 +30,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 ans_list = answer.split("|")
 
             options = eval_dataset['options'][i]
+            options = [x.replace('\n',' ').strip() for x in options]
 
             if len(pred_list)!=len(ans_list):
                 correct = False
@@ -41,13 +42,16 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                             pass
                         else:
                             ratio = [fuzz.ratio(p.lower(), s.lower()) for s in options]
-                            for r, rr in enumerate(ratio):
-                                if rr > 80:
-                                    p = options[r]
+                            max_index = ratio.index(max(ratio))
+                            if ratio[max_index]>80:
+                                print(f'{p} in {eval_dataset["db_id"][i]} has been replaced by: ')
+                                p = options[max_index]
+                                print(f'-> {p}\n')
                         new_pred_list.append(p)
                     
-                    if new_pred_list!=pred_list:
-                        print(f"{pred_list}\n has been replaced by \n{new_pred_list}", '\n')
+                    # if new_pred_list!=pred_list:
+                    #     print(options)
+                    #     print(f"{pred_list}\n has been replaced by \n{new_pred_list}", '\n')
 
                     pred_list = new_pred_list
 
