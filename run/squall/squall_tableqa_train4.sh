@@ -7,7 +7,7 @@ run_name="squall_plus_tableqa4"
 dataset_name="squall"
 output_dir="output/squall_plus_tableqa4"
 
-python ./train.py \
+python ./run.py \
   --do_train \
   --do_eval \
   --dataset_name ${dataset_name} \

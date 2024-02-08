@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES=0
-export WANDB_PROJECT=Selector
+export WANDB_PROJECT=Selector_spider
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"

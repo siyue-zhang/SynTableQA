@@ -27,6 +27,7 @@ import datasets
 from copy import deepcopy
 from utils.misc import read_sqlite_database
 from sentence_transformers import SentenceTransformer, util
+from utils.misc import ordering_keywords
 
 logger = datasets.logging.get_logger(__name__)
 
@@ -181,6 +182,7 @@ class Spider(datasets.GeneratorBasedBuilder):
         model = SentenceTransformer("all-MiniLM-L6-v2")
         buf_db = {}
         buf_tab = {}
+        empty_db = []
 
         for idx, sample in enumerate(data):
             db_id = sample["db_id"]
@@ -207,7 +209,6 @@ class Spider(datasets.GeneratorBasedBuilder):
             if len(answer)>20:
                 continue
             
-            ordering_keywords = ['descending', 'ascending', 'sorted by']
             if any(keyword in sample["question"] for keyword in ordering_keywords):
                 answer = ', '.join(answer)
             else:
@@ -222,8 +223,8 @@ class Spider(datasets.GeneratorBasedBuilder):
                 database_dict = read_sqlite_database(db_path + "/" + db_id + "/" + db_id + ".sqlite")
                 max_row = max([len(database_dict[tab]['rows']) for tab in database_dict]) + 1
                 max_rows[db_id] = max_row
-                
-            if max_rows[db_id]>100:
+            
+            if max_rows[db_id]>100 or max_rows[db_id]<=1:
                 continue
 
             modified=False

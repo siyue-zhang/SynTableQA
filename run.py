@@ -117,7 +117,14 @@ def main():
         raw_datasets = load_dataset(task, 
                                     syn=data_args.spider_syn, 
                                     split_id=data_args.split_id,
-                                    # download_mode='force_redownload',
+                                    download_mode='force_redownload',
+                                    ignore_verifications=True)
+    elif data_args.dataset_name == 'wikisql':
+        task = "./task/wikisql_robut.py"
+        raw_datasets = load_dataset(task, 
+                                    split_id=data_args.split_id,
+                                    perturbation_type=data_args.perturbation_type,
+                                    download_mode='force_redownload',
                                     ignore_verifications=True)
     else:
         raise NotImplementedError
@@ -290,7 +297,8 @@ def main():
         d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
         a = '_aug' if data_args.aug else ''
         s = data_args.split_id
-        stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}'
+        b = '_' + data_args.perturbation_type if data_args.predict_split=='test' else ''
+        stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}{b}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 

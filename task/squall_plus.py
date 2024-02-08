@@ -111,23 +111,19 @@ class Squall(datasets.GeneratorBasedBuilder):
         # Calculate the number of items in each split
         avg = len(lst) // n
         remainder = len(lst) % n
-
         # Initialize the starting index for each split
         start = 0
-
         # Iterate over each split
         for i in range(n):
             # Calculate the end index for the current split
             end = start + avg + (1 if i < remainder else 0)
-
             # Yield the current split
             yield lst[start:end]
-
             # Update the starting index for the next split
             start = end    
 
     def downsize_examples(self, factor, examples):
-
+        # reduce the training size
         splits = range(5)
         tbl_splits = []
         for s in splits:
@@ -138,10 +134,7 @@ class Squall(datasets.GeneratorBasedBuilder):
         downsized_tbl_splits = [l[:len(l)//factor] for l in tbl_splits]
         flattened_tbls = [item for sublist in downsized_tbl_splits for item in sublist]
         examples = [ex for ex in examples if ex['tbl'] in flattened_tbls]
-
         return examples
-
-
 
     def _generate_examples(self, split_key, wtq_path):
         """This function returns the examples in the raw (text) form."""
@@ -175,7 +168,6 @@ class Squall(datasets.GeneratorBasedBuilder):
         with open(path, encoding="utf-8") as f:
             examples = json.load(f)
         
-
         if split_key == 'train' and self.config.downsize:
             examples = self.downsize_examples(self.config.downsize, examples)
 
@@ -287,6 +279,6 @@ if __name__=='__main__':
                            plus=True, 
                            split_id=1,
                            downsize=None,
-                           aug=True)
+                           aug=False)
     sample = dataset["validation"][7]
     print(sample)

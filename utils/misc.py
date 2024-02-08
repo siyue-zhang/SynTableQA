@@ -1,5 +1,7 @@
 import sqlite3
 
+ordering_keywords = ['descending', 'ascending', 'sorted by', 'ordered by']
+
 def fetch_table_data(connection, table_name):
     cursor = connection.execute(f"SELECT * FROM {table_name}")
     header = [col[0] for col in cursor.description]
@@ -39,4 +41,18 @@ def execute_query(db_path, query):
     connection.close()
     return ret
 
+def split_list(lst, n):
+    # Calculate the number of items in each split
+    avg = len(lst) // n
+    remainder = len(lst) % n
+    # Initialize the starting index for each split
+    start = 0
+    # Iterate over each split
+    for i in range(n):
+        # Calculate the end index for the current split
+        end = start + avg + (1 if i < remainder else 0)
+        # Yield the current split
+        yield lst[start:end]
+        # Update the starting index for the next split
+        start = end 
 

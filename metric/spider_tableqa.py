@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from metric.squall_evaluator import to_value_list, check_denotation
 from fuzzywuzzy import fuzz
+from utils.misc import ordering_keywords
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
     def compute_metrics(eval_preds):
@@ -17,17 +18,20 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         # prepare the prediction format for the evaluator
         predictions = decoded_preds
         correct_flag = []
+        pred_fuzzy = []
         for i, pred in enumerate(predictions):
             answer = eval_dataset['answer'][i]
             # print('\n', question, '\n', 'pred: ', pred, '\n', 'target: ', target , '\n', queried, '\n', answer)
             question = eval_dataset['question'][i]
-            ordering_keywords = ['descending', 'ascending', 'sorted by']
             if any(keyword in question for keyword in ordering_keywords):
+                pred = pred.replace('|', ',')
                 pred_list = [x.strip() for x in pred.split(",")]
                 ans_list = answer.split(", ")
+                pred_f =  ", ".join(pred_list)
             else:
                 pred_list = [x.strip() for x in pred.split("|")]
                 ans_list = answer.split("|")
+                pred_f = "|".join(pred_list)
 
             options = eval_dataset['options'][i]
             options = [x.replace('\n',' ').strip() for x in options]
@@ -36,6 +40,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 correct = False
             else:
                 if fuzzy:
+                    # replace the answer by table contents through fuzzy matching
                     new_pred_list = []
                     for p in pred_list:
                         if p in options or p.replace('-','').replace('.','',1).isdigit():
@@ -49,10 +54,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                                 print(f'-> {p}\n')
                         new_pred_list.append(p)
                     
-                    # if new_pred_list!=pred_list:
-                    #     print(options)
-                    #     print(f"{pred_list}\n has been replaced by \n{new_pred_list}", '\n')
-
                     pred_list = new_pred_list
 
                 if any(keyword in question for keyword in ordering_keywords):
@@ -62,6 +63,9 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 predicted_values = to_value_list(pred_list)
                 target_values = to_value_list(ans_list)
                 correct = check_denotation(target_values, predicted_values)
+                pred_f = '|'.join(pred_list)
+
+            pred_fuzzy.append(pred_f)
             correct_flag.append(correct)
 
         if stage:
@@ -70,7 +74,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'answer': eval_dataset['answer'],
                        'acc': [int(b) for b in correct_flag],
                        'query': eval_dataset['query'], 
-                       'pred': predictions,
+                       'predictions': predictions,
+                       'answer_fuzzy': pred_fuzzy,
                        'src': eval_dataset['src'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)

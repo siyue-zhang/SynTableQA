@@ -68,20 +68,26 @@ class Selector(datasets.GeneratorBasedBuilder):
         for s in splits:
             tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
             text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
-            df = tableqa_dev[['id','tbl','question','answer','src']]
-            df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
-            df['ans_tableqa'] = tableqa_dev['predictions']
-            df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
+
+            if dataset=='squall':
+                df = tableqa_dev[['id','tbl','question','answer','src']]
+                df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
+            else:
+                df = tableqa_dev[['db_id','question','answer','src']]
+                df['answer_fuzzy'] = tableqa_dev['answer_fuzzy']
+
             df['ans_text_to_sql'] = text_to_sql_dev['queried_ans']
-            df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
-            # df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
+            df['ans_tableqa'] = tableqa_dev['predictions']
+            df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
+            df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
+            df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
             df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
             dfs_dev.append(df)
         
         dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
         tbls = list(set(dfs_dev['tbl'].to_list()))
 
-        split_path = f'./task/selector{d}_splits_single.json'
+        split_path = f'./task/selector{d}_splits.json'
         if os.path.exists(split_path):
             with open(split_path, 'r') as json_file:
                 splits = json.load(json_file)
@@ -112,27 +118,32 @@ class Selector(datasets.GeneratorBasedBuilder):
         s = self.config.test_split
         tableqa_test = pd.read_csv(f"./predict/{dataset}/{dt}_tableqa_test{s}.csv")
         text_to_sql_test = pd.read_csv(f"./predict/{dataset}/{dt}{d}_text_to_sql_test{s}.csv")
-        df = tableqa_test[['id','tbl','question','answer','src']]
+
+        if dataset=='squall':
+            df = tableqa_test[['id','tbl','question','answer','src']]
+            df['query_fuzzy'] = text_to_sql_test['query_fuzzy']
+        else:
+            df = tableqa_test[['db_id','question','answer','src']]
+            df['answer_fuzzy'] = tableqa_test['answer_fuzzy']
+
         df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
         df['ans_tableqa'] =  tableqa_test['predictions']
         df['acc_text_to_sql'] = text_to_sql_test['acc'].astype('int16')
         df['ans_text_to_sql'] = text_to_sql_test['queried_ans']
-        df['query_fuzzy'] = text_to_sql_test['query_fuzzy']
         df = df.reset_index(drop=True)
 
         labels = []
         for a, b in zip(df['acc_text_to_sql'].to_list(), df['acc_tableqa'].to_list()):
-            # a = int(a)
-            # b = int(b)
-            # if a==0 and b==1:
-            #     label = 1
-            # else:
-            #     label = 0
-            label=int(a)
+            a = int(a)
+            b = int(b)
+            if a==0 and b==1:
+                label = 1
+            else:
+                label = 0
             labels.append(label)
+
         df['labels'] = labels
         df_test = df.reset_index().astype('str')
-
 
         return [
             datasets.SplitGenerator(
@@ -175,8 +186,7 @@ class Selector(datasets.GeneratorBasedBuilder):
             acc_tableqa = int(df.loc[i, 'acc_tableqa'])
             ans_tableqa = df.loc[i, 'ans_tableqa']
 
-            # claim = f'\nanswer A : {truncate(ans_text_to_sql)}\nanswer B : {truncate(ans_tableqa)}\n'
-            claim = f'\nanswer : {truncate(ans_text_to_sql)}\n'
+            claim = f'\nanswer A : {truncate(ans_text_to_sql)}\nanswer B : {truncate(ans_tableqa)}\n'
             query_fuzzy = df.loc[i, 'query_fuzzy']
             answer = df.loc[i, 'answer']
             label = df.loc[i, 'labels']
@@ -204,7 +214,8 @@ if __name__=='__main__':
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/selector.py", 
                            dataset='squall', test_split=1, download_mode='force_redownload',
                            ignore_verifications=True,
-                           downsize=None)
-    for i in range(5):
+                           downsize=None,
+                           aug=False)
+    for i in range(2):
         print(f'example {i}')
         print(dataset["train"][i], '\n')

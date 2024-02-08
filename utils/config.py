@@ -67,6 +67,9 @@ class DataTrainingArguments:
     split_id: int = field(
         default=1, metadata={"help": ( "dataset split id")}
     )
+    perturbation_type: str = field(
+        default="original", metadata={"help": "perturbation type of the RobuT dev set"}
+    )
     test_split: int = field(
         default=1, metadata={"help": ( "selector test split id")}
     )

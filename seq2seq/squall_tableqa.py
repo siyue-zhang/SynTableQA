@@ -99,7 +99,6 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
-                            plus='plus', 
                             split_id=1)
     train_dataset = datasets["validation"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")

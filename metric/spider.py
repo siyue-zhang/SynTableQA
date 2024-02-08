@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from fuzzywuzzy import process
 from metric.squall_evaluator import to_value_list, check_denotation
-from utils.misc import execute_query
+from utils.misc import execute_query, ordering_keywords
 
 
 def postprocess_text(decoded_preds):
@@ -44,14 +44,13 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 queried = execute_query(path, pred)
             except Exception as e:
                 queried = []
-            predicted.append(queried)
             
             # print('\n', question, '\n', 'pred: ', pred, '\n', 'target: ', target , '\n', queried, '\n', answer)
 
-            ordering_keywords = ['descending', 'ascending', 'sorted by']
             if any(keyword in question for keyword in ordering_keywords):
                 queried = [', '.join(queried)]
-                
+            predicted.append('|'.join(queried))
+
             predicted_values = to_value_list(queried)
             target_values = to_value_list(answer.split("|"))
             correct = check_denotation(target_values, predicted_values)

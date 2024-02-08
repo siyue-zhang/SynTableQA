@@ -45,7 +45,6 @@ def find_fuzzy_col(col, mapping):
         best_match, _ = process.extractOne(col, [value for _, value in mapping.items()])
     return mapping_b[best_match]
 
-
 def fuzzy_replace(pred, table_id, mapping):
     verbose = False
     table_path = f'./data/squall/tables/json/{table_id}.json'
