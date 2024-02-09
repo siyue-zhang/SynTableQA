@@ -1,5 +1,6 @@
 import json
 import re
+import torch
 import numpy as np
 import pandas as pd
 from pandasql import sqldf
@@ -20,8 +21,8 @@ def postprocess_text(decoded_preds):
 
 def find_best_match(contents, col, ori):
     final_strings = []
+    c = int(col[3:])
     for row in contents['rows']:
-        c = int(col[3:])
         final_strings.append(row[c])
     assert len(final_strings)>0, f'strings empty {final_strings}'
     final_strings = list(set(final_strings))
@@ -47,7 +48,7 @@ def find_fuzzy_col(col, mapping):
 
 def fuzzy_replace(table_content, pred, mapping):
 
-    # verbose = True
+    verbose = False
     contents = table_content
     ori_pred = str(pred)
 
@@ -211,7 +212,7 @@ def fuzzy_replace(table_content, pred, mapping):
     for j in range(len(buf)):
         pred = pred.replace(f'[X{j}]', f'\'{buf[j]}\'')
     
-    if pred != ori_pred:
+    if verbose and (pred != ori_pred):
         print('String is replaced by fuzzy match!')
         print(f'From: {ori_pred}')
         print(f'To  : {pred}\n')
@@ -247,7 +248,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             answers = eval_dataset['answers'][i]
             table = eval_dataset['table'][i]
             table_id = 'table_' + eval_dataset['table_id'][i].replace('-','_')
-
             nl_header = [x.replace(' ','_').lower() for x in table['header']]
             n_col = len(table["header"])
             nm_header = [f"col{j}" for j in range(n_col)]
@@ -302,6 +302,14 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             target_values = to_value_list(answers)
             correct = check_denotation(target_values, predicted_values)
             correct_flag.append(correct)
+
+            if i % 100 == 0:
+                # to avoid gpu becomes idle
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                x = torch.randn(1000, 1000, device=device)
+                x = torch.matmul(x, x)
+                print(i)
+
             # print(correct, '\n-------')
 
         if stage:

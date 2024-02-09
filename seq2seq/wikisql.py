@@ -13,6 +13,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     for i in range(num_ex):
         table_id = table_ids[i]
         table = example_tables[i]
+        table['header'] = ['id', 'agg'] + table['header']
+        for k in range(len(table['rows'])):
+            table['rows'][k] = [str(k+1), str(0)] + table['rows'][k]
+
         question = questions[i]
         if table_id not in serilized_tables:
             tmp = [f"{i+1}_{h.replace(' ', '_').lower()}" for i, h in enumerate(table['header'])]

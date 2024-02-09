@@ -9,7 +9,8 @@ checkpoint=1050
 python ./run.py \
   --task tableqa \
   --do_predict \
-  --predict_split dev \
+  --predict_split test \
+  --perturbation_type synonym \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -20,5 +21,7 @@ python ./run.py \
   --split_id 0 \
   --predict_with_generate \
   --generation_max_length 128 \
-  --num_beams 5
+  --num_beams 5 
+  # --max_predict_samples 2000
+
 

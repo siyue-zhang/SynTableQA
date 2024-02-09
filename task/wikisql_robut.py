@@ -141,8 +141,8 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 			for idx, example in enumerate(qa_data):
 				
-				if example['question_id'] != 'w_466':
-					continue
+				# if example['question_id'] != 'w_466':
+				# 	continue
 
 				table_content = table_data[example["table_id"]]
 				if split_key == 'test':
