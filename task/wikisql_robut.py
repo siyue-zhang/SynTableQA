@@ -155,7 +155,10 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 				question = example["question"].strip()
 				if question[-1] not in ['.','?']:
-					question += '.'
+					if question.split(' ')[0].lower() in ['what', 'how', 'who', 'where', 'which', 'when']:
+						question += '?'
+					else:
+						question += '.'
 
 				yield idx, {
 						"id": example["question_id"],
