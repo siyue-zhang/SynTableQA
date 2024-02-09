@@ -4,7 +4,7 @@ import sys
 sys.path.append('./')
 import datasets
 from datasets import load_dataset
-from utils.misc import split_list, execute_query
+from utils.misc import split_list
 from copy import deepcopy
 from utils.executor import retrieve_wikisql_query_answer_tapas, _TYPE_CONVERTER
 
@@ -141,7 +141,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 			for idx, example in enumerate(qa_data):
 				
-				# if example['question_id'] != 'w_466':
+				# if example['question_id'] != 'w_17':
 				# 	continue
 
 				table_content = table_data[example["table_id"]]
@@ -172,7 +172,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
 		from datasets import load_dataset
-		dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
+		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
 								split_id=1,download_mode='force_redownload',ignore_verifications=True)
-		sample = dataset["train"][7]
+		sample = dataset["train"][0]
 		print(sample)

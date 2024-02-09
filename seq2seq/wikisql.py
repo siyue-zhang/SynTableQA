@@ -69,7 +69,7 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     import sys
     sys.path.append('./')
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
                             split_id=1)
     train_dataset = datasets["validation"]
     tokenizer = T5Tokenizer.from_pretrained("t5-small")

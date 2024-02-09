@@ -1,14 +1,11 @@
-import json
 import re
 import torch
 import numpy as np
 import pandas as pd
 from pandasql import sqldf
-import sqlite3
 from fuzzywuzzy import process
 from copy import deepcopy
 from metric.squall_evaluator import to_value_list, check_denotation
-from utils.misc import fetch_table_data
 
 def postprocess_text(decoded_preds):
 
@@ -23,7 +20,7 @@ def find_best_match(contents, col, ori):
     final_strings = []
     c = int(col[3:])
     for row in contents['rows']:
-        final_strings.append(row[c])
+        final_strings.append(row[c+2])
     assert len(final_strings)>0, f'strings empty {final_strings}'
     final_strings = list(set(final_strings))
     best_match, _ = process.extractOne(ori, final_strings)
@@ -48,7 +45,7 @@ def find_fuzzy_col(col, mapping):
 
 def fuzzy_replace(table_content, pred, mapping):
 
-    verbose = False
+    verbose = True
     contents = table_content
     ori_pred = str(pred)
 
@@ -69,7 +66,23 @@ def fuzzy_replace(table_content, pred, mapping):
         pred = pred[:indices[0]] + "\"" + pred[indices[0]+1:]
         pred = pred[:indices[2]] + "\"" + pred[indices[2]+1:]
     cols = list(mapping.keys())
-    
+
+    # select col1 from w where col0 = "patrick O'Bryant"
+    pattern = r'where (col[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?"([^"]*?\'[^"]*?)"'
+    pairs = re.findall(pattern, pred)
+    if len(pairs)>0:
+        for col, ori in pairs:
+            if col not in cols:
+                print(f'A: {col} not in {cols}, query ({pred})')
+                col_replace = find_fuzzy_col(col, mapping)
+                pred = pred.replace(col, col_replace)
+                print(f' {col}-->{col_replace}')
+                col = col_replace
+            best_match = find_best_match(contents, col, ori)
+            pred = pred.replace(ori, best_match)
+        if verbose:
+            print(f'A: in col: {col}, string: {ori} is replaced by {best_match}')
+
     pairs = re.findall(r'where (col[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?\'([^"]*?"[^"]*?\'[^"]*".*?)\'', pred)
     # select c5 from w where c2 = '"i'll be your fool tonight"'
     buf = []
@@ -206,9 +219,6 @@ def fuzzy_replace(table_content, pred, mapping):
     for i in range(len(tokens)):
         pred = pred.replace(tokens[i], replacement[i])
 
-        if verbose:
-            print(f'D')
-
     for j in range(len(buf)):
         pred = pred.replace(f'[X{j}]', f'\'{buf[j]}\'')
     
@@ -236,67 +246,33 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         predicted = []
         fuzzy_query = []
         correct_flag = []
-        table_contents = {}
-
-        db_path = f'./data/wikisql/train.db'
-        train_connection = sqlite3.connect(db_path)
-        train_connection.row_factory = sqlite3.Row  # Use Row factory to get rows as dictionaries
-        train_connection.text_factory = lambda b: b.decode(errors = 'ignore')
 
         for i, pred in enumerate(predictions):
-            id = eval_dataset['id'][i]
             answers = eval_dataset['answers'][i]
             table = eval_dataset['table'][i]
-            table_id = 'table_' + eval_dataset['table_id'][i].replace('-','_')
             nl_header = [x.replace(' ','_').lower() for x in table['header']]
             n_col = len(table["header"])
-            nm_header = [f"col{j}" for j in range(n_col)]
-            question = eval_dataset['question'][i]
-
+            nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
             for j in range(n_col):
                 pred = pred.replace(f'{j+1}_{nl_header[j]}', nm_header[j])
 
-            if id[0]=='w':
-                connection = train_connection
-                if fuzzy:
-                    if table_id not in table_contents:
-                        table_content = fetch_table_data(connection, table_id)
-                    else:
-                        table_content = table_contents[table_id]
+            if fuzzy:
+                mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
+                pred = fuzzy_replace(table, pred, mapping)
+                fuzzy_query.append(pred)
 
-                    mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
-                    pred = fuzzy_replace(table_content, pred, mapping)
-                    pred = pred.replace('from w', f'from {table_id}')
-                    fuzzy_query.append(pred)
+            w = deepcopy(table)
+            w['header'] = nm_header
+            w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
+ 
+            try:
+                predicted_values = sqldf(pred).values.tolist()
+            except Exception as e:
+                predicted_values = []
 
-                cursor = connection.cursor()
-                predicted_values = list()
-                try:
-                    cursor.execute(pred)
-                    result = cursor.fetchall()
-                    predicted_values = [str(cell) for row in result for cell in row] if result else []
-                except Exception as e:
-                    predicted_values = []
-
-            else:
-                # for robut data we can not use DB, need to query on dataframe
-                if fuzzy:
-                    mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
-                    pred = fuzzy_replace(table, pred, mapping)
-                    fuzzy_query.append(pred)
-
-                w = deepcopy(table)
-                w['header'] = nm_header
-                w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
-
-                try:
-                    predicted_values = sqldf(pred).values.tolist()
-                except Exception as e:
-                    predicted_values = []
-
-                # Flatten the list and convert elements to strings
-                predicted_values = [str(item) for sublist in predicted_values for item in sublist] if predicted_values else []
-                    
+            # Flatten the list and convert elements to strings
+            predicted_values = [str(item) for sublist in predicted_values for item in sublist] if predicted_values else []
+                
             predicted.append(predicted_values)
             predicted_values = to_value_list(predicted_values)
             target_values = to_value_list(answers)
