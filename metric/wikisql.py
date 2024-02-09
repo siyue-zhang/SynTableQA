@@ -50,12 +50,21 @@ def fuzzy_replace(table_content, pred, mapping):
     verbose = True
     contents = table_content
     ori_pred = str(pred)
+
+    # select col1 from table_1_10797463_1 where col4 = 65.9%
+    pattern = r'((col\d+)\s*=\s*(\d+?\.\d+?%))'
+    pairs = re.findall(pattern, pred)
+    if len(pairs)>0:
+        for old, col, val in pairs:
+            new = old.replace(val, f"'{val}'")
+            pred = pred.replace(old, new)
+
     # select c3 from w where c1 = 'american mcgee's crooked house' 
     indices = []
     for i, char in enumerate(pred):
         if char == "'":
             indices.append(i)
-    if len(indices) == 3:
+    if len(indices) == 3 and '"' not in pred:
         pred = pred[:indices[0]] + "\"" + pred[indices[0]+1:]
         pred = pred[:indices[2]] + "\"" + pred[indices[2]+1:]
     cols = list(mapping.keys())

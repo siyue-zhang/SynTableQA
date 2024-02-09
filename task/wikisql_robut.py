@@ -140,6 +140,10 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 		def _generate_examples(self, split_key, qa_data, table_data):
 
 			for idx, example in enumerate(qa_data):
+				
+				if example['question_id'] != 'w_466':
+					continue
+
 				table_content = table_data[example["table_id"]]
 				if split_key == 'test':
 					answers = example["answers"]
@@ -149,7 +153,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				
 				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
 
-				question = example["question"]
+				question = example["question"].strip()
 				if question[-1] not in ['.','?']:
 					question += '.'
 
