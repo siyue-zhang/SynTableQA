@@ -47,7 +47,7 @@ def find_fuzzy_col(col, mapping):
 
 def fuzzy_replace(table_content, pred, mapping):
 
-    verbose = True
+    # verbose = True
     contents = table_content
     ori_pred = str(pred)
 
