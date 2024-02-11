@@ -362,6 +362,26 @@ def main():
                 max_length=data_args.val_max_target_length,
                 num_beams=data_args.num_beams,
             )
+        print(predict_dataset)
+        predict_dataset = predict_dataset.select_columns(['input_ids', 'attention_mask', 'labels'])
+        for inputs in predict_dataset:
+            # generate the output using beam search
+            gen_outputs = model.generate(
+                **inputs,
+                num_beams=data_args.num_beams,
+                max_length=data_args.val_max_target_length,
+                output_scores=True,
+                return_dict_in_generate=True,
+            )
+
+            # compute the scores using compute_transition_scores()
+            scores = model.compute_transition_scores(
+                sequences=gen_outputs.sequences,
+                scores=gen_outputs.scores,
+                beam_indices=gen_outputs.beam_indices,
+            )
+            print(scores)
+            assert 1==2
         metrics = predict_results.metrics
         max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
         metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
