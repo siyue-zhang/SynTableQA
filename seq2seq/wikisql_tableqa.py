@@ -2,7 +2,8 @@ import pandas as pd
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 
-    questions = [question.lower() for question in examples["question"]]
+    # questions = [question.lower() for question in examples["question"]]
+    questions = examples["question"]
     example_tables = [table for table in examples["table"]]
     tables = [
         pd.DataFrame.from_records(example_table["rows"], columns=[x.lower() for x in example_table["header"]])

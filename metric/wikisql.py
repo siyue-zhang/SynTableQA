@@ -18,7 +18,8 @@ def postprocess_text(decoded_preds):
 
 def find_best_match(contents, col, ori):
     final_strings = []
-    c = int(col[3:])
+    tmp = {'id':0, 'agg':1}
+    c = tmp[col] if col in tmp else int(col[3:])
     for row in contents['rows']:
         final_strings.append(row[c+2])
     assert len(final_strings)>0, f'strings empty {final_strings}'
@@ -31,21 +32,25 @@ def find_fuzzy_col(col, mapping):
     # col->ori
     mapping_b = {value: key for key, value in mapping.items()}
     match = re.match(r'^(col\d+)', col)
-    if match:
-        c_num = match.group(1)
-        # assert c_num in mapping, f'{c_num} not in {mapping}'
-        if c_num not in mapping:
-            print(f'predicted {c_num} is not valid ({mapping})')
-            return list(mapping.keys())[0]
-        else:
-            best_match, _ = process.extractOne(col.replace(c_num, mapping[c_num]), [value for _, value in mapping.items()])
+    # if match:
+    #     c_num = match.group(1)
+    #     # assert c_num in mapping, f'{c_num} not in {mapping}'
+    #     if c_num not in mapping:
+    #         print(f'predicted {c_num} is not valid ({mapping})')
+    #         return list(mapping.keys())[0]
+    #     else:
+    #         best_match, _ = process.extractOne(col.replace(c_num, mapping[c_num]), [value for _, value in mapping.items()])
+    # else:
+    #     best_match, _ = process.extractOne(col, [value for _, value in mapping.items()])
+    if match and match.group(1) in mapping:
+        return match.group(1)
     else:
         best_match, _ = process.extractOne(col, [value for _, value in mapping.items()])
-    return mapping_b[best_match]
+        return mapping_b[best_match]
 
 def fuzzy_replace(table_content, pred, mapping):
 
-    verbose = True
+    verbose = False
     contents = table_content
     ori_pred = str(pred)
 
@@ -253,8 +258,10 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             nl_header = [x.replace(' ','_').lower() for x in table['header']]
             n_col = len(table["header"])
             nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
+            # print('bf: ', pred)
             for j in range(n_col):
                 pred = pred.replace(f'{j+1}_{nl_header[j]}', nm_header[j])
+            # print('af: ', pred)
 
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
@@ -281,9 +288,9 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 
             if i % 100 == 0:
                 # to avoid gpu becomes idle
-                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                x = torch.randn(1000, 1000, device=device)
-                x = torch.matmul(x, x)
+                # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                # x = torch.randn(1000, 1000, device=device)
+                # x = torch.matmul(x, x)
                 print(i)
 
             # print(correct, '\n-------')
