@@ -1,7 +1,8 @@
 import logging
 import os
 import sys
-
+import torch 
+import pandas as pd
 import nltk
 import datasets
 from datasets import load_dataset
@@ -26,6 +27,8 @@ from transformers.file_utils import is_offline_mode
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from utils.config import ModelArguments, DataTrainingArguments
 from importlib import import_module
+from transformers import BatchEncoding
+
 
 logger = logging.getLogger(__name__)
 
@@ -362,26 +365,36 @@ def main():
                 max_length=data_args.val_max_target_length,
                 num_beams=data_args.num_beams,
             )
-        print(predict_dataset)
-        predict_dataset = predict_dataset.select_columns(['input_ids', 'attention_mask', 'labels'])
-        for inputs in predict_dataset:
-            # generate the output using beam search
-            gen_outputs = model.generate(
-                **inputs,
-                num_beams=data_args.num_beams,
-                max_length=data_args.val_max_target_length,
-                output_scores=True,
-                return_dict_in_generate=True,
-            )
+        
+            df = pd.read_csv(f'./predict/squall/{stage}.csv')
+            log_prob = []
+            for k, sample in enumerate(predict_dataset):  
+                source_text = tokenizer.decode(sample['input_ids'][:-1])
+                source_ids = tokenizer(source_text, return_tensors="pt").input_ids.to(training_args.device)
 
-            # compute the scores using compute_transition_scores()
-            scores = model.compute_transition_scores(
-                sequences=gen_outputs.sequences,
-                scores=gen_outputs.scores,
-                beam_indices=gen_outputs.beam_indices,
-            )
-            print(scores)
-            assert 1==2
+                # generate the output using beam search
+                gen_outputs = model.generate(
+                    inputs=source_ids,
+                    num_beams=data_args.num_beams,
+                    max_length=data_args.val_max_target_length,
+                    output_scores=True,
+                    return_dict_in_generate=True,
+                )
+                if df.loc[k, 'query_pred'] != tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True):
+                    print(df.loc[k, 'query_pred'])
+                    print(tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True))
+                assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)
+                # compute the scores using compute_transition_scores()
+                scores = model.compute_transition_scores(
+                    sequences=gen_outputs.sequences,
+                    scores=gen_outputs.scores,
+                    beam_indices=gen_outputs.beam_indices,
+                )
+                log_prob.append(scores.sum().item())
+                # print('scores (compute_transition_scores):', scores.sum().item())
+            df['log_prob'] = log_prob
+            df.to_csv(f'./predict/squall/{stage}.csv', na_rep='')
+
         metrics = predict_results.metrics
         max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
         metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))

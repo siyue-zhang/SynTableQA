@@ -17,13 +17,15 @@ python ./run.py \
   --postproc_fuzzy_string True \
   --max_source_length 1024 \
   --max_target_length 128 \
+  --val_max_target_length 128 \
   --per_device_eval_batch_size 4 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --predict_with_generate \
-  --generation_max_length 128 \
-  --num_beams 5 \
-  --max_predict_samples 10
+  --num_beams 5 
+  # --max_predict_samples 4
   # --squall_downsize 5
   # --aug True \
+    # --generation_max_length 128 \
+
 
