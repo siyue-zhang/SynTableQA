@@ -18,8 +18,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
     num_ex = len(tbls)
     table_contents = {}
+    num_content_tokens = {}
     inputs, outputs = [], []
     all_ori_headers, all_nl_headers = [], []
+    num_tokens = []
 
     for i in range(num_ex):
         nl = nls[i]
@@ -104,6 +106,11 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         inputs.append(input)
         outputs.append(output)
 
+        if tbl not in num_content_tokens:
+            num_table_tokens = len(tokenizer(serialized_schema + serialized_cell)['input_ids'])
+            num_content_tokens[tbl] = len(num_table_tokens)
+        num_tokens.append(num_content_tokens[tbl])
+
 
     # use t5 tokenizer to convert text to ids        
     model_inputs = {
@@ -114,7 +121,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         "tbl":tbls, 
         "nl_headers": all_nl_headers,
         "ori_headers": all_ori_headers, 
-        "inputs": inputs
+        "inputs": inputs,
+        "table_tokens": num_content_tokens
         }
     
     for n in range(len(inputs)):
@@ -141,7 +149,8 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     # ensure squall <-> default
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 'default')
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 
+                            plus=True, split_id=1)
     train_dataset = datasets["test"]
     tokenizer = T5Tokenizer.from_pretrained("t5-small")
     train_dataset = train_dataset.map(

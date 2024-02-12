@@ -11,13 +11,15 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVC
 import pickle
+import re
 import os
 from sklearn import linear_model
 import random
 from copy import deepcopy
 
-np.random.seed(2024)
-random.seed(2024)
+seed = 2024
+np.random.seed(seed)
+random.seed(seed)
 
 
 def load_dfs():
@@ -153,8 +155,41 @@ def extract_features(df, tokenizer):
         ####### context table features #######
 
 
+
+        ####### text_to_sql answer features #######
+        ans_text_to_sql = str(row['ans_text_to_sql'])
+        ans_text_to_sql_list = ans_text_to_sql.split('|')
+
+        # number of answers
+        features.append(len(ans_text_to_sql_list))
+
+        # if answer is none
+        isNone = ans_text_to_sql.lower() in ['none','']
+        features.append(isNone)
+
+        # answers have number
+        hasNum = 0
+        for ans in ans_text_to_sql_list:
+            if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                hasNum = 1
+                break
+        features.append(hasNum)
+
+        hasStr = 0
+        for ans in ans_text_to_sql_list:
+            if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                hasStr = 1
+                break
+        features.append(hasStr)
+
+        # number of overlap words between question and answer
+        qwords = set(question.lower().split())
+        awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
+        features.append(len(qwords.intersection(awords)))
+   
+
         ####### tableqa answer features #######
-        ans_tableqa = row['ans_tableqa']
+        ans_tableqa = str(row['ans_tableqa'])
         ans_tableqa_list = ans_tableqa.split('|')
 
         # number of answers
@@ -175,11 +210,13 @@ def extract_features(df, tokenizer):
                 break
         features.append(hasStr)
 
+        # number of overlap words between question and answer
+        qwords = set(question.lower().split())
+        awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
+        features.append(len(qwords.intersection(awords)))
 
-
-        print(features)
-        assert 1==2
-
+        X.append(features)
+        Y.append(int(row['labels']))
 
     X = np.array(X)
     Y = np.array(Y)
@@ -189,10 +226,56 @@ def extract_features(df, tokenizer):
     return X, Y
 
 
+def fit_and_save(X, Y, model, tol=1e-5, name=""):
+    if model == "SGD":
+        classifier = linear_model.SGDClassifier(loss='log_loss', penalty='l2', max_iter=1000, tol=tol, verbose=1,
+            early_stopping=True, validation_fraction=0.1, n_iter_no_change=6)
+    elif model == "LR":
+        classifier = linear_model.LogisticRegression(C=1.0, max_iter=1000, verbose=2, tol=tol)
+    elif model == "kNN":
+        classifier = KNeighborsClassifier(n_neighbors=5)
+    elif model == "SVM":
+        classifier = SVC(kernel="linear", C=0.025, verbose=True, probability=True)
+        # classifier = SVC(gamma=2, C=1, verbose=True, probability=True)
+    elif model == "DecisionTree":
+        classifier = DecisionTreeClassifier()
+    elif model == "RandomForest":
+        classifier = RandomForestClassifier()
+    elif model == "AdaBoost":
+        classifier =  AdaBoostClassifier()
+    elif model == "MLP":
+        classifier = MLPClassifier(verbose=True, early_stopping=True, validation_fraction=0.1, n_iter_no_change=2, tol=1e-4)
+
+    classifier.fit(X, Y)
+    train_score = classifier.score(X, Y)
+
+    print ("Acc on training set: {:.3f}".format(train_score))
+
+    with open("classifiers/{}_{}.pkl".format(model, name), "wb") as f:
+        pickle.dump(classifier, f)
+
+
+def load_and_predict(X, Y, model, name=""):
+    with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
+        classifier = pickle.load(f)
+    
+    # print ("coefs: ", classifier.coef_)
+    
+    # return classifier.predict_proba(X)
+    # return classifier.predict(X)
+    return classifier.score(X, Y)
+
+
 if __name__=='__main__':
     df_train, df_dev = load_dfs()
 
     from transformers import TapexTokenizer
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
+    model = 'SVM'
     X, Y = extract_features(df_train, tokenizer)
-    print(df_train.keys())
+    fit_and_save(X, Y, model)
+    print('\n')
+
+    X, Y = extract_features(df_dev, tokenizer)
+    test_scores = load_and_predict(X, Y, model)
+    print ("test score: ", test_scores)
