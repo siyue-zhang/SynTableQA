@@ -381,6 +381,7 @@ def main():
                     return_dict_in_generate=True,
                 )
                 if df.loc[k, 'query_pred'] != tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True):
+                    print('AA')
                     print(df.loc[k, 'query_pred'])
                     print(tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True))
                 assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)

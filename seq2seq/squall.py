@@ -108,7 +108,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
         if tbl not in num_content_tokens:
             num_table_tokens = len(tokenizer(serialized_schema + serialized_cell)['input_ids'])
-            num_content_tokens[tbl] = len(num_table_tokens)
+            num_content_tokens[tbl] = num_table_tokens
         num_tokens.append(num_content_tokens[tbl])
 
 
@@ -122,7 +122,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         "nl_headers": all_nl_headers,
         "ori_headers": all_ori_headers, 
         "inputs": inputs,
-        "table_tokens": num_content_tokens
+        "table_tokens": num_tokens
         }
     
     for n in range(len(inputs)):

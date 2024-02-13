@@ -86,7 +86,7 @@ def load_dfs():
     return df_train, df_dev
 
 
-def extract_features(df, tokenizer):
+def extract_features(df, tokenizer, qonly=False):
 
     X = []
     Y = []
@@ -156,64 +156,65 @@ def extract_features(df, tokenizer):
 
 
 
-        ####### text_to_sql answer features #######
-        ans_text_to_sql = str(row['ans_text_to_sql'])
-        ans_text_to_sql_list = ans_text_to_sql.split('|')
+        if not qonly:
+            ####### text_to_sql answer features #######
+            ans_text_to_sql = str(row['ans_text_to_sql'])
+            ans_text_to_sql_list = ans_text_to_sql.split('|')
 
-        # number of answers
-        features.append(len(ans_text_to_sql_list))
+            # number of answers
+            features.append(len(ans_text_to_sql_list))
 
-        # if answer is none
-        isNone = ans_text_to_sql.lower() in ['none','']
-        features.append(isNone)
+            # if answer is none
+            isNone = ans_text_to_sql.lower() in ['none','']
+            features.append(isNone)
 
-        # answers have number
-        hasNum = 0
-        for ans in ans_text_to_sql_list:
-            if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                hasNum = 1
-                break
-        features.append(hasNum)
+            # answers have number
+            hasNum = 0
+            for ans in ans_text_to_sql_list:
+                if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                    hasNum = 1
+                    break
+            features.append(hasNum)
 
-        hasStr = 0
-        for ans in ans_text_to_sql_list:
-            if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                hasStr = 1
-                break
-        features.append(hasStr)
+            hasStr = 0
+            for ans in ans_text_to_sql_list:
+                if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                    hasStr = 1
+                    break
+            features.append(hasStr)
 
-        # number of overlap words between question and answer
-        qwords = set(question.lower().split())
-        awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
-        features.append(len(qwords.intersection(awords)))
-   
+            # number of overlap words between question and answer
+            qwords = set(question.lower().split())
+            awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
+            features.append(len(qwords.intersection(awords)))
+    
+        if not qonly:
+            ####### tableqa answer features #######
+            ans_tableqa = str(row['ans_tableqa'])
+            ans_tableqa_list = ans_tableqa.split('|')
 
-        ####### tableqa answer features #######
-        ans_tableqa = str(row['ans_tableqa'])
-        ans_tableqa_list = ans_tableqa.split('|')
+            # number of answers
+            features.append(len(ans_tableqa_list))
 
-        # number of answers
-        features.append(len(ans_tableqa_list))
+            # answers have number
+            hasNum = 0
+            for ans in ans_tableqa_list:
+                if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                    hasNum = 1
+                    break
+            features.append(hasNum)
 
-        # answers have number
-        hasNum = 0
-        for ans in ans_tableqa_list:
-            if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                hasNum = 1
-                break
-        features.append(hasNum)
+            hasStr = 0
+            for ans in ans_tableqa_list:
+                if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                    hasStr = 1
+                    break
+            features.append(hasStr)
 
-        hasStr = 0
-        for ans in ans_tableqa_list:
-            if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                hasStr = 1
-                break
-        features.append(hasStr)
-
-        # number of overlap words between question and answer
-        qwords = set(question.lower().split())
-        awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
-        features.append(len(qwords.intersection(awords)))
+            # number of overlap words between question and answer
+            qwords = set(question.lower().split())
+            awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
+            features.append(len(qwords.intersection(awords)))
 
         X.append(features)
         Y.append(int(row['labels']))
