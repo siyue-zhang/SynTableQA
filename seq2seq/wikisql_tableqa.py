@@ -30,7 +30,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
         ]
 
-
+    model_inputs["truncated"] = [int(len(input_ids)==max_source_length) for input_ids in model_inputs["input_ids"]]
     model_inputs["labels"] = labels["input_ids"]
     return model_inputs
 

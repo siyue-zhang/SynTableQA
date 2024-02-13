@@ -47,8 +47,19 @@ def load_dfs():
 
         df['ans_text_to_sql'] = text_to_sql_dev['queried_ans']
         df['ans_tableqa'] = tableqa_dev['predictions']
-        df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
+
         df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
+        df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
+
+        df['log_prob_text_to_sql'] = text_to_sql_dev['log_prob']
+        df['log_prob_tableqa'] = tableqa_dev['log_prob']
+
+        df['truncated_text_to_sql'] = text_to_sql_dev['truncated'].astype('int16')
+        df['truncated_tableqa'] = tableqa_dev['truncated'].astype('int16')
+
+        df['nl_headers'] = text_to_sql_dev['nl_headers']
+        df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
+
         df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
         df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
         dfs_dev.append(df)
@@ -230,15 +241,19 @@ def extract_features(df, tokenizer, qonly=False):
             awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
             features.append(len(qwords.intersection(awords)))
 
-            # # if the predicted sql after fuzzy match uses the processed column
-            # cols = row['nl_headers']
-            # original_cols, processed_cols = separate_cols(cols)
-            # useExp = 0
-            # for col in processed_cols:
-            #     if col in sql:
-            #         useExp = 1
-            #         break
-            # features.append(useExp)
+            # generation probability
+            log_prob = float(row['log_prob_text_to_sql'])
+            features.append(10**log_prob)
+
+            # if the predicted sql after fuzzy match uses the processed column
+            cols = row['nl_headers']
+            original_cols, processed_cols = separate_cols(cols)
+            useExp = 0
+            for col in processed_cols:
+                if col in sql:
+                    useExp = 1
+                    break
+            features.append(useExp)
     
         if not qonly:
             ####### tableqa answer features #######
@@ -274,6 +289,10 @@ def extract_features(df, tokenizer, qonly=False):
             qwords = set(question.lower().split())
             awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
             features.append(len(qwords.intersection(awords)))
+
+            # generation probability
+            log_prob = float(row['log_prob_tableqa'])
+            features.append(10**log_prob)
 
         X.append(features)
         Y.append(int(row['labels']))

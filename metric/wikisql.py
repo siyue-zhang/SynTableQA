@@ -286,13 +286,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             correct = check_denotation(target_values, predicted_values)
             correct_flag.append(correct)
 
-            if i % 100 == 0:
-                # to avoid gpu becomes idle
-                # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                # x = torch.randn(1000, 1000, device=device)
-                # x = torch.matmul(x, x)
-                print(i)
-
             # print(correct, '\n-------')
 
         if stage:
@@ -307,7 +300,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'perturbation_type': eval_dataset['perturbation_type'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)
-            df.to_csv(f'./predict/wikisql/{stage}.csv', na_rep='')
+            df.to_csv(f'./predict/wikisql/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)
 
         return {"acc": np.round(np.mean(correct_flag),4)}

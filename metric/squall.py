@@ -245,7 +245,7 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
     return predictions
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
-    def compute_metrics(eval_preds):
+    def compute_metrics(eval_preds, log_probs=None):
         # nonlocal tokenizer
         preds, labels = eval_preds
         if isinstance(preds, tuple):
@@ -274,8 +274,10 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'nl_headers': eval_dataset['nl_headers'],
                         'truncated': eval_dataset['truncated'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
+            if log_probs:
+                to_save['log_probs'] = log_probs
             df = pd.DataFrame(to_save)
-            df.to_csv(f'./predict/squall/{stage}.csv', na_rep='')
+            df.to_csv(f'./predict/squall/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)
 
         return {"acc": np.round(np.mean(correct_flag),4)}

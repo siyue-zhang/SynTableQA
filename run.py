@@ -24,11 +24,11 @@ from transformers import (
     set_seed,
 )
 from transformers.file_utils import is_offline_mode
-from transformers.trainer_utils import get_last_checkpoint, is_main_process
+from transformers.trainer_utils import get_last_checkpoint, is_main_process, EvalPrediction
 from utils.config import ModelArguments, DataTrainingArguments
 from importlib import import_module
 from transformers import BatchEncoding
-
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -359,47 +359,94 @@ def main():
                 metric_key_prefix="predict",
             )   
         else:
-            predict_results = trainer.predict(
-                predict_dataset,
-                metric_key_prefix="predict",
-                max_length=data_args.val_max_target_length,
-                num_beams=data_args.num_beams,
-            )
+            b = training_args.per_device_eval_batch_size
+            max_len = len(predict_dataset)
+            log_probs = []
+            predictions = []
 
-            # get generation scores
-            df = pd.read_csv(f'./predict/squall/{stage}.csv')
-            log_prob = []
-            for k, sample in enumerate(predict_dataset):
-                if k%100==0:
-                    print(k)
+            for i in tqdm(range(0, max_len, b)):
+                end = min(i+b, max_len) 
+
+                input_ids = predict_dataset['input_ids'][i:end]
+                input_ids = [item + [tokenizer.pad_token_id]*(data_args.max_source_length-len(item)) for item in input_ids]
+                input_ids = torch.tensor(input_ids).to(training_args.device)
+
+                attention_mask = predict_dataset['attention_mask'][i:end]
+                attention_mask = [item + [0]*(data_args.max_source_length-len(item)) for item in attention_mask]
+                attention_mask = torch.tensor(attention_mask).to(training_args.device)
+
                 # generate the output using beam search
                 gen_outputs = model.generate(
-                    inputs=torch.tensor([sample['input_ids']]).to(training_args.device),
-                    attention_mask=torch.tensor([sample['attention_mask']]).to(training_args.device),
+                    inputs=input_ids,
+                    attention_mask=attention_mask,
                     num_beams=data_args.num_beams,
                     max_length=data_args.val_max_target_length,
                     output_scores=True,
                     return_dict_in_generate=True,
                 )
-
-                # assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True), f"{df.loc[k, 'query_pred']} <=> {tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)}"
-                # compute the scores using compute_transition_scores()
+                # compute scores for beam search
                 scores = model.compute_transition_scores(
                     sequences=gen_outputs.sequences,
                     scores=gen_outputs.scores,
                     beam_indices=gen_outputs.beam_indices,
                 )
-                log_prob.append(scores.sum().item())
-                # print('scores (compute_transition_scores):', scores.sum().item())
-            df['log_prob'] = log_prob
-            df.to_csv(f'./predict/squall/{stage}.csv', na_rep='',index=False)
-
-        metrics = predict_results.metrics
-        max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
-        metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
         
-        trainer.log_metrics("predict", metrics)
-        trainer.save_metrics("predict", metrics)
+                log_probs += scores.sum(dim=1).tolist()
+                tmp = gen_outputs.sequences.cpu().tolist()
+                predictions += [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
+
+            tmp = predict_dataset["labels"]
+            label_ids = [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
+            
+            eval_preds = EvalPrediction(predictions=predictions, label_ids=label_ids)
+            acc = compute_metrics(eval_preds, log_probs)
+
+            print("predict: ", acc)
+
+
+
+        #     predict_results = trainer.predict(
+        #         predict_dataset,
+        #         metric_key_prefix="predict",
+        #         max_length=data_args.val_max_target_length,
+        #         num_beams=data_args.num_beams,
+        #     )
+
+        #     # get generation scores
+        #     df = pd.read_csv(f'./predict/squall/{stage}.csv')
+        #     log_prob = []
+        #     for k, sample in enumerate(predict_dataset):
+        #         if k%100==0:
+        #             print(k)
+        #         # generate the output using beam search
+        #         gen_outputs = model.generate(
+        #             inputs=torch.tensor([sample['input_ids']]).to(training_args.device),
+        #             attention_mask=torch.tensor([sample['attention_mask']]).to(training_args.device),
+        #             num_beams=data_args.num_beams,
+        #             max_length=data_args.val_max_target_length,
+        #             output_scores=True,
+        #             return_dict_in_generate=True,
+        #         )
+               
+        #         # assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True), f"{df.loc[k, 'query_pred']} <=> {tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)}"
+        #         # compute the scores using compute_transition_scores()
+        #         scores = model.compute_transition_scores(
+        #             sequences=gen_outputs.sequences,
+        #             scores=gen_outputs.scores,
+        #             beam_indices=gen_outputs.beam_indices,
+        #         )
+
+        #         log_prob.append(scores.sum().item())
+        #         # print('scores (compute_transition_scores):', scores.sum().item())
+        #     df['log_prob'] = log_prob
+        #     df.to_csv(f'./predict/squall/{stage}.csv', na_rep='',index=False)
+
+        # metrics = predict_results.metrics
+        # max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
+        # metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
+        
+        # trainer.log_metrics("predict", metrics)
+        # trainer.save_metrics("predict", metrics)
 
 
 if __name__ == "__main__":
