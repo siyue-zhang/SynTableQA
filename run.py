@@ -369,7 +369,8 @@ def main():
             df = pd.read_csv(f'./predict/squall/{stage}.csv')
             log_prob = []
             for k, sample in enumerate(predict_dataset):
-
+                if k%10==0:
+                    print(k)
                 # generate the output using beam search
                 gen_outputs = model.generate(
                     inputs=torch.tensor([sample['input_ids']]).to(training_args.device),

@@ -36,6 +36,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'acc': [int(b) for b in correct_flag],
                        'predictions':preds,
                        'src': eval_dataset['src'],
+                       'truncated': eval_dataset['truncated'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/squall/{stage}.csv', na_rep='')

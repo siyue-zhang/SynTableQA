@@ -18,10 +18,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
     num_ex = len(tbls)
     table_contents = {}
-    num_content_tokens = {}
     inputs, outputs = [], []
     all_ori_headers, all_nl_headers = [], []
-    num_tokens = []
 
     for i in range(num_ex):
         nl = nls[i]
@@ -106,11 +104,6 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         inputs.append(input)
         outputs.append(output)
 
-        if tbl not in num_content_tokens:
-            num_table_tokens = len(tokenizer(serialized_schema + serialized_cell)['input_ids'])
-            num_content_tokens[tbl] = num_table_tokens
-        num_tokens.append(num_content_tokens[tbl])
-
 
     # use t5 tokenizer to convert text to ids        
     model_inputs = {
@@ -122,13 +115,14 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         "nl_headers": all_nl_headers,
         "ori_headers": all_ori_headers, 
         "inputs": inputs,
-        "table_tokens": num_tokens
+        "truncated": []
         }
     
     for n in range(len(inputs)):
         tokenized_inputs = tokenizer([inputs[n]], max_length=max_source_length, padding=padding, return_tensors="pt", truncation=True)
         model_inputs["input_ids"].append(tokenized_inputs["input_ids"].squeeze())
         model_inputs["attention_mask"].append(tokenized_inputs["attention_mask"].squeeze())
+        model_inputs["truncated"].append(len(tokenized_inputs["input_ids"].squeeze())==max_source_length)
         
         if outputs[n] != '':
             tokenized_outputs = tokenizer([outputs[n]], max_length=max_target_length, padding=padding, return_tensors="pt", truncation=True)
