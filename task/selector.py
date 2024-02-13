@@ -71,17 +71,17 @@ class Selector(datasets.GeneratorBasedBuilder):
 
             if dataset=='squall':
                 df = tableqa_dev[['id','tbl','question','answer','src']]
-                df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
+                df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
             else:
                 df = tableqa_dev[['db_id','question','answer','src']]
-                df['answer_fuzzy'] = tableqa_dev['answer_fuzzy']
+                df.loc[:,['answer_fuzzy']] = tableqa_dev['answer_fuzzy']
 
-            df['ans_text_to_sql'] = text_to_sql_dev['queried_ans']
-            df['ans_tableqa'] = tableqa_dev['predictions']
-            df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
-            df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
+            df.loc[:,['ans_text_to_sql']] = text_to_sql_dev['queried_ans']
+            df.loc[:,['ans_tableqa']] = tableqa_dev['predictions']
+            df.loc[:,['acc_tableqa']] = tableqa_dev['acc'].astype('int16')
+            df.loc[:,['acc_text_to_sql']] = text_to_sql_dev['acc'].astype('int16')
             df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
-            df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
+            df.loc[:,['labels']] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
             dfs_dev.append(df)
         
         dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
@@ -121,15 +121,15 @@ class Selector(datasets.GeneratorBasedBuilder):
 
         if dataset=='squall':
             df = tableqa_test[['id','tbl','question','answer','src']]
-            df['query_fuzzy'] = text_to_sql_test['query_fuzzy']
+            df.loc[:,['query_fuzzy']] = text_to_sql_test['query_fuzzy']
         else:
             df = tableqa_test[['db_id','question','answer','src']]
-            df['answer_fuzzy'] = tableqa_test['answer_fuzzy']
+            df.loc[:,['answer_fuzzy']] = tableqa_test['answer_fuzzy']
 
-        df['acc_tableqa'] = tableqa_test['acc'].astype('int16')
-        df['ans_tableqa'] =  tableqa_test['predictions']
-        df['acc_text_to_sql'] = text_to_sql_test['acc'].astype('int16')
-        df['ans_text_to_sql'] = text_to_sql_test['queried_ans']
+        df.loc[:,['acc_tableqa']] = tableqa_test['acc'].astype('int16')
+        df.loc[:,['ans_tableqa']] =  tableqa_test['predictions']
+        df.loc[:,['acc_text_to_sql']] = text_to_sql_test['acc'].astype('int16')
+        df.loc[:,['ans_text_to_sql']] = text_to_sql_test['queried_ans']
         df = df.reset_index(drop=True)
 
         labels = []

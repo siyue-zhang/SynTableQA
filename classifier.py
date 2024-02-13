@@ -35,33 +35,33 @@ def load_dfs():
     a = ''
 
     for s in splits:
-        tableqa_dev = pd.read_csv(f"./predict_old/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
-        text_to_sql_dev = pd.read_csv(f"./predict_old/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
+        tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
+        text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
 
         if dataset=='squall':
             df = tableqa_dev[['id','tbl','question','answer','src']]
-            df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
+            df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
         else:
             df = tableqa_dev[['db_id','question','answer','src']]
-            df['answer_fuzzy'] = tableqa_dev['answer_fuzzy']
+            df.loc[:,['answer_fuzzy']] = tableqa_dev['answer_fuzzy']
 
-        df['ans_text_to_sql'] = text_to_sql_dev['queried_ans']
-        df['ans_tableqa'] = tableqa_dev['predictions']
+        df.loc[:,['ans_text_to_sql']] = text_to_sql_dev['queried_ans']
+        df.loc[:,['ans_tableqa']] = tableqa_dev['predictions']
 
-        df['acc_text_to_sql'] = text_to_sql_dev['acc'].astype('int16')
-        df['acc_tableqa'] = tableqa_dev['acc'].astype('int16')
+        df.loc[:,['acc_text_to_sql']] = text_to_sql_dev['acc'].astype('int16')
+        df.loc[:,['acc_tableqa']] = tableqa_dev['acc'].astype('int16')
 
-        df['log_prob_text_to_sql'] = text_to_sql_dev['log_prob']
-        df['log_prob_tableqa'] = tableqa_dev['log_prob']
+        df.loc[:,['log_prob_text_to_sql']] = text_to_sql_dev['log_probs']
+        df.loc[:,['log_prob_tableqa']] = tableqa_dev['log_probs']
 
-        df['truncated_text_to_sql'] = text_to_sql_dev['truncated'].astype('int16')
-        df['truncated_tableqa'] = tableqa_dev['truncated'].astype('int16')
+        df.loc[:,['truncated_text_to_sql']] = text_to_sql_dev['truncated'].astype('int16')
+        df.loc[:,['truncated_tableqa']] = tableqa_dev['truncated'].astype('int16')
 
-        df['nl_headers'] = text_to_sql_dev['nl_headers']
-        df['query_fuzzy'] = text_to_sql_dev['query_fuzzy']
+        df.loc[:,['nl_headers']] = text_to_sql_dev['nl_headers']
+        df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
 
         df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
-        df['labels'] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
+        df.loc[:,['labels']] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
         dfs_dev.append(df)
 
     dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
@@ -178,7 +178,42 @@ def extract_features(df, tokenizer, qonly=False):
             features.append(1)
         else:
             features.append(0)
-        
+
+        if "is" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "was" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "are" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "were" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "does" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "did" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "do" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
         features.append(len(tokenizer.tokenize(row["question"])))
 
         # number of numerical values in question
@@ -254,6 +289,10 @@ def extract_features(df, tokenizer, qonly=False):
                     usePro = 1
                     break
             features.append(usePro)
+
+            # if the input is truncated
+            isTru = row['truncated_text_to_sql']
+            features.append(isTru)
     
         if not qonly:
             ####### tableqa answer features #######
@@ -294,6 +333,10 @@ def extract_features(df, tokenizer, qonly=False):
             log_prob = float(row['log_prob_tableqa'])
             features.append(10**log_prob)
 
+            # if the input is truncated
+            isTru = row['truncated_tableqa']
+            features.append(isTru)
+
         X.append(features)
         Y.append(int(row['labels']))
 
@@ -307,7 +350,7 @@ def extract_features(df, tokenizer, qonly=False):
 
 def fit_and_save(X, Y, model, tol=1e-5, name=""):
     if model == "SGD":
-        classifier = linear_model.SGDClassifier(loss='log_loss', penalty='l2', max_iter=1000, tol=tol, verbose=1,
+        classifier = linear_model.SGDClassifier(loss='log_loss', penalty='l2', max_iter=1000, tol=tol, verbose=0,
             early_stopping=True, validation_fraction=0.1, n_iter_no_change=6)
     elif model == "LR":
         classifier = linear_model.LogisticRegression(C=1.0, max_iter=1000, verbose=2, tol=tol)
@@ -350,11 +393,11 @@ if __name__=='__main__':
 
     from transformers import TapexTokenizer
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
-    model = 'SVM'
+    model = 'RandomForest'
     X, Y = extract_features(df_train, tokenizer)
     fit_and_save(X, Y, model)
     print('\n')
 
     X, Y = extract_features(df_dev, tokenizer)
     test_scores = load_and_predict(X, Y, model)
-    print ("test score: ", test_scores)
+    print ("dev score: ", test_scores)
