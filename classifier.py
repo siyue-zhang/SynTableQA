@@ -16,6 +16,7 @@ import os
 from sklearn import linear_model
 import random
 from copy import deepcopy
+from metric.squall_evaluator import to_value_list
 
 seed = 2024
 np.random.seed(seed)
@@ -34,8 +35,8 @@ def load_dfs():
     a = ''
 
     for s in splits:
-        tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
-        text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
+        tableqa_dev = pd.read_csv(f"./predict_old/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
+        text_to_sql_dev = pd.read_csv(f"./predict_old/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
 
         if dataset=='squall':
             df = tableqa_dev[['id','tbl','question','answer','src']]
@@ -84,6 +85,31 @@ def load_dfs():
     df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
 
     return df_train, df_dev
+
+
+def separate_cols(cols):
+
+    # cols = ['1_id', '2_agg', '3_constituency', '4_constituency_number', '5_region', '6_name', '7_name_first', '8_name_second', '9_party', '10_last_elected', '11_last_elected_number']
+    cols = ['_'.join(col.split('_')[1:]) for col in cols[2:]]
+    original_cols = []
+    processed_cols = []
+
+    for i in range(len(cols)):
+        if i==0:
+            current = cols[i]
+            current_ = 'c1'
+            count = 1
+            original_cols.append(current_)
+        else:
+            if current in cols[i]:
+                processed_cols.append(cols[i].replace(current, current_))
+            else:
+                current = cols[i]
+                count += 1
+                current_ = f'c{count}'
+                original_cols.append(current_)
+
+    return original_cols, processed_cols
 
 
 def extract_features(df, tokenizer, qonly=False):
@@ -160,56 +186,89 @@ def extract_features(df, tokenizer, qonly=False):
             ####### text_to_sql answer features #######
             ans_text_to_sql = str(row['ans_text_to_sql'])
             ans_text_to_sql_list = ans_text_to_sql.split('|')
+            text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
+            sql = row['query_fuzzy']
 
             # number of answers
             features.append(len(ans_text_to_sql_list))
 
-            # if answer is none
-            isNone = ans_text_to_sql.lower() in ['none','']
-            features.append(isNone)
+            # answers have none
+            hasNan = 0
+            for ans in ans_text_to_sql_list:
+                if ans.lower() in ['nan', 'none', '']:
+                    hasNan = 1
+                    break
+            features.append(hasNan)
+
+            # answers have string
+            hasStr = 0
+            for v in text_to_sql_value_list:
+                if str(v)[0]=='S':
+                    hasStr = 1
+                    break
+            features.append(hasStr)
 
             # answers have number
             hasNum = 0
-            for ans in ans_text_to_sql_list:
-                if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+            for v in text_to_sql_value_list:
+                if str(v)[0]=='N':
                     hasNum = 1
                     break
             features.append(hasNum)
 
-            hasStr = 0
-            for ans in ans_text_to_sql_list:
-                if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                    hasStr = 1
+            # answers have date
+            hasDat = 0
+            for v in text_to_sql_value_list:
+                if str(v)[0]=='D':
+                    hasDat = 1
                     break
-            features.append(hasStr)
+            features.append(hasDat)
+
 
             # number of overlap words between question and answer
             qwords = set(question.lower().split())
             awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
             features.append(len(qwords.intersection(awords)))
+
+            # # if the predicted sql after fuzzy match uses the processed column
+            # cols = row['nl_headers']
+            # original_cols, processed_cols = separate_cols(cols)
+            # useExp = 0
+            # for col in processed_cols:
+            #     if col in sql:
+            #         useExp = 1
+            #         break
+            # features.append(useExp)
     
         if not qonly:
             ####### tableqa answer features #######
             ans_tableqa = str(row['ans_tableqa'])
             ans_tableqa_list = ans_tableqa.split('|')
+            tableqa_value_list = to_value_list(ans_tableqa_list)
 
-            # number of answers
-            features.append(len(ans_tableqa_list))
+            # answers have string
+            hasStr = 0
+            for v in tableqa_value_list:
+                if str(v)[0]=='S':
+                    hasStr = 1
+                    break
+            features.append(hasStr)
 
             # answers have number
             hasNum = 0
-            for ans in ans_tableqa_list:
-                if ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+            for v in tableqa_value_list:
+                if str(v)[0]=='N':
                     hasNum = 1
                     break
             features.append(hasNum)
 
-            hasStr = 0
-            for ans in ans_tableqa_list:
-                if not ans.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                    hasStr = 1
+            # answers have date
+            hasDat = 0
+            for v in tableqa_value_list:
+                if str(v)[0]=='D':
+                    hasDat = 1
                     break
-            features.append(hasStr)
+            features.append(hasDat)
 
             # number of overlap words between question and answer
             qwords = set(question.lower().split())

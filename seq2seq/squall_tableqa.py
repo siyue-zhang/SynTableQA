@@ -91,7 +91,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         ]
 
     model_inputs["labels"] = labels["input_ids"]
-    model_inputs["truncated"] = [len(input_ids)==max_source_length for input_ids in model_inputs["input_ids"]]
+    model_inputs["truncated"] = [int(len(input_ids)==max_source_length) for input_ids in model_inputs["input_ids"]]
 
 
     return model_inputs

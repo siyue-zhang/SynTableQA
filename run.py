@@ -366,10 +366,11 @@ def main():
                 num_beams=data_args.num_beams,
             )
 
+            # get generation scores
             df = pd.read_csv(f'./predict/squall/{stage}.csv')
             log_prob = []
             for k, sample in enumerate(predict_dataset):
-                if k%10==0:
+                if k%100==0:
                     print(k)
                 # generate the output using beam search
                 gen_outputs = model.generate(
@@ -391,7 +392,7 @@ def main():
                 log_prob.append(scores.sum().item())
                 # print('scores (compute_transition_scores):', scores.sum().item())
             df['log_prob'] = log_prob
-            df.to_csv(f'./predict/squall/{stage}.csv', na_rep='')
+            df.to_csv(f'./predict/squall/{stage}.csv', na_rep='',index=False)
 
         metrics = predict_results.metrics
         max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
