@@ -248,12 +248,12 @@ def extract_features(df, tokenizer, qonly=False):
             # if the predicted sql after fuzzy match uses the processed column
             cols = row['nl_headers']
             original_cols, processed_cols = separate_cols(cols)
-            useExp = 0
+            usePro = 0
             for col in processed_cols:
                 if col in sql:
-                    useExp = 1
+                    usePro = 1
                     break
-            features.append(useExp)
+            features.append(usePro)
     
         if not qonly:
             ####### tableqa answer features #######

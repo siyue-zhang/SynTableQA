@@ -300,7 +300,7 @@ def main():
         d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
         a = '_aug' if data_args.aug else ''
         s = data_args.split_id
-        b = '_' + data_args.perturbation_type if data_args.predict_split=='test' else ''
+        b = '_' + data_args.perturbation_type if data_args.dataset_name=='wikisql' and data_args.predict_split=='test' else ''
         stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}{b}'
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
@@ -357,7 +357,9 @@ def main():
             predict_results = trainer.predict(
                 predict_dataset,
                 metric_key_prefix="predict",
-            )   
+            )
+            metrics = predict_results.metrics
+            trainer.log_metrics("predict", metrics)
         else:
             b = training_args.per_device_eval_batch_size
             max_len = len(predict_dataset)
@@ -400,7 +402,6 @@ def main():
             
             eval_preds = EvalPrediction(predictions=predictions, label_ids=label_ids)
             acc = compute_metrics(eval_preds, log_probs)
-
             print("predict: ", acc)
 
 
