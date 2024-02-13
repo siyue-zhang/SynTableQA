@@ -113,7 +113,7 @@ def main():
                                     downsize=data_args.squall_downsize,
                                     split_id=data_args.split_id,
                                     aug=data_args.aug,
-                                    download_mode='force_redownload',
+                                    # download_mode='force_redownload',
                                     ignore_verifications=True)
     elif data_args.dataset_name == 'spider':
         task = "./task/spider_syn.py"
@@ -365,26 +365,22 @@ def main():
                 max_length=data_args.val_max_target_length,
                 num_beams=data_args.num_beams,
             )
-        
+
             df = pd.read_csv(f'./predict/squall/{stage}.csv')
             log_prob = []
-            for k, sample in enumerate(predict_dataset):  
-                source_text = tokenizer.decode(sample['input_ids'][:-1])
-                source_ids = tokenizer(source_text, return_tensors="pt").input_ids.to(training_args.device)
+            for k, sample in enumerate(predict_dataset):
 
                 # generate the output using beam search
                 gen_outputs = model.generate(
-                    inputs=source_ids,
+                    inputs=torch.tensor([sample['input_ids']]).to(training_args.device),
+                    attention_mask=torch.tensor([sample['attention_mask']]).to(training_args.device),
                     num_beams=data_args.num_beams,
                     max_length=data_args.val_max_target_length,
                     output_scores=True,
                     return_dict_in_generate=True,
                 )
-                if df.loc[k, 'query_pred'] != tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True):
-                    print('AA')
-                    print(df.loc[k, 'query_pred'])
-                    print(tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True))
-                assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)
+
+                assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True), f"{df.loc[k, 'query_pred']} <=> {tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)}"
                 # compute the scores using compute_transition_scores()
                 scores = model.compute_transition_scores(
                     sequences=gen_outputs.sequences,
