@@ -17,18 +17,47 @@ from sklearn import linear_model
 import random
 from copy import deepcopy
 from metric.squall_evaluator import to_value_list
+import ast
 
 seed = 2024
 np.random.seed(seed)
 random.seed(seed)
 
+def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
 
-def load_dfs():
+    if dataset=='squall':
+        df = tableqa_dev[['id','tbl','question','answer','src']]
+        df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
+    else:
+        df = tableqa_dev[['db_id','question','answer','src']]
+        df.loc[:,['answer_fuzzy']] = tableqa_dev['answer_fuzzy']
+
+    df.loc[:,['ans_text_to_sql']] = text_to_sql_dev['queried_ans']
+    df.loc[:,['ans_tableqa']] = tableqa_dev['predictions']
+
+    df.loc[:,['acc_text_to_sql']] = text_to_sql_dev['acc'].astype('int16')
+    df.loc[:,['acc_tableqa']] = tableqa_dev['acc'].astype('int16')
+
+    df.loc[:,['log_prob_text_to_sql']] = text_to_sql_dev['log_probs']
+    df.loc[:,['log_prob_tableqa']] = tableqa_dev['log_probs']
+
+    df.loc[:,['truncated_text_to_sql']] = text_to_sql_dev['truncated'].astype('int16')
+    df.loc[:,['truncated_tableqa']] = tableqa_dev['truncated'].astype('int16')
+
+    df.loc[:,['nl_headers']] = text_to_sql_dev['nl_headers']
+    df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
+
+    df.loc[:,['labels']] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
+    df.loc[:,['input_tokens']] = text_to_sql_dev['input_tokens']
+
+    return df
+
+def load_dfs(dataset):
     train_dev_ratio = 0.1
     splits = list(range(5))
 
     dfs_dev = []
-    dataset = 'squall'
+    # dataset = 'squall'
     if dataset=='squall':
         dt = 'squall_plus'
     d = ''
@@ -38,30 +67,8 @@ def load_dfs():
         tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
         text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dt}{d}{a}_text_to_sql_dev{s}.csv")
 
-        if dataset=='squall':
-            df = tableqa_dev[['id','tbl','question','answer','src']]
-            df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
-        else:
-            df = tableqa_dev[['db_id','question','answer','src']]
-            df.loc[:,['answer_fuzzy']] = tableqa_dev['answer_fuzzy']
-
-        df.loc[:,['ans_text_to_sql']] = text_to_sql_dev['queried_ans']
-        df.loc[:,['ans_tableqa']] = tableqa_dev['predictions']
-
-        df.loc[:,['acc_text_to_sql']] = text_to_sql_dev['acc'].astype('int16')
-        df.loc[:,['acc_tableqa']] = tableqa_dev['acc'].astype('int16')
-
-        df.loc[:,['log_prob_text_to_sql']] = text_to_sql_dev['log_probs']
-        df.loc[:,['log_prob_tableqa']] = tableqa_dev['log_probs']
-
-        df.loc[:,['truncated_text_to_sql']] = text_to_sql_dev['truncated'].astype('int16')
-        df.loc[:,['truncated_tableqa']] = tableqa_dev['truncated'].astype('int16')
-
-        df.loc[:,['nl_headers']] = text_to_sql_dev['nl_headers']
-        df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
-
+        df = combine_csv(tableqa_dev, text_to_sql_dev, dataset)
         df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
-        df.loc[:,['labels']] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
         dfs_dev.append(df)
 
     dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
@@ -98,8 +105,20 @@ def load_dfs():
     return df_train, df_dev
 
 
-def separate_cols(cols):
+def load_df_test(dataset, test_split):
 
+    if dataset=='squall':
+        dt = 'squall_plus'
+    d = ''
+    tableqa_test = pd.read_csv(f"./predict/{dataset}/{dt}_tableqa_test{test_split}.csv")
+    text_to_sql_test = pd.read_csv(f"./predict/{dataset}/{dt}{d}_text_to_sql_test{test_split}.csv")
+    df_test = combine_csv(tableqa_test, text_to_sql_test, dataset)
+
+    return df_test
+
+
+
+def separate_cols(cols):
     # cols = ['1_id', '2_agg', '3_constituency', '4_constituency_number', '5_region', '6_name', '7_name_first', '8_name_second', '9_party', '10_last_elected', '11_last_elected_number']
     cols = ['_'.join(col.split('_')[1:]) for col in cols[2:]]
     original_cols = []
@@ -270,7 +289,6 @@ def extract_features(df, tokenizer, qonly=False):
                     break
             features.append(hasDat)
 
-
             # number of overlap words between question and answer
             qwords = set(question.lower().split())
             awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
@@ -282,12 +300,15 @@ def extract_features(df, tokenizer, qonly=False):
 
             # if the predicted sql after fuzzy match uses the processed column
             cols = row['nl_headers']
+            if cols[0]=='[':
+                cols = ast.literal_eval(cols)
             original_cols, processed_cols = separate_cols(cols)
             usePro = 0
             for col in processed_cols:
                 if col in sql:
                     usePro = 1
                     break
+            # print(sql, usePro, row['id'], text_to_sql_value_list)
             features.append(usePro)
 
             # if the input is truncated
@@ -299,6 +320,14 @@ def extract_features(df, tokenizer, qonly=False):
             ans_tableqa = str(row['ans_tableqa'])
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
+
+            # answers satrt with capital letter
+            srtCap = 0
+            for ans in ans_tableqa_list:
+                if ans[0].isupper():
+                    srtCap = 1
+                    break
+            features.append(srtCap)
 
             # answers have string
             hasStr = 0
@@ -348,6 +377,45 @@ def extract_features(df, tokenizer, qonly=False):
     return X, Y
 
 
+def load_and_predict(X, Y, model, name=""):
+    with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
+        classifier = pickle.load(f)
+    
+    # print ("coefs: ", classifier.coef_)
+    
+    # return classifier.predict_proba(X)
+    # return classifier.predict(X)
+    return classifier.score(X, Y)
+
+def test_predict(df_test, tokenizer, model, name=""):
+
+    X, Y = extract_features(df_test, tokenizer)
+    with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
+        classifier = pickle.load(f)
+    pred = classifier.predict(X)
+    df_test.loc[:,["pred"]] = pred
+    acc_scores = []
+    cls_scores = []
+    oracle = []
+    for i in range(df_test.shape[0]):
+        score = df_test.loc[i, 'acc_text_to_sql'] if pred[i]==0 else df_test.loc[i, 'acc_tableqa']
+        acc_scores.append(int(score))
+        if df_test.loc[i, 'acc_text_to_sql'] != df_test.loc[i, 'acc_tableqa']:
+            cls_scores.append(int(pred[i]==Y[i]))
+        oracle.append(int((df_test.loc[i, 'acc_text_to_sql']+df_test.loc[i, 'acc_tableqa'])>0))
+
+    df_test.loc[:, ['scores']] = acc_scores
+    df_test.loc[:, ['oracle']] = oracle
+
+    print("dev score: ", np.round(np.mean(cls_scores),4))
+    print('\n')
+    print(f"TTS acc  :  {np.round(np.mean(df_test.loc[:, 'acc_text_to_sql']),4)}")
+    print(f"avg acc  :  {np.round(np.mean(acc_scores),4)}")
+    print(f"oracle   :  {np.round(np.mean(oracle),4)}")
+
+    return df_test
+
+
 def fit_and_save(X, Y, model, tol=1e-5, name=""):
     if model == "SGD":
         classifier = linear_model.SGDClassifier(loss='log_loss', penalty='l2', max_iter=1000, tol=tol, verbose=0,
@@ -377,27 +445,24 @@ def fit_and_save(X, Y, model, tol=1e-5, name=""):
         pickle.dump(classifier, f)
 
 
-def load_and_predict(X, Y, model, name=""):
-    with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
-        classifier = pickle.load(f)
-    
-    # print ("coefs: ", classifier.coef_)
-    
-    # return classifier.predict_proba(X)
-    # return classifier.predict(X)
-    return classifier.score(X, Y)
-
-
 if __name__=='__main__':
-    df_train, df_dev = load_dfs()
 
     from transformers import TapexTokenizer
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
-    model = 'RandomForest'
+    model = 'AdaBoost'
+    dataset = 'squall'
+    test_split = 1
+
+    df_train, df_dev = load_dfs(dataset)
+    df_test = load_df_test(dataset, test_split)
+
     X, Y = extract_features(df_train, tokenizer)
     fit_and_save(X, Y, model)
     print('\n')
 
     X, Y = extract_features(df_dev, tokenizer)
-    test_scores = load_and_predict(X, Y, model)
-    print ("dev score: ", test_scores)
+    dev_scores = load_and_predict(X, Y, model)
+    print ("test score: ", dev_scores, '\n')
+
+    df_test_predict = test_predict(df_test, tokenizer, model)
+    df_test.to_csv(f'./predict/{dataset}_classifier_test{test_split}.csv', na_rep='',index=False)
