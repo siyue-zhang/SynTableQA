@@ -23,9 +23,10 @@ python ./run.py \
   --split_id 3 \
   --predict_with_generate \
   --num_beams 5
-  
+
+# --aug True 
 # --max_predict_samples 500  
 # --squall_downsize 5
-# --aug True \
+
 
 

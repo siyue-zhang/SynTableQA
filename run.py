@@ -363,7 +363,8 @@ def main():
         else:
             b = training_args.per_device_eval_batch_size
             max_len = len(predict_dataset)
-            log_probs = []
+            log_probs_sum = []
+            log_probs_mean = []
             predictions = []
 
             for i in tqdm(range(0, max_len, b)):
@@ -392,8 +393,8 @@ def main():
                     scores=gen_outputs.scores,
                     beam_indices=gen_outputs.beam_indices,
                 )
-        
-                log_probs += scores.sum(dim=1).tolist()
+                log_probs_sum += scores.sum(dim=1).tolist() # sum
+                log_probs_mean += scores.mean(dim=1).tolist() # mean
                 tmp = gen_outputs.sequences.cpu().tolist()
                 predictions += [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
 
@@ -401,7 +402,7 @@ def main():
             label_ids = [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
             
             eval_preds = EvalPrediction(predictions=predictions, label_ids=label_ids)
-            acc = compute_metrics(eval_preds, log_probs)
+            acc = compute_metrics(eval_preds, {'log_probs_sum': log_probs_sum, 'log_probs_mean': log_probs_mean})
             print("predict: ", acc)
 
 

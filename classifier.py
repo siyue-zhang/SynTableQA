@@ -23,6 +23,27 @@ seed = 2024
 np.random.seed(seed)
 random.seed(seed)
 
+def get_table_shape(tbl):
+
+    db_path = 'data/squall/tables/json/' + tbl + '.json'
+    f = open(db_path)
+    data = json.load(f)
+    contents = data['contents']
+    n_rows = 0
+    n_cols = 0
+    n_processed_cols = 0
+    for l in contents:
+        for k, col in enumerate(l):
+            if k==0 and col['col'] not in ['id', 'agg']:
+                n_cols += 1
+            n_processed_cols += 1
+            if n_rows==0:
+                n_rows = len(col['data'])
+    # print(tbl, n_rows, n_cols, n_processed_cols)     
+
+    return n_rows, n_cols, n_processed_cols
+
+
 def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
 
     if dataset=='squall':
@@ -46,13 +67,14 @@ def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
 
     df.loc[:,['nl_headers']] = text_to_sql_dev['nl_headers']
     df.loc[:,['query_fuzzy']] = text_to_sql_dev['query_fuzzy']
+    df.loc[:,['query_pred']] = text_to_sql_dev['query_pred']
 
     df.loc[:,['labels']] = [ 0 if int(x)==1 else 1 for x in df['acc_text_to_sql'].to_list()]
-    df.loc[:,['input_tokens']] = text_to_sql_dev['input_tokens']
+    df.loc[:,['input_tokens']] = tableqa_dev['input_tokens']
 
     return df
 
-def load_dfs(dataset):
+def load_dfs(dataset, aug=False):
     train_dev_ratio = 0.1
     splits = list(range(5))
 
@@ -61,7 +83,7 @@ def load_dfs(dataset):
     if dataset=='squall':
         dt = 'squall_plus'
     d = ''
-    a = ''
+    a = '_aug' if aug else ''
 
     for s in splits:
         tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dt}{a}_tableqa_dev{s}.csv")
@@ -97,10 +119,9 @@ def load_dfs(dataset):
     df_train = dfs_dev[dfs_dev['tbl'].isin(selector_train_tbls)]
     if 'index' in df_train.columns:
         df_train = df_train.drop('index', axis=1)
-    df_train['src'] = 'raw'
     df_train = df_train.reset_index(drop=True) 
                 
-    df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index().astype('str')
+    df_dev = dfs_dev[dfs_dev['tbl'].isin(selector_dev_tbls)].reset_index(drop=True)
 
     return df_train, df_dev
 
@@ -141,11 +162,22 @@ def separate_cols(cols):
 
     return original_cols, processed_cols
 
+def is_abbreviation(abbreviation, full_string):
+    if len(abbreviation) > len(full_string):
+        return False
+    
+    abbreviation_index = 0
+    for char in full_string:
+        if abbreviation_index < len(abbreviation) and char == abbreviation[abbreviation_index]:
+            abbreviation_index += 1
+    return abbreviation_index == len(abbreviation)
 
-def extract_features(df, tokenizer, qonly=False):
+def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
 
     X = []
     Y = []
+    table_shape = {}
+    verbose = False
 
     for index, row in df.iterrows():
 
@@ -157,14 +189,22 @@ def extract_features(df, tokenizer, qonly=False):
         if question[-1] in ['.','?']:
             question = question[:-1] + ' ' + question[-1]
 
+        if verbose:
+            print('Sample: ', {k:row[k] for k in row if k not in ['input_tokens','nl_headers']})
+            print('\nQuestion: ', question)
+
         qword = question.lower().split()
         if "what" in qword:
             features.append(1)
+            if verbose:
+                print('qword => what')
         else:
             features.append(0)
         
         if "who" in qword:
             features.append(1)
+            if verbose:
+                print('qword => who')
         else:
             features.append(0)
         
@@ -193,7 +233,12 @@ def extract_features(df, tokenizer, qonly=False):
         else:
             features.append(0)
 
-        if "how" in qword and "much" not in qword and "many" not in qword:
+        if "how" in qword and "long" in qword:
+            features.append(1)
+        else:
+            features.append(0)
+
+        if "how" in qword and all([w not in qword for w in ['much', 'many', 'long']]):
             features.append(1)
         else:
             features.append(0)
@@ -233,7 +278,26 @@ def extract_features(df, tokenizer, qonly=False):
         else:
             features.append(0)
 
-        features.append(len(tokenizer.tokenize(row["question"])))
+        if qword[0] in ['name','list','tell']:
+            features.append(1)
+            if verbose:
+                print('qword => name, list, tell')
+        else:
+            features.append(0)
+
+        # if "only" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+            
+        # if "or" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+
+        features.append(len(tableqa_tokenizer.tokenize(question)))
+        if verbose:
+            print('Question token length: ', len(tableqa_tokenizer.tokenize(question)))
 
         # number of numerical values in question
         qwords = deepcopy(qword)
@@ -242,10 +306,20 @@ def extract_features(df, tokenizer, qonly=False):
             if w.replace('.', '').replace(',', '').replace('-', '').isnumeric():
                 num_count += 1
         features.append(num_count)
+        if verbose:
+            print('Question has numerical values: ', num_count)
 
         ####### context table features #######
-
-
+        tbl = row['tbl']
+        if tbl not in table_shape:
+            table_shape[tbl] = get_table_shape(tbl)
+        # number of rows
+        features.append(table_shape[tbl][0])
+        # # number of columns
+        # features.append(table_shape[tbl][1])
+        # features.append(table_shape[tbl][2])
+        if verbose:
+            print('Table has rows: ', table_shape[tbl][0])
 
         if not qonly:
             ####### text_to_sql answer features #######
@@ -254,49 +328,78 @@ def extract_features(df, tokenizer, qonly=False):
             text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
             sql = row['query_fuzzy']
 
+            if verbose:
+                    print('\nText_to_sql Answer: ', ans_text_to_sql)
+                    print('  ', text_to_sql_value_list)
+                    print('  sql after fuzzy: ', sql)
+
+            # # number of predicted tokens
+            # n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
+            # features.append(n_tok_text_to_sql)
+
+            features.append(int(ans_text_to_sql=='0'))
+
             # number of answers
             features.append(len(ans_text_to_sql_list))
+            if verbose:
+                    print('  Number of answers: ', len(ans_text_to_sql_list))
 
             # answers have none
             hasNan = 0
             for ans in ans_text_to_sql_list:
                 if ans.lower() in ['nan', 'none', '']:
-                    hasNan = 1
-                    break
+                    hasNan += 1
             features.append(hasNan)
+            if verbose:
+                print('  Number of NAN answers: ', hasNan)
+            # answers have none
+                
+            hasNL = ans_text_to_sql.count('\n')
+            features.append(hasNL)
+            if verbose:
+                print('  Number of \\n: ', hasNL)
 
             # answers have string
             hasStr = 0
             for v in text_to_sql_value_list:
                 if str(v)[0]=='S':
-                    hasStr = 1
-                    break
+                    hasStr += 1
             features.append(hasStr)
 
             # answers have number
             hasNum = 0
             for v in text_to_sql_value_list:
                 if str(v)[0]=='N':
-                    hasNum = 1
-                    break
+                    hasNum += 1
             features.append(hasNum)
+
+            # # answers have number, 01:47.6
+            # hasNum2 = 0
+            # for v in ans_text_to_sql_list:
+            #     if v.replace(':','').replace('.','').isnumeric():
+            #         hasNum2 += 1
+            # features.append(hasNum2)
 
             # answers have date
             hasDat = 0
             for v in text_to_sql_value_list:
                 if str(v)[0]=='D':
-                    hasDat = 1
-                    break
+                    hasDat += 1
             features.append(hasDat)
 
             # number of overlap words between question and answer
             qwords = set(question.lower().split())
             awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
-            features.append(len(qwords.intersection(awords)))
+            num_overlap = len(qwords.intersection(awords))
+            features.append(num_overlap)
+            if verbose:
+                print('  Number of overlap words between question and answer: ', num_overlap)
 
             # generation probability
             log_prob = float(row['log_prob_text_to_sql'])
-            features.append(10**log_prob)
+            features.append(log_prob)
+            if verbose:
+                print('  Log prob: ', log_prob)
 
             # if the predicted sql after fuzzy match uses the processed column
             cols = row['nl_headers']
@@ -314,57 +417,87 @@ def extract_features(df, tokenizer, qonly=False):
             # if the input is truncated
             isTru = row['truncated_text_to_sql']
             features.append(isTru)
-    
+
+
         if not qonly:
             ####### tableqa answer features #######
             ans_tableqa = str(row['ans_tableqa'])
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
 
-            # answers satrt with capital letter
-            srtCap = 0
-            for ans in ans_tableqa_list:
-                if ans[0].isupper():
-                    srtCap = 1
-                    break
-            features.append(srtCap)
+            features.append(int(ans_tableqa=='0'))
+
+            if verbose:
+                    print('\nTableqa Answer: ', ans_tableqa)
+                    print('  ', tableqa_value_list)
+
+            # isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
+            # features.append(isAbb)
+            # isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
+            # features.append(isAbb)
+
+            # # number of answers
+            # features.append(len(ans_tableqa_list))
+            # if verbose:
+            #         print('  Number of answers: ', len(ans_tableqa_list))
+
+            # # number of predicted tokens
+            # n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
+            # features.append(n_tok_tableqa)
+
+            # # answers satrt with capital letter
+            # srtCap = 0
+            # for ans in ans_tableqa_list:
+            #     if ans[0].isupper():
+            #         srtCap += 1
+            # features.append(srtCap)
 
             # answers have string
             hasStr = 0
             for v in tableqa_value_list:
                 if str(v)[0]=='S':
-                    hasStr = 1
-                    break
+                    hasStr += 1
             features.append(hasStr)
-
+            
             # answers have number
             hasNum = 0
             for v in tableqa_value_list:
                 if str(v)[0]=='N':
-                    hasNum = 1
-                    break
+                    hasNum += 1
             features.append(hasNum)
 
             # answers have date
             hasDat = 0
             for v in tableqa_value_list:
                 if str(v)[0]=='D':
-                    hasDat = 1
-                    break
+                    hasDat += 1
             features.append(hasDat)
 
             # number of overlap words between question and answer
             qwords = set(question.lower().split())
             awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
-            features.append(len(qwords.intersection(awords)))
+            num_overlap = len(qwords.intersection(awords))
+            features.append(num_overlap)
+            if verbose:
+                print('  Number of overlap words between question and answer', num_overlap)
 
             # generation probability
             log_prob = float(row['log_prob_tableqa'])
-            features.append(10**log_prob)
+            features.append(log_prob)
+            if verbose:
+                print('  Log prob: ', log_prob)
 
             # if the input is truncated
             isTru = row['truncated_tableqa']
             features.append(isTru)
+            
+            # if all answers are from the table input or question
+            allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
+            allFromTable = int(allFromTable)
+            features.append(allFromTable)
+            if verbose:
+                print('  All answers from table or question: ', allFromTable)
+                print('------------------------------')
 
         X.append(features)
         Y.append(int(row['labels']))
@@ -380,16 +513,15 @@ def extract_features(df, tokenizer, qonly=False):
 def load_and_predict(X, Y, model, name=""):
     with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
         classifier = pickle.load(f)
-    
     # print ("coefs: ", classifier.coef_)
     
     # return classifier.predict_proba(X)
     # return classifier.predict(X)
     return classifier.score(X, Y)
 
-def test_predict(df_test, tokenizer, model, name=""):
+def test_predict(df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=""):
 
-    X, Y = extract_features(df_test, tokenizer)
+    X, Y = extract_features(df_test, tableqa_tokenizer, text_to_sql_tokenizer)
     with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
         classifier = pickle.load(f)
     pred = classifier.predict(X)
@@ -407,7 +539,7 @@ def test_predict(df_test, tokenizer, model, name=""):
     df_test.loc[:, ['scores']] = acc_scores
     df_test.loc[:, ['oracle']] = oracle
 
-    print("dev score: ", np.round(np.mean(cls_scores),4))
+    print("test score: ", np.round(np.mean(cls_scores),4))
     print('\n')
     print(f"TTS acc  :  {np.round(np.mean(df_test.loc[:, 'acc_text_to_sql']),4)}")
     print(f"avg acc  :  {np.round(np.mean(acc_scores),4)}")
@@ -434,7 +566,7 @@ def fit_and_save(X, Y, model, tol=1e-5, name=""):
     elif model == "AdaBoost":
         classifier =  AdaBoostClassifier()
     elif model == "MLP":
-        classifier = MLPClassifier(verbose=True, early_stopping=True, validation_fraction=0.1, n_iter_no_change=2, tol=1e-4)
+        classifier = MLPClassifier(verbose=False, early_stopping=True, validation_fraction=0.1, n_iter_no_change=2, tol=1e-4)
 
     classifier.fit(X, Y)
     train_score = classifier.score(X, Y)
@@ -447,22 +579,27 @@ def fit_and_save(X, Y, model, tol=1e-5, name=""):
 
 if __name__=='__main__':
 
-    from transformers import TapexTokenizer
-    tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
-    model = 'AdaBoost'
+    from transformers import TapexTokenizer, T5Tokenizer
+    tableqa_tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
+    text_to_sql_tokenizer = T5Tokenizer.from_pretrained("t5-large")
+
+    # model = "AdaBoost"
+    model = "RandomForest"
     dataset = 'squall'
     test_split = 1
+    aug = False
+    name = 'aug' if aug else ''
 
-    df_train, df_dev = load_dfs(dataset)
+    df_train, df_dev = load_dfs(dataset, aug)
     df_test = load_df_test(dataset, test_split)
 
-    X, Y = extract_features(df_train, tokenizer)
-    fit_and_save(X, Y, model)
+    X, Y = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer)
+    fit_and_save(X, Y, model, name=name)
     print('\n')
 
-    X, Y = extract_features(df_dev, tokenizer)
-    dev_scores = load_and_predict(X, Y, model)
-    print ("test score: ", dev_scores, '\n')
+    X, Y = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer)
+    dev_scores = load_and_predict(X, Y, model, name=name)
+    print ("dev score: ", dev_scores, '\n')
 
-    df_test_predict = test_predict(df_test, tokenizer, model)
+    df_test_predict = test_predict(df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name)
     df_test.to_csv(f'./predict/{dataset}_classifier_test{test_split}.csv', na_rep='',index=False)

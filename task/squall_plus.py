@@ -207,7 +207,6 @@ class Squall(datasets.GeneratorBasedBuilder):
             else:
                 examples += [x for x in new_examples if x['tbl'] in new_tbls_dev]
 
-
         if self.config.aug:
             with open(f"llm/aug_questions.json", 'r') as file:
                 aug_questions = json.load(file)

@@ -9,7 +9,7 @@ def postprocess_text(preds, labels):
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None): 
 
-    def compute_metrics(eval_preds, log_probs=None):
+    def compute_metrics(eval_preds, meta=None):
         # nonlocal tokenizer
         preds, labels = eval_preds
         if isinstance(preds, tuple):
@@ -38,8 +38,10 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'src': eval_dataset['src'],
                        'truncated': eval_dataset['truncated'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
-            if log_probs:
-                to_save['log_probs'] = log_probs
+            if meta:
+                to_save['log_probs_sum'] = meta['log_probs_sum']
+                to_save['log_probs_avg'] = meta['log_probs_mean']
+
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/squall/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)
