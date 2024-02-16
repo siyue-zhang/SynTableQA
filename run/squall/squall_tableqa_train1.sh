@@ -37,7 +37,7 @@ python ./run.py \
   --run_name ${run_name} \
   --task tableqa \
   --output_dir ${output_dir} \
-  --save_total_limit 2
+  --save_total_limit 1
 
   # --max_eval_samples 10 \
   # --max_train_samples 100

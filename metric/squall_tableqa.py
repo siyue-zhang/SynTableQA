@@ -26,7 +26,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             prediction = {'pred': pred, 'nt': eval_dataset['nt'][i]}
             predictions.append(prediction)
         evaluator = Evaluator()
-        separator = ', ' if 'test' in stage else '|'
+        separator = '|'
         correct_flag = evaluator.evaluate_tableqa(predictions, separator)
 
         if stage:
