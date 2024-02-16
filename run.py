@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import torch 
-import pandas as pd
 import nltk
 import datasets
 from datasets import load_dataset
@@ -24,10 +23,9 @@ from transformers import (
     set_seed,
 )
 from transformers.file_utils import is_offline_mode
-from transformers.trainer_utils import get_last_checkpoint, is_main_process, EvalPrediction
+from transformers.trainer_utils import get_last_checkpoint, EvalPrediction
 from utils.config import ModelArguments, DataTrainingArguments
 from importlib import import_module
-from transformers import BatchEncoding
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -97,16 +95,16 @@ def main():
     
     set_seed(training_args.seed)
 
-    if data_args.task == 'selector':
-        task = "./task/selector.py"
-        raw_datasets = load_dataset(task, 
-                                    dataset=data_args.dataset_name, 
-                                    download_mode='force_redownload',
-                                    ignore_verifications=True,
-                                    test_split = data_args.test_split,
-                                    downsize=data_args.squall_downsize,
-                                    aug=data_args.aug)
-    elif data_args.dataset_name == 'squall':
+    # if data_args.task == 'selector':
+    #     task = "./task/selector.py"
+    #     raw_datasets = load_dataset(task, 
+    #                                 dataset=data_args.dataset_name, 
+    #                                 download_mode='force_redownload',
+    #                                 ignore_verifications=True,
+    #                                 test_split = data_args.test_split,
+    #                                 downsize=data_args.squall_downsize,
+    #                                 aug=data_args.aug)
+    if data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, 
                                     plus=data_args.squall_plus, 
@@ -115,19 +113,19 @@ def main():
                                     aug=data_args.aug,
                                     # download_mode='force_redownload',
                                     ignore_verifications=True)
-    elif data_args.dataset_name == 'spider':
-        task = "./task/spider_syn.py"
-        raw_datasets = load_dataset(task, 
-                                    syn=data_args.spider_syn, 
-                                    split_id=data_args.split_id,
-                                    download_mode='force_redownload',
-                                    ignore_verifications=True)
+    # elif data_args.dataset_name == 'spider':
+    #     task = "./task/spider_syn.py"
+    #     raw_datasets = load_dataset(task, 
+    #                                 syn=data_args.spider_syn, 
+    #                                 split_id=data_args.split_id,
+    #                                 download_mode='force_redownload',
+    #                                 ignore_verifications=True)
     elif data_args.dataset_name == 'wikisql':
         task = "./task/wikisql_robut.py"
         raw_datasets = load_dataset(task, 
                                     split_id=data_args.split_id,
                                     perturbation_type=data_args.perturbation_type,
-                                    download_mode='force_redownload',
+                                    # download_mode='force_redownload',
                                     ignore_verifications=True)
     else:
         raise NotImplementedError
@@ -176,13 +174,13 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-    elif data_args.task.lower() == 'selector':
-        config.id2label = {0: "text_to_sql", 1: "tableqa"}
-        config.label2id = {"text_to_sql": 0, "tableqa": 1}
-        config.num_labels = 2
-        model = BartForSequenceClassification.from_pretrained(
-            pretrained_model_name_or_path=name,
-            config=config)
+    # elif data_args.task.lower() == 'selector':
+    #     config.id2label = {0: "text_to_sql", 1: "tableqa"}
+    #     config.label2id = {"text_to_sql": 0, "tableqa": 1}
+    #     config.num_labels = 2
+    #     model = BartForSequenceClassification.from_pretrained(
+    #         pretrained_model_name_or_path=name,
+    #         config=config)
     else:
         raise NotImplementedError
 
@@ -195,7 +193,7 @@ def main():
         if data_args.task.lower()=='tableqa':
             preprocess_module += '_tableqa'
     preprocess_function = import_module(preprocess_module).preprocess_function
-    
+
     fn_kwargs={"tokenizer":tokenizer, 
                 "max_source_length": data_args.max_source_length,
                 "max_target_length": data_args.max_target_length,
@@ -295,13 +293,38 @@ def main():
             stage=None, 
             fuzzy=data_args.postproc_fuzzy_string)
     else:
-        p = '_plus' if data_args.squall_plus else ''
-        y = '_syn' if data_args.spider_syn else ''
-        d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
-        a = '_aug' if data_args.aug else ''
-        s = data_args.split_id
-        b = '_' + data_args.perturbation_type if data_args.dataset_name=='wikisql' and data_args.predict_split=='test' else ''
-        stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}{b}'
+        # p = '_plus' if data_args.squall_plus else ''
+        # y = '_syn' if data_args.spider_syn else ''
+        # d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
+        # a = '_aug' if data_args.aug else ''
+        # s = data_args.split_id
+        # b = '_' + data_args.perturbation_type if data_args.dataset_name=='wikisql' and data_args.predict_split=='test' else ''
+        # stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}{b}'
+
+        dataset_name = data_args.dataset_name
+        squall_plus_suffix = '_plus' if data_args.squall_plus else ''
+        # spider_syn_suffix = '_syn' if data_args.spider_syn else ''
+        squall_downsize_suffix = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
+        augmentation_suffix = '_aug' if data_args.aug else ''
+        split_id = data_args.split_id
+        perturbation_suffix = (
+            f'_{data_args.perturbation_type}'
+            if dataset_name == 'wikisql' and data_args.predict_split == 'test'
+            else ''
+        )
+
+        stage = (
+            f'{dataset_name}'
+            f'{squall_plus_suffix}'
+            # f'{spider_syn_suffix}'
+            f'{squall_downsize_suffix}'
+            f'{augmentation_suffix}'
+            f'_{data_args.task.lower()}'
+            f'_{data_args.predict_split}'
+            f'{split_id}'
+            f'{perturbation_suffix}'
+        )
+        
         compute_metrics = prepare_compute_metrics(
             tokenizer=tokenizer, 
             eval_dataset=predict_dataset, 

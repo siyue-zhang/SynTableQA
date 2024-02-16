@@ -16,8 +16,7 @@ python ./run.py \
   --val_max_target_length 128 \
   --per_device_eval_batch_size 4 \
   --dataset_name ${dataset_name} \
-  --split_id 1 \
+  --split_id 4 \
   --predict_with_generate \
   --num_beams 5 
-
-# --max_predict_samples 100
+  # --max_predict_samples 100

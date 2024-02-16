@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=TQA
 export WANDB_ENTITY=siyue-zhang
 
@@ -21,7 +21,7 @@ python ./run.py \
   --load_best_model_at_end \
   --metric_for_best_model acc \
   --per_device_train_batch_size 6 \
-  --gradient_accumulation_steps 4 \
+  --gradient_accumulation_steps 8 \
   --per_device_eval_batch_size 6 \
   --num_train_epochs 50 \
   --warmup_ratio 0.1 \
@@ -30,8 +30,8 @@ python ./run.py \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
-  --eval_steps 100 \
-  --save_steps 200 \
+  --eval_steps 50 \
+  --save_steps 50 \
   --num_beams 5 \
   --generation_max_length 128 \
   --run_name ${run_name} \

@@ -279,5 +279,5 @@ if __name__=='__main__':
                            split_id=1,
                            downsize=None,
                            aug=False)
-    sample = dataset["validation"][7]
+    sample = dataset["test"][7]
     print(sample)

@@ -260,6 +260,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         fuzzy_query = [ex["result"][0]["sql"] for ex in predictions]
         evaluator = Evaluator()
         correct_flag, predicted = evaluator.evaluate_text_to_sql(predictions)
+        nl_headers = ['|'.join(nl) for nl in eval_dataset['nl_headers']]
+
         if stage:
             to_save = {'id': eval_dataset['nt'],
                        'tbl': eval_dataset['tbl'],
@@ -271,7 +273,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'query_fuzzy':fuzzy_query,
                        'queried_ans': predicted,
                        'src': eval_dataset['src'],
-                       'nl_headers': '|'.join(eval_dataset['nl_headers']),
+                       'nl_headers': nl_headers,
                         'truncated': eval_dataset['truncated'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             if meta:

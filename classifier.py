@@ -17,7 +17,6 @@ from sklearn import linear_model
 import random
 from copy import deepcopy
 from metric.squall_evaluator import to_value_list
-import ast
 
 seed = 2024
 np.random.seed(seed)
@@ -59,8 +58,11 @@ def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
     df.loc[:,['acc_text_to_sql']] = text_to_sql_dev['acc'].astype('int16')
     df.loc[:,['acc_tableqa']] = tableqa_dev['acc'].astype('int16')
 
-    df.loc[:,['log_prob_text_to_sql']] = text_to_sql_dev['log_probs']
-    df.loc[:,['log_prob_tableqa']] = tableqa_dev['log_probs']
+    df.loc[:,['log_prob_sum_text_to_sql']] = text_to_sql_dev['log_probs_sum']
+    df.loc[:,['log_prob_sum_tableqa']] = tableqa_dev['log_probs_sum']
+
+    df.loc[:,['log_prob_avg_text_to_sql']] = text_to_sql_dev['log_probs_avg']
+    df.loc[:,['log_prob_avg_tableqa']] = tableqa_dev['log_probs_avg']
 
     df.loc[:,['truncated_text_to_sql']] = text_to_sql_dev['truncated'].astype('int16')
     df.loc[:,['truncated_tableqa']] = tableqa_dev['truncated'].astype('int16')
@@ -96,7 +98,7 @@ def load_dfs(dataset, aug=False):
     dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
     tbls = list(set(dfs_dev['tbl'].to_list()))
 
-    split_path = f'./task/selector{d}_splits.json'
+    split_path = f'./task/classifier{d}_splits.json'
     if os.path.exists(split_path):
         with open(split_path, 'r') as json_file:
             splits = json.load(json_file)
@@ -327,17 +329,34 @@ def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
             ans_text_to_sql_list = ans_text_to_sql.split('|')
             text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
             sql = row['query_fuzzy']
+            # sql = row['query_pred']
 
             if verbose:
                     print('\nText_to_sql Answer: ', ans_text_to_sql)
                     print('  ', text_to_sql_value_list)
                     print('  sql after fuzzy: ', sql)
 
-            # # number of predicted tokens
-            # n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
-            # features.append(n_tok_text_to_sql)
+            # # query use complex column
+            # hasLst = '_list' in sql
+            # features.append(int(hasLst))
 
-            features.append(int(ans_text_to_sql=='0'))
+            # hasFst = any([x in sql for x in ['_first', '_second']])
+            # features.append(int(hasFst))
+
+            # hasMm = any([x in sql for x in ['_maximum', '_minimum']])
+            # features.append(int(hasMm))
+
+            # hasTim = any([x in sql for x in ['_year', '_month', '_day']])
+            # features.append(int(hasTim))
+
+            # hasLen = '_length' in sql
+            # features.append(int(hasLen))
+
+            # number of predicted tokens
+            n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
+            features.append(n_tok_text_to_sql)
+
+            # features.append(int(ans_text_to_sql=='0'))
 
             # number of answers
             features.append(len(ans_text_to_sql_list))
@@ -354,10 +373,10 @@ def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
                 print('  Number of NAN answers: ', hasNan)
             # answers have none
                 
-            hasNL = ans_text_to_sql.count('\n')
-            features.append(hasNL)
-            if verbose:
-                print('  Number of \\n: ', hasNL)
+            # hasNL = ans_text_to_sql.count('\n')
+            # features.append(hasNL)
+            # if verbose:
+            #     print('  Number of \\n: ', hasNL)
 
             # answers have string
             hasStr = 0
@@ -396,22 +415,20 @@ def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
                 print('  Number of overlap words between question and answer: ', num_overlap)
 
             # generation probability
-            log_prob = float(row['log_prob_text_to_sql'])
-            features.append(log_prob)
-            if verbose:
-                print('  Log prob: ', log_prob)
+            log_prob_avg = float(row['log_prob_avg_text_to_sql'])
+            features.append(log_prob_avg)
+
+            # log_prob_sum = float(row['log_prob_sum_text_to_sql'])
+            # features.append(log_prob_sum)
 
             # if the predicted sql after fuzzy match uses the processed column
-            cols = row['nl_headers']
-            if cols[0]=='[':
-                cols = ast.literal_eval(cols)
+            cols = row['nl_headers'].split('|')
             original_cols, processed_cols = separate_cols(cols)
             usePro = 0
             for col in processed_cols:
                 if col in sql:
                     usePro = 1
                     break
-            # print(sql, usePro, row['id'], text_to_sql_value_list)
             features.append(usePro)
 
             # if the input is truncated
@@ -425,7 +442,7 @@ def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
 
-            features.append(int(ans_tableqa=='0'))
+            # features.append(int(ans_tableqa=='0'))
 
             if verbose:
                     print('\nTableqa Answer: ', ans_tableqa)
@@ -436,21 +453,14 @@ def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
             # isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
             # features.append(isAbb)
 
-            # # number of answers
-            # features.append(len(ans_tableqa_list))
-            # if verbose:
-            #         print('  Number of answers: ', len(ans_tableqa_list))
+            # number of answers
+            features.append(len(ans_tableqa_list))
+            if verbose:
+                    print('  Number of answers: ', len(ans_tableqa_list))
 
-            # # number of predicted tokens
-            # n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
-            # features.append(n_tok_tableqa)
-
-            # # answers satrt with capital letter
-            # srtCap = 0
-            # for ans in ans_tableqa_list:
-            #     if ans[0].isupper():
-            #         srtCap += 1
-            # features.append(srtCap)
+            # number of predicted tokens
+            n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
+            features.append(n_tok_tableqa)
 
             # answers have string
             hasStr = 0
@@ -482,10 +492,11 @@ def extract_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
                 print('  Number of overlap words between question and answer', num_overlap)
 
             # generation probability
-            log_prob = float(row['log_prob_tableqa'])
-            features.append(log_prob)
-            if verbose:
-                print('  Log prob: ', log_prob)
+            log_prob_avg = float(row['log_prob_avg_tableqa'])
+            features.append(log_prob_avg)
+
+            # log_prob_sum = float(row['log_prob_sum_tableqa'])
+            # features.append(log_prob_sum)
 
             # if the input is truncated
             isTru = row['truncated_tableqa']

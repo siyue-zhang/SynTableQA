@@ -476,10 +476,10 @@ class Evaluator:
         assert len(correct_flag)==len(predictions)
         return correct_flag, predicted
         
-    def evaluate_tableqa(self, predictions):
+    def evaluate_tableqa(self, predictions, separator):
         correct_flag = []
         for prediction in predictions:
             pred = prediction['pred']
             ex_id = prediction['nt']
-            correct_flag.append(eval_tag_match(pred, ex_id, self.target_values_map, separator='|'))
+            correct_flag.append(eval_tag_match(pred, ex_id, self.target_values_map, separator=separator))
         return correct_flag

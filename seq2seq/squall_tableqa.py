@@ -23,6 +23,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             sql = sql.replace('c1_year', 'c1_number')
 
         if tbl not in table_contents:
+            # load squall json
             table_dir = json_paths[i]
             f = open(table_dir)
             data = json.load(f)
@@ -33,13 +34,16 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                 if header == '':
                     tmp.append('unk')
                 else:
-                    tmp.append(header.replace('\n', ' ').strip().replace(' ', '_').lower())
+                    tmp.append(header.replace('\n', ' ').strip())
+                    # tmp.append(header.replace('\n', ' ').strip().replace(' ', '_').lower())
             headers = tmp
             # load table
             columns = {}
             max_rows = 0
             for c in data['contents']:
                 for cc in c:
+                    if cc['col'] in ['id', 'agg']:
+                        break
                     columns[cc['col']] = cc['data']
                     if len(cc['data'])>max_rows:
                         max_rows=len(cc['data'])
@@ -101,8 +105,8 @@ if __name__=='__main__':
     from transformers import TapexTokenizer
     # squall_tableqa can be plus or default
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
-                            split_id=1)
-    train_dataset = datasets["validation"]
+                            split_id=1, plus=False)
+    train_dataset = datasets["test"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,
@@ -112,3 +116,5 @@ if __name__=='__main__':
                    "ignore_pad_token_for_loss": True,
                    "padding": False}, 
         batched=True,)
+    print(tokenizer.decode(train_dataset['input_ids'][0]))
+    print(tokenizer.decode(train_dataset['labels'][0]))
