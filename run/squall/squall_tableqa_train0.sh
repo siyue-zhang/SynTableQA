@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-export WANDB_PROJECT=TQA
+export WANDB_PROJECT=tableqa
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
@@ -30,14 +30,14 @@ python ./run.py \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
-  --eval_steps 100 \
-  --save_steps 200 \
+  --eval_steps 50 \
+  --save_steps 50 \
   --num_beams 5 \
   --generation_max_length 128 \
   --run_name ${run_name} \
   --task tableqa \
   --output_dir ${output_dir} \
-  --save_total_limit 2
+  --save_total_limit 1
   # --max_train_samples 1000
   # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint}
   # --max_eval_samples 10 \

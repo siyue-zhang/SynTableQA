@@ -303,7 +303,6 @@ def main():
 
         dataset_name = data_args.dataset_name
         squall_plus_suffix = '_plus' if data_args.squall_plus else ''
-        # spider_syn_suffix = '_syn' if data_args.spider_syn else ''
         squall_downsize_suffix = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
         augmentation_suffix = '_aug' if data_args.aug else ''
         split_id = data_args.split_id
@@ -316,7 +315,6 @@ def main():
         stage = (
             f'{dataset_name}'
             f'{squall_plus_suffix}'
-            # f'{spider_syn_suffix}'
             f'{squall_downsize_suffix}'
             f'{augmentation_suffix}'
             f'_{data_args.task.lower()}'
