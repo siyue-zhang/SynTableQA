@@ -1,9 +1,10 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 
-model_name="yilunzhao/omnitab-large-finetuned-wikisql"
+model_name="neulab/omnitab-large"
 dataset_name="wikisql"
-output_dir="output/omnitab-large-finetuned-wikisql"
-
+output_dir="output/wikisql_tableqa1"
+checkpoint=2600
+# model_name="yilunzhao/omnitab-large-finetuned-wikisql"
 
 python ./run.py \
   --task tableqa \
@@ -11,14 +12,15 @@ python ./run.py \
   --predict_split test \
   --perturbation_type original \
   --output_dir ${output_dir} \
+  --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \
   --max_target_length 128 \
-  --per_device_eval_batch_size 2 \
+  --val_max_target_length 128 \
+  --per_device_eval_batch_size 4 \
   --dataset_name ${dataset_name} \
   --split_id 1 \
   --predict_with_generate \
-  --generation_max_length 128 \
   --num_beams 5 
   # --max_predict_samples 2000
 

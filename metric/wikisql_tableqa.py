@@ -4,7 +4,7 @@ from metric.squall_evaluator import to_value_list, check_denotation
 
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
-    def compute_metrics(eval_preds):
+    def compute_metrics(eval_preds, meta=None):
         # nonlocal tokenizer
         preds, labels = eval_preds
         if isinstance(preds, tuple):
@@ -31,7 +31,12 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'answers': eval_dataset['answers'],
                        'acc': [int(b) for b in correct_flag],
                        'predictions': predictions,
+                       'truncated': eval_dataset['truncated'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
+            if meta:
+                to_save['log_probs_sum'] = meta['log_probs_sum']
+                to_save['log_probs_avg'] = meta['log_probs_mean']    
+        
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/wikisql/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)

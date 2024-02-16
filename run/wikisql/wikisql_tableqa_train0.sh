@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-export WANDB_PROJECT=wikisql
+export WANDB_PROJECT=tableqa
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
@@ -41,7 +41,6 @@ python ./run.py \
   # --max_eval_samples 1000 \
   # --max_train_samples 1000
 
-  # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint}
 
 
 
