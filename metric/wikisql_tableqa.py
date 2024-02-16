@@ -32,6 +32,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'acc': [int(b) for b in correct_flag],
                        'predictions': predictions,
                        'truncated': eval_dataset['truncated'],
+                       'perturbation_type': eval_dataset['perturbation_type'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             if meta:
                 to_save['log_probs_sum'] = meta['log_probs_sum']

@@ -297,6 +297,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                        'query_pred': predictions,
                        'query_fuzzy':fuzzy_query,
                        'queried_ans': predicted,
+                       'truncated': eval_dataset['truncated'],
                        'perturbation_type': eval_dataset['perturbation_type'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
             df = pd.DataFrame(to_save)
