@@ -885,8 +885,8 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
     return X, Y
 
 
-def load_and_predict(X, Y, model, name=""):
-    with open("classifiers/{}_{}.pkl".format(model, name), "rb") as f:
+def load_and_predict(dataset, X, Y, model, name=""):
+    with open("classifiers/{}_{}_{}.pkl".format(dataset, model, name), "rb") as f:
         classifier = pickle.load(f)
     # print ("coefs: ", classifier.coef_)
     
@@ -977,8 +977,8 @@ if __name__=='__main__':
     print('\n')
 
     X, Y = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer)
-    dev_scores = load_and_predict(X, Y, model, name=name)
+    dev_scores = load_and_predict(dataset, X, Y, model, name=name)
     print ("dev score: ", dev_scores, '\n')
 
-    df_test_predict = test_predict(df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name)
+    df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name)
     df_test.to_csv(f'./predict/{dataset}_classifier_test{test_split}.csv', na_rep='',index=False)
