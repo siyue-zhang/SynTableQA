@@ -352,7 +352,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                     print('  ', text_to_sql_value_list)
                     print('  sql after fuzzy: ', sql)
 
-            # # query use complex column
+            # query use complex column
             # hasLst = '_list' in sql
             # features.append(int(hasLst))
 
@@ -387,12 +387,6 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             features.append(hasNan)
             if verbose:
                 print('  Number of NAN answers: ', hasNan)
-            # answers have none
-                
-            # hasNL = ans_text_to_sql.count('\n')
-            # features.append(hasNL)
-            # if verbose:
-            #     print('  Number of \\n: ', hasNL)
 
             # answers have string
             hasStr = 0
@@ -716,9 +710,9 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             # hasLen = '_length' in sql
             # features.append(int(hasLen))
 
-            # number of predicted tokens
-            n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
-            features.append(n_tok_text_to_sql)
+            # # number of predicted tokens
+            # n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
+            # features.append(n_tok_text_to_sql)
 
             # features.append(int(ans_text_to_sql=='0'))
 
@@ -778,9 +772,9 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             if verbose:
                 print('  Number of overlap words between question and answer: ', num_overlap)
 
-            # generation probability
-            log_prob_avg = float(row['log_prob_avg_text_to_sql'])
-            features.append(log_prob_avg)
+            # # generation probability
+            # log_prob_avg = float(row['log_prob_avg_text_to_sql'])
+            # features.append(log_prob_avg)
 
             # log_prob_sum = float(row['log_prob_sum_text_to_sql'])
             # features.append(log_prob_sum)
@@ -822,9 +816,9 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             if verbose:
                     print('  Number of answers: ', len(ans_tableqa_list))
 
-            # number of predicted tokens
-            n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
-            features.append(n_tok_tableqa)
+            # # number of predicted tokens
+            # n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
+            # features.append(n_tok_tableqa)
 
             # answers have string
             hasStr = 0
@@ -855,9 +849,9 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             if verbose:
                 print('  Number of overlap words between question and answer', num_overlap)
 
-            # generation probability
-            log_prob_avg = float(row['log_prob_avg_tableqa'])
-            features.append(log_prob_avg)
+            # # generation probability
+            # log_prob_avg = float(row['log_prob_avg_tableqa'])
+            # features.append(log_prob_avg)
 
             # log_prob_sum = float(row['log_prob_sum_tableqa'])
             # features.append(log_prob_sum)
@@ -866,13 +860,13 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             isTru = row['truncated_tableqa']
             features.append(isTru)
             
-            # if all answers are from the table input or question
-            allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
-            allFromTable = int(allFromTable)
-            features.append(allFromTable)
-            if verbose:
-                print('  All answers from table or question: ', allFromTable)
-                print('------------------------------')
+            # # if all answers are from the table input or question
+            # allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
+            # allFromTable = int(allFromTable)
+            # features.append(allFromTable)
+            # if verbose:
+            #     print('  All answers from table or question: ', allFromTable)
+            #     print('------------------------------')
 
         X.append(features)
         Y.append(int(row['labels']))
