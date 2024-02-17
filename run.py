@@ -27,6 +27,7 @@ from transformers.trainer_utils import get_last_checkpoint, EvalPrediction
 from utils.config import ModelArguments, DataTrainingArguments
 from importlib import import_module
 from tqdm import tqdm
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -293,14 +294,6 @@ def main():
             stage=None, 
             fuzzy=data_args.postproc_fuzzy_string)
     else:
-        # p = '_plus' if data_args.squall_plus else ''
-        # y = '_syn' if data_args.spider_syn else ''
-        # d = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
-        # a = '_aug' if data_args.aug else ''
-        # s = data_args.split_id
-        # b = '_' + data_args.perturbation_type if data_args.dataset_name=='wikisql' and data_args.predict_split=='test' else ''
-        # stage = f'{data_args.dataset_name}{p}{y}{d}{a}_{data_args.task.lower()}_{data_args.predict_split}{s}{b}'
-
         dataset_name = data_args.dataset_name
         squall_plus_suffix = '_plus' if data_args.squall_plus else ''
         squall_downsize_suffix = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
@@ -329,8 +322,8 @@ def main():
             stage=stage, 
             fuzzy=data_args.postproc_fuzzy_string)
 
-    trainer_class = Trainer if data_args.task == 'selector' else Seq2SeqTrainer
-    trainer = trainer_class(
+    # trainer_class = Trainer if data_args.task == 'selector' else Seq2SeqTrainer
+    trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
@@ -414,8 +407,16 @@ def main():
                     scores=gen_outputs.scores,
                     beam_indices=gen_outputs.beam_indices,
                 )
-                log_probs_sum += scores.sum(dim=1).tolist() # sum
-                log_probs_mean += scores.mean(dim=1).tolist() # mean
+
+                output_scores=[]
+                for sample in scores.tolist():
+                    last = len(sample)-1
+                    while last>0 and sample[last]==0:
+                        last -= 1
+                    output_scores.append(sample[:last+1])
+
+                log_probs_sum += [np.sum(x) for x in output_scores] # sum
+                log_probs_mean += [np.mean(x) for x in output_scores] # mean
                 tmp = gen_outputs.sequences.cpu().tolist()
                 predictions += [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
 
@@ -425,52 +426,7 @@ def main():
             eval_preds = EvalPrediction(predictions=predictions, label_ids=label_ids)
             acc = compute_metrics(eval_preds, {'log_probs_sum': log_probs_sum, 'log_probs_mean': log_probs_mean})
             print("predict: ", acc)
-
-
-
-        #     predict_results = trainer.predict(
-        #         predict_dataset,
-        #         metric_key_prefix="predict",
-        #         max_length=data_args.val_max_target_length,
-        #         num_beams=data_args.num_beams,
-        #     )
-
-        #     # get generation scores
-        #     df = pd.read_csv(f'./predict/squall/{stage}.csv')
-        #     log_prob = []
-        #     for k, sample in enumerate(predict_dataset):
-        #         if k%100==0:
-        #             print(k)
-        #         # generate the output using beam search
-        #         gen_outputs = model.generate(
-        #             inputs=torch.tensor([sample['input_ids']]).to(training_args.device),
-        #             attention_mask=torch.tensor([sample['attention_mask']]).to(training_args.device),
-        #             num_beams=data_args.num_beams,
-        #             max_length=data_args.val_max_target_length,
-        #             output_scores=True,
-        #             return_dict_in_generate=True,
-        #         )
-               
-        #         # assert df.loc[k, 'query_pred'] == tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True), f"{df.loc[k, 'query_pred']} <=> {tokenizer.decode(gen_outputs.sequences[0], skip_special_tokens=True)}"
-        #         # compute the scores using compute_transition_scores()
-        #         scores = model.compute_transition_scores(
-        #             sequences=gen_outputs.sequences,
-        #             scores=gen_outputs.scores,
-        #             beam_indices=gen_outputs.beam_indices,
-        #         )
-
-        #         log_prob.append(scores.sum().item())
-        #         # print('scores (compute_transition_scores):', scores.sum().item())
-        #     df['log_prob'] = log_prob
-        #     df.to_csv(f'./predict/squall/{stage}.csv', na_rep='',index=False)
-
-        # metrics = predict_results.metrics
-        # max_predict_samples = data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
-        # metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
-        
-        # trainer.log_metrics("predict", metrics)
-        # trainer.save_metrics("predict", metrics)
-
+  
 
 if __name__ == "__main__":
     main()
