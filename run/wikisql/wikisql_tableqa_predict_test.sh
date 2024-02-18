@@ -1,6 +1,6 @@
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0
 
-# model_name="neulab/omnitab-large"
+# model_name="microsoft/tapex-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa1"
 # checkpoint=2600
@@ -22,8 +22,9 @@ python ./run.py \
   --split_id 1 \
   --predict_with_generate \
   --num_beams 5
-  # --max_predict_samples 100
-  # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
+  
+# --max_predict_samples 100
+# --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
 
 
 

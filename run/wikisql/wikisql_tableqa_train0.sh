@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES=0,1
-export WANDB_PROJECT=tableqa
+export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
 model_name="microsoft/tapex-large"

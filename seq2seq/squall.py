@@ -1,14 +1,13 @@
-import os
-import torch
-import random
 import re
-from copy import deepcopy
-from typing import List, Dict
 import pandas as pd
 import json
+import sys
+sys.path.append('./')
+from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
     # preprocess the squall datasets for the model input
+    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter='|')
 
     nts = examples["nt"]
     tbls = examples["tbl"]
@@ -20,6 +19,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     table_contents = {}
     inputs, outputs = [], []
     all_ori_headers, all_nl_headers = [], []
+
+    input_truncated = []
 
     for i in range(num_ex):
         nl = nls[i]
@@ -82,25 +83,32 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         table_content = table_contents[tbl]
         all_ori_headers.append(table_content['ori_header'])
         all_nl_headers.append(table_content['nl_header'])
-        serialized_schema = 'tab: w col: ' + ' | '.join(table_content['nl_header'])
-        serialized_cell = ''
-        for j, row in enumerate(table_content['rows']):
-            if j>0:
-                serialized_cell += ' '
-            if isinstance(row[0], list):
-                row = [', '.join([str(x) for x in cell]) for cell in row]
-            else:
-                row = [str(cell) for cell in row]
-            serialized_cell += f'row {j+1} : ' + ' | '.join([cell[:min(len(cell),64)] for cell in row])
+
+        rows = []
+        for row in table_content['rows']:
+            rows.append([str(x) if x else '' for x in row])
+        table_content_x = {'header': table_content['nl_header'], 'rows': rows}
+        answer = examples["answer_text"][i].split('|')
+        question = nl
+
+        if examples['split_key'][i] == "train":
+            # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
+            # otherwise, we cannot utilize answer information
+            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
+        else:
+            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
         
-        input = ' '.join([nl, serialized_schema, serialized_cell])
+        n_row = len(table_content_x['rows'])
+        truncated = not all([f'row {r+1}' for r in range(n_row)])
+        input_truncated.append(truncated)
 
         for j in range(len(table_content['ori_header'])):
             sql = sql.replace(table_content['ori_header'][j], table_content['nl_header'][j])
         output = sql
 
-        input = input.replace('<', '!>')
+        input = input_source.replace('<', '!>')
         output = output.replace('<', '!>')
+
         inputs.append(input)
         outputs.append(output)
 
@@ -115,14 +123,13 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         "nl_headers": all_nl_headers,
         "ori_headers": all_ori_headers, 
         "inputs": inputs,
-        "truncated": []
+        "truncated": [int(x) for x in input_truncated]
         }
     
     for n in range(len(inputs)):
         tokenized_inputs = tokenizer([inputs[n]], max_length=max_source_length, padding=padding, return_tensors="pt", truncation=True)
         model_inputs["input_ids"].append(tokenized_inputs["input_ids"].squeeze())
         model_inputs["attention_mask"].append(tokenized_inputs["attention_mask"].squeeze())
-        model_inputs["truncated"].append(int(len(tokenized_inputs["input_ids"].squeeze())==max_source_length))
         
         if outputs[n] != '':
             tokenized_outputs = tokenizer([outputs[n]], max_length=max_target_length, padding=padding, return_tensors="pt", truncation=True)
@@ -145,7 +152,7 @@ if __name__=='__main__':
     # squall_tableqa can be plus or default
     datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 
                             plus=True, split_id=1)
-    train_dataset = datasets["test"]
+    train_dataset = datasets["train"]
     tokenizer = T5Tokenizer.from_pretrained("t5-small")
     train_dataset = train_dataset.map(
         preprocess_function,
