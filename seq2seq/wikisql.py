@@ -1,8 +1,15 @@
-import pandas as pd
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 
     questions = [question.lower() for question in examples["question"]]
+    for i in range(len(questions)):
+        question = questions[i]
+        # if question[-1] not in ['.','?']:
+        #     if question.split(' ')[0].lower() in ['what', 'how', 'who', 'where', 'which', 'when']:
+        #         question += '?'
+        #     else:
+        #         question += '.'
+
     example_tables = [table for table in examples["table"]]
     table_ids = examples["table_id"]
     num_ex = len(questions)

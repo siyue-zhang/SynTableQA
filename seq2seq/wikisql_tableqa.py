@@ -1,23 +1,37 @@
-import pandas as pd
+from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
+	
+    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024)
+    input_sources = []
+    output_targets = []
+    input_truncated = []
+    for i in range(len(examples['question'])): 
+        table_content = examples['table'][i]
+        answer = examples['answers'][i]
+        question = examples['question'][i]
 
-    # questions = [question.lower() for question in examples["question"]]
-    questions = examples["question"]
-    example_tables = [table for table in examples["table"]]
-    tables = [
-        pd.DataFrame.from_records(example_table["rows"], columns=[x.lower() for x in example_table["header"]])
-        for example_table in example_tables
-    ]
+        if examples['split_key'][i] == "train":
+            # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
+            # otherwise, we cannot utilize answer information
+            input_source = TABLE_PROCESSOR.process_input(table_content, question, answer).lower()
+        else:
+            input_source = TABLE_PROCESSOR.process_input(table_content, question, []).lower()
+        input_sources.append(input_source)
+        
+        n_row = len(examples['table'][i]['rows'])
+        truncated = not all([f'row {r+1}' for r in range(n_row)])
+        input_truncated.append(truncated)
 
-    answers = examples["answers"]
+        output_target = TABLE_PROCESSOR.process_output(answer).lower()
+        output_targets.append(output_target)
 
     model_inputs = tokenizer(
-        table=tables, query=questions, max_length=max_source_length, padding=padding, truncation=True
+        answer=input_sources, max_length=max_source_length, padding=padding, truncation=True
     )
 
     labels = tokenizer(
-        answer=["|".join(answer) for answer in answers],
+        answer=output_targets,
         max_length=max_target_length,
         padding=padding,
         truncation=True,
@@ -31,7 +45,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         ]
         
     model_inputs["labels"] = labels["input_ids"]
-    model_inputs["truncated"] = [int(len(input_ids)==max_source_length) for input_ids in model_inputs["input_ids"]]
+    # truncation to be revised
+    model_inputs["truncated"] = [int(x) for x in input_truncated]
 
     return model_inputs
 

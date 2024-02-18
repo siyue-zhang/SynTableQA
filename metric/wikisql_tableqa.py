@@ -1,7 +1,25 @@
 import numpy as np
 import pandas as pd
 from metric.squall_evaluator import to_value_list, check_denotation
+from collections import defaultdict
 
+def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', '):
+    _predict_spans = _predict_str.split(target_delimiter)
+    _ground_spans = _ground_str.split(target_delimiter)
+    _predict_values = defaultdict(lambda: 0)
+    _ground_values = defaultdict(lambda: 0)
+    for span in _predict_spans:
+        try:
+            _predict_values[float(span)] += 1
+        except ValueError:
+            _predict_values[span.strip()] += 1
+    for span in _ground_spans:
+        try:
+            _ground_values[float(span)] += 1
+        except ValueError:
+            _ground_values[span.strip()] += 1
+    _is_correct = _predict_values == _ground_values
+    return _is_correct
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
     def compute_metrics(eval_preds, meta=None):
@@ -16,20 +34,19 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         # decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
         # prepare the prediction format for the evaluator
         predictions = decoded_preds
-        correct_flag = []
-
+        tapex_flag = []
+        sep = ', '
         for i, pred in enumerate(predictions):
             answers = eval_dataset['answers'][i]
-            predicted_values = to_value_list(pred.split('|'))
-            target_values = to_value_list(answers)
-            correct = check_denotation(target_values, predicted_values)
-            correct_flag.append(correct)
+            answers = sep.join([a.strip().lower() for a in answers])
+            tapex_acc = evaluate_example(pred, answers, sep)
+            tapex_flag.append(tapex_acc)
 
         if stage:
             to_save = {'id': eval_dataset['id'],
                        'question': eval_dataset['question'],
                        'answers': eval_dataset['answers'],
-                       'acc': [int(b) for b in correct_flag],
+                       'acc': [int(b) for b in tapex_flag],
                        'predictions': predictions,
                        'truncated': eval_dataset['truncated'],
                        'perturbation_type': eval_dataset['perturbation_type'],
@@ -42,5 +59,5 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             df.to_csv(f'./predict/wikisql/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)
 
-        return {"acc": np.round(np.mean(correct_flag),4)}
+        return {"acc": np.round(np.mean(tapex_flag),4)}
     return compute_metrics

@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
-model_name="neulab/omnitab-large"
+# model_name="neulab/omnitab-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa1"
 # checkpoint=2600
 # model_name="yilunzhao/omnitab-large-finetuned-wikisql"
-model_name="nielsr/tapex-large-finetuned-wikisql"
+model_name="microsoft/tapex-large-finetuned-wikisql"
 
 python ./run.py \
   --task tableqa \
@@ -13,7 +13,6 @@ python ./run.py \
   --predict_split test \
   --perturbation_type original \
   --output_dir ${output_dir} \
-  --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \
   --max_target_length 128 \
@@ -22,7 +21,9 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --split_id 1 \
   --predict_with_generate \
-  --num_beams 5 
-  # --max_predict_samples 2000
+  --num_beams 5
+  # --max_predict_samples 100
+  # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
+
 
 

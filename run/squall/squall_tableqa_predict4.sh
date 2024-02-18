@@ -1,10 +1,9 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
 model_name="neulab/omnitab-large"
 dataset_name="squall"
 output_dir="output/squall_plus_tableqa4"
-#0-1600 1-2600 2-2200 3-2000 4-4200
-checkpoint=4200
+checkpoint=2800
 
 python ./run.py \
   --task tableqa \

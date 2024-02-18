@@ -1,11 +1,11 @@
 export CUDA_VISIBLE_DEVICES=0,1
-export WANDB_PROJECT=tableqa
+export WANDB_PROJECT=TQA
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="squall_plus_tableqa1_3"
+run_name="squall_plus_tableqa1"
 dataset_name="squall"
-output_dir="output/squall_plus_tableqa1_3"
+output_dir="output/squall_plus_tableqa1"
 
 python ./run.py \
   --do_train \
@@ -26,6 +26,7 @@ python ./run.py \
   --num_train_epochs 50 \
   --warmup_ratio 0.1 \
   --learning_rate 2e-5 \
+  --fp16 \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
@@ -38,7 +39,7 @@ python ./run.py \
   --output_dir ${output_dir} \
   --save_total_limit 1
 
-# --max_eval_samples 10 \
-# --max_train_samples 100
+  # --max_eval_samples 10 \
+  # --max_train_samples 100
+
 # --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
-  # --fp16 \

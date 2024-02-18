@@ -58,6 +58,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 												"rows": datasets.features.Sequence(datasets.features.Sequence(datasets.Value("string"))),
 										},
 										"perturbation_type": datasets.Value("string"),
+										"split_key": datasets.Value("string"),
 								}
 						),
 				)
@@ -138,41 +139,39 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 			return " ".join(rep.split())
 
 		def _generate_examples(self, split_key, qa_data, table_data):
-
+			
 			for idx, example in enumerate(qa_data):
 				
 				# if example['question_id'] != 'w_17':
 				# 	continue
 
+				question = example["question"].strip()
 				table_content = table_data[example["table_id"]]
+
 				if split_key == 'test':
-					answers = example["answers"]
+					answer = example["answers"]
 				else:
 					tapas_table = _convert_table_types(table_content)
-					answers = retrieve_wikisql_query_answer_tapas(tapas_table, example)
+					answer = retrieve_wikisql_query_answer_tapas(tapas_table, example)
 				
 				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
-
-				question = example["question"].strip()
-				if question[-1] not in ['.','?']:
-					if question.split(' ')[0].lower() in ['what', 'how', 'who', 'where', 'which', 'when']:
-						question += '?'
-					else:
-						question += '.'
 
 				yield idx, {
 						"id": example["question_id"],
 						"table_id": example["table_id"],
-						"question": question,
-						"answers": answers,
+						"question": question.lower(),
+						"answers": answer,
 						"table": {"header": table_content["header"], "rows": table_content["rows"]},
-						"perturbation_type": perturbation_type
+						"perturbation_type": perturbation_type,
+						"split_key": split_key
 				}
 			
 
 if __name__=='__main__':
 		from datasets import load_dataset
 		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
-								split_id=1,download_mode='force_redownload',ignore_verifications=True)
+								split_id=1,ignore_verifications=True,
+								# download_mode='force_redownload'
+								)
 		sample = dataset["train"][0]
 		print(sample)
