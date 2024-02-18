@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from metric.squall_evaluator import to_value_list, check_denotation
 from collections import defaultdict
 
 def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', '):

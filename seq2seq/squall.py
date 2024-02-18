@@ -41,7 +41,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
                 if header == '':
                     tmp.append('unk')
                 else:
-                    tmp.append(header.replace('\n', ' ').strip().replace(' ', '_').lower())
+                    tmp.append(header.replace('\n', ' ').replace(' ','_').strip().lower())
             headers = tmp
             # load table
             columns = {}
@@ -86,7 +86,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
         rows = []
         for row in table_content['rows']:
-            rows.append([str(x) if x else '' for x in row])
+            new_row = [str(item) for item in row]
+            rows.append(new_row)
         table_content_x = {'header': table_content['nl_header'], 'rows': rows}
         answer = examples["answer_text"][i].split('|')
         question = nl
@@ -99,7 +100,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
         
         n_row = len(table_content_x['rows'])
-        truncated = not all([f'row {r+1}' for r in range(n_row)])
+        truncated = f'row {n_row}' in input_source
         input_truncated.append(truncated)
 
         for j in range(len(table_content['ori_header'])):
@@ -152,7 +153,7 @@ if __name__=='__main__':
     # squall_tableqa can be plus or default
     datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 
                             plus=True, split_id=1)
-    train_dataset = datasets["train"]
+    train_dataset = datasets["validation"]
     tokenizer = T5Tokenizer.from_pretrained("t5-small")
     train_dataset = train_dataset.map(
         preprocess_function,
@@ -162,3 +163,6 @@ if __name__=='__main__':
                    "ignore_pad_token_for_loss": True,
                    "padding": False}, 
         batched=True,)
+    i = 0
+    print(tokenizer.decode(train_dataset['input_ids'][i]))
+    print(tokenizer.decode(train_dataset['labels'][i]))

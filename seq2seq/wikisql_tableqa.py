@@ -2,7 +2,7 @@ from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 	
-    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024)
+    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter=', ')
     input_sources = []
     output_targets = []
     input_truncated = []
@@ -20,7 +20,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         input_sources.append(input_source)
         
         n_row = len(examples['table'][i]['rows'])
-        truncated = not all([f'row {r+1}' for r in range(n_row)])
+        truncated = f'row {n_row}' in input_source
         input_truncated.append(truncated)
 
         output_target = TABLE_PROCESSOR.process_output(answer).lower()

@@ -1,11 +1,10 @@
 export CUDA_VISIBLE_DEVICES=0
 
-# model_name="microsoft/tapex-large"
+model_name="microsoft/tapex-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa1"
-# checkpoint=2600
-# model_name="yilunzhao/omnitab-large-finetuned-wikisql"
-model_name="microsoft/tapex-large-finetuned-wikisql"
+checkpoint=2600
+# model_name="microsoft/tapex-large-finetuned-wikisql"
 
 python ./run.py \
   --task tableqa \
@@ -13,6 +12,7 @@ python ./run.py \
   --predict_split test \
   --perturbation_type original \
   --output_dir ${output_dir} \
+  --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \
   --max_target_length 128 \
@@ -24,7 +24,6 @@ python ./run.py \
   --num_beams 5
   
 # --max_predict_samples 100
-# --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
 
 
 

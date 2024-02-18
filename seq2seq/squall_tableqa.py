@@ -93,7 +93,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         input_sources.append(input_source)
         
         n_row = len(table_content['rows'])
-        truncated = not all([f'row {r+1}' for r in range(n_row)])
+        truncated = f'row {n_row}' in input_source
         input_truncated.append(truncated)
 
         output_target = TABLE_PROCESSOR.process_output(answer).lower()

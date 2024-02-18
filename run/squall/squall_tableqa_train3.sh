@@ -1,5 +1,5 @@
-export CUDA_VISIBLE_DEVICES=2,3
-export WANDB_PROJECT=TQA
+export CUDA_VISIBLE_DEVICES=0,1
+export WANDB_PROJECT=STQA_squall
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
@@ -42,4 +42,3 @@ python ./run.py \
   # --max_eval_samples 10 \
   # --max_train_samples 100
 
-# --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \

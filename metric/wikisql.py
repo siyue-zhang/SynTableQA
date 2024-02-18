@@ -1,11 +1,31 @@
 import re
-import torch
 import numpy as np
 import pandas as pd
 from pandasql import sqldf
 from fuzzywuzzy import process
 from copy import deepcopy
-from metric.squall_evaluator import to_value_list, check_denotation
+# from metric.squall_evaluator import to_value_list, check_denotation
+
+from collections import defaultdict
+
+def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', '):
+    _predict_spans = _predict_str.split(target_delimiter)
+    _ground_spans = _ground_str.split(target_delimiter)
+    _predict_values = defaultdict(lambda: 0)
+    _ground_values = defaultdict(lambda: 0)
+    for span in _predict_spans:
+        try:
+            _predict_values[float(span)] += 1
+        except ValueError:
+            _predict_values[span.strip()] += 1
+    for span in _ground_spans:
+        try:
+            _ground_values[float(span)] += 1
+        except ValueError:
+            _ground_values[span.strip()] += 1
+    _is_correct = _predict_values == _ground_values
+    return _is_correct
+
 
 def postprocess_text(decoded_preds):
 
@@ -236,7 +256,7 @@ def fuzzy_replace(table_content, pred, mapping):
 
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
-    def compute_metrics(eval_preds):
+    def compute_metrics(eval_preds, meta=None):
         # nonlocal tokenizer
         preds, labels = eval_preds
         if isinstance(preds, tuple):
@@ -250,12 +270,14 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         predictions = postprocess_text(decoded_preds)
         predicted = []
         fuzzy_query = []
-        correct_flag = []
-
+        tapex_flag = []
+        sep = ', '
         for i, pred in enumerate(predictions):
             answers = eval_dataset['answers'][i]
+            answers = sep.join([a.strip().lower() for a in answers])
+
             table = eval_dataset['table'][i]
-            nl_header = [x.replace(' ','_').lower() for x in table['header']]
+            nl_header = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table['header']]
             n_col = len(table["header"])
             nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
             # print('bf: ', pred)
@@ -278,13 +300,16 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 predicted_values = []
 
             # Flatten the list and convert elements to strings
-            predicted_values = [str(item) for sublist in predicted_values for item in sublist] if predicted_values else []
-                
-            predicted.append(predicted_values)
-            predicted_values = to_value_list(predicted_values)
-            target_values = to_value_list(answers)
-            correct = check_denotation(target_values, predicted_values)
-            correct_flag.append(correct)
+            predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []
+            pred = sep.join(predicted_values)
+            tapex_acc = evaluate_example(pred, answers, sep)
+            tapex_flag.append(tapex_acc)
+
+            # predicted.append(predicted_values)
+            # predicted_values = to_value_list(predicted_values)
+            # target_values = to_value_list(answers)
+            # correct = check_denotation(target_values, predicted_values)
+            # correct_flag.append(correct)
 
             # print(correct, '\n-------')
 
@@ -292,17 +317,21 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             to_save = {'id': eval_dataset['id'],
                        'table_id': eval_dataset['table_id'],
                        'question': eval_dataset['question'],
-                       'answer': eval_dataset['answers'],
-                       'acc': [int(b) for b in correct_flag],
+                       'answers': eval_dataset['answers'],
+                       'acc': [int(b) for b in tapex_flag],
                        'query_pred': predictions,
-                       'query_fuzzy':fuzzy_query,
+                       'query_fuzzy': fuzzy_query,
                        'queried_ans': predicted,
                        'truncated': eval_dataset['truncated'],
                        'perturbation_type': eval_dataset['perturbation_type'],
                        'input_tokens': tokenizer.batch_decode(eval_dataset['input_ids'])}
+            if meta:
+                to_save['log_probs_sum'] = meta['log_probs_sum']
+                to_save['log_probs_avg'] = meta['log_probs_mean'] 
+            
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/wikisql/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)
 
-        return {"acc": np.round(np.mean(correct_flag),4)}
+        return {"acc": np.round(np.mean(tapex_flag),4)}
     return compute_metrics

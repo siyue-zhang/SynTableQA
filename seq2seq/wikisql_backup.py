@@ -1,44 +1,47 @@
-import sys
-sys.path.append('./')
-from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 
-    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter=', ')
-
-    questions = examples["question"]
-    input_truncated = []
-    output_targets = []
-    inputs, outputs = [], []
-
+    questions = [question.lower() for question in examples["question"]]
     for i in range(len(questions)):
         question = questions[i]
-        table_content = examples["table"][i]
-        table_content['header'] = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table_content['header']]
-        table_content['header'] = ['id', 'agg'] + table_content['header']
-        table_content['header'] = [f'{k+1}_{x}' for k, x in enumerate(table_content['header'])]
-        new_rows = []
-        for j, row in enumerate(table_content['rows']):
-            row = [f'{j+1}', '0'] + row
-            new_rows.append(row)
-        table_content['rows'] = new_rows
+        # if question[-1] not in ['.','?']:
+        #     if question.split(' ')[0].lower() in ['what', 'how', 'who', 'where', 'which', 'when']:
+        #         question += '?'
+        #     else:
+        #         question += '.'
 
-        answer = examples["answers"][i]
-        if examples['split_key'][i] == "train":
-            # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
-            # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, answer).lower()
-        else:
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, []).lower()
-        inputs.append(input_source)
+    example_tables = [table for table in examples["table"]]
+    table_ids = examples["table_id"]
+    num_ex = len(questions)
 
-        n_row = len(table_content['rows'])
-        truncated = f'row {n_row}' in input_source
-        input_truncated.append(truncated)
+    inputs, outputs = [], []
+    serilized_tables = {}
 
-        output_target = TABLE_PROCESSOR.process_output(answer).lower()
-        output_targets.append(output_target)
+    for i in range(num_ex):
+        table_id = table_ids[i]
+        table = example_tables[i]
+        table['header'] = ['id', 'agg'] + table['header']
+        for k in range(len(table['rows'])):
+            table['rows'][k] = [str(k+1), str(0)] + table['rows'][k]
 
+        question = questions[i]
+        if table_id not in serilized_tables:
+            tmp = [f"{i+1}_{h.replace(' ', '_').lower()}" for i, h in enumerate(table['header'])]
+            serialized_schema = 'tab: w col: ' + ' | '.join(tmp)
+            serialized_cell = ''
+            for j, row in enumerate(table['rows']):
+                if j>0:
+                    serialized_cell += ' '
+                if isinstance(row[0], list):
+                    row = [', '.join([str(x) for x in cell]) for cell in row]
+                else:
+                    row = [str(cell) for cell in row]
+                serialized_cell += f'row {j+1} : ' + ' | '.join([cell[:min(len(cell),64)] for cell in row])
+            serilized_table = ' '.join([serialized_schema, serialized_cell])
+            serilized_tables[table_id] = serilized_table
+
+        input = ' '.join([question, serilized_tables[table_id]])
+        inputs.append(input)
         outputs.append('unk')
         
     # use t5 tokenizer to convert text to ids        
@@ -46,15 +49,14 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         "input_ids":[], 
         "attention_mask":[], 
         "labels":[], 
-        "inputs": inputs,
-        "truncated": [int(x) for x in input_truncated],
-        "output_targets": output_targets
+        "inputs": inputs
         }
 
     for n in range(len(inputs)):
         tokenized_inputs = tokenizer([inputs[n]], max_length=max_source_length, padding=padding, return_tensors="pt", truncation=True)
         model_inputs["input_ids"].append(tokenized_inputs["input_ids"].squeeze())
         model_inputs["attention_mask"].append(tokenized_inputs["attention_mask"].squeeze())
+        model_inputs["truncated"].append(int(len(tokenized_inputs["input_ids"].squeeze())==max_source_length))
 
         if outputs[n] != '':
             tokenized_outputs = tokenizer([outputs[n]], max_length=max_target_length, padding=padding, return_tensors="pt", truncation=True)

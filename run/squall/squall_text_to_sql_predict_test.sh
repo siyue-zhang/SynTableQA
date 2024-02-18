@@ -3,7 +3,6 @@ export CUDA_VISIBLE_DEVICES=0
 model_name="t5-large"
 dataset_name="squall"
 output_dir="output/squall_text_to_sql1"
-#0|-6600 1-1600 2|-5000 3-5600 4|-5600
 checkpoint=1600
 
 python ./run.py \
