@@ -10,7 +10,7 @@ output_dir="output/squall_text_to_sql2"
 python ./run.py \
   --do_train \
   --do_eval \
-  --num_train_epochs 50 \
+  --num_train_epochs 100 \
   --run_name ${run_name} \
   --task text_to_sql \
   --output_dir ${output_dir} \

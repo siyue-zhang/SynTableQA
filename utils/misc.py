@@ -1,6 +1,6 @@
 import sqlite3
 
-ordering_keywords = ['descending', 'ascending', 'sorted by', 'ordered by']
+# ordering_keywords = ['descending', 'ascending', 'sorted by', 'ordered by']
 
 def fetch_table_data(connection, table_name):
     cursor = connection.execute(f"SELECT * FROM {table_name}")

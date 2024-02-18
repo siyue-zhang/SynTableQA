@@ -19,13 +19,14 @@ python ./run.py \
   --overwrite_output_dir \
   --load_best_model_at_end \
   --metric_for_best_model acc \
-  --per_device_train_batch_size 6 \
-  --gradient_accumulation_steps 8 \
-  --per_device_eval_batch_size 6 \
-  --num_train_epochs 50 \
-  --warmup_ratio 0.2 \
-  --learning_rate 2e-5 \
-  --fp16 \
+  --per_device_train_batch_size 4 \
+  --gradient_accumulation_steps 4 \
+  --per_device_eval_batch_size 4 \
+  --num_train_epochs 100 \
+  --warmup_ratio 0.1 \
+  --learning_rate 3e-5 \
+  --weight_decay 0.01 \
+  --label_smoothing_factor 0.1 \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
@@ -37,10 +38,3 @@ python ./run.py \
   --task tableqa \
   --output_dir ${output_dir} \
   --save_total_limit 1
-
-  # --max_eval_samples 1000 \
-  # --max_train_samples 1000
-
-
-
-

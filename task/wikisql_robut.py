@@ -95,14 +95,14 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 							ori_table_ids.append(table_id)
 							ori_table_data[table_id] = json_data
 
-				split_path = './task/wikisql_splits.json'
-				if os.path.exists(split_path):
-					with open(split_path, 'r') as json_file:
-							splits = json.load(json_file)
-				else:
-					splits = list(split_list(ori_table_ids, 6))
-					with open(split_path, 'w') as f:
-							json.dump(splits, f)
+				# split_path = './task/wikisql_splits.json'
+				# if os.path.exists(split_path):
+				# 	with open(split_path, 'r') as json_file:
+				# 			splits = json.load(json_file)
+				# else:
+				splits = list(split_list(ori_table_ids, 5))
+					# with open(split_path, 'w') as f:
+					# 		json.dump(splits, f)
 				
 				dev_table_ids = splits[self.config.split_id]
 				train_qa_data, dev_qa_data = [], []
@@ -169,7 +169,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
 		from datasets import load_dataset
-		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
+		dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
 								split_id=1,ignore_verifications=True,
 								# download_mode='force_redownload'
 								)
