@@ -45,7 +45,6 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         ]
         
     model_inputs["labels"] = labels["input_ids"]
-    # truncation to be revised
     model_inputs["truncated"] = [int(x) for x in input_truncated]
 
     return model_inputs

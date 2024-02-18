@@ -1,13 +1,9 @@
 import pandas as pd
 import json
 import re
-import sys
-sys.path.append('./')
-from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
     # preprocess the squall datasets for the model input
-    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter='|')
 
     tbls = examples["tbl"]
     nls = examples["question"]
@@ -17,10 +13,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
     num_ex = len(tbls)
     table_contents = {}
-
-    input_sources = []
-    output_targets = []
-    input_truncated = []
+    tables = []
 
     for i in range(num_ex):
         tbl = tbls[i]
@@ -78,38 +71,22 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
             # save the table
             table_contents[tbl] = df
-        
-        df = table_contents[tbl]
-        table_content = {'header': df.columns.tolist(), 'rows': df.values.tolist()}
-        answer = answer_texts[i].split('|')
-        question = nls[i]
 
-        if examples['split_key'][i] == "train":
-            # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
-            # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, answer).lower()
-        else:
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, []).lower()
-        input_sources.append(input_source)
-        
-        n_row = len(table_content['rows'])
-        truncated = not all([f'row {r+1}' for r in range(n_row)])
-        input_truncated.append(truncated)
+        tables.append(table_contents[tbl])
 
-        output_target = TABLE_PROCESSOR.process_output(answer).lower()
-        output_targets.append(output_target)
-
+    # use tapex tokenizer to convert text to ids        
     model_inputs = tokenizer(
-        answer=input_sources, max_length=max_source_length, padding=padding, truncation=True
-    )
+        table=tables, 
+        query=nls, 
+        max_length=max_source_length, 
+        padding=padding, truncation=True)
 
     labels = tokenizer(
-        answer=output_targets,
+        answer=answer_texts,
         max_length=max_target_length,
         padding=padding,
         truncation=True,
     )
-
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.
     if padding == "max_length" and ignore_pad_token_for_loss:
@@ -118,7 +95,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         ]
 
     model_inputs["labels"] = labels["input_ids"]
-    model_inputs["truncated"] = [int(x) for x in input_truncated]
+    model_inputs["truncated"] = [int(len(input_ids)==max_source_length) for input_ids in model_inputs["input_ids"]]
 
     return model_inputs
 
@@ -129,7 +106,7 @@ if __name__=='__main__':
     # squall_tableqa can be plus or default
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                             split_id=1, plus=False)
-    train_dataset = datasets["validation"]
+    train_dataset = datasets["test"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,

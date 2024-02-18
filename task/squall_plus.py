@@ -78,6 +78,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                     "db_path": datasets.Value("string"),
                     "json_path": datasets.Value("string"),
                     "src":datasets.Value("string"),
+                    "split_key": datasets.Value("string"),
                 }
             ),
             supervised_keys=None,
@@ -267,7 +268,8 @@ class Squall(datasets.GeneratorBasedBuilder):
                 "answer_text": answer_text,
                 "db_path": db_path,
                 "json_path": json_path,
-                "src": src
+                "src": src,
+                "split_key": split_key
             }
 
         
