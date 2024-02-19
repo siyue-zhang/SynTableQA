@@ -112,21 +112,14 @@ def main():
                                     downsize=data_args.squall_downsize,
                                     split_id=data_args.split_id,
                                     aug=data_args.aug,
-                                    # download_mode='force_redownload',
+                                    download_mode='force_redownload',
                                     ignore_verifications=True)
-    # elif data_args.dataset_name == 'spider':
-    #     task = "./task/spider_syn.py"
-    #     raw_datasets = load_dataset(task, 
-    #                                 syn=data_args.spider_syn, 
-    #                                 split_id=data_args.split_id,
-    #                                 download_mode='force_redownload',
-    #                                 ignore_verifications=True)
     elif data_args.dataset_name == 'wikisql':
         task = "./task/wikisql_robut.py"
         raw_datasets = load_dataset(task, 
                                     split_id=data_args.split_id,
                                     perturbation_type=data_args.perturbation_type,
-                                    # download_mode='force_redownload',
+                                    download_mode='force_redownload',
                                     ignore_verifications=True)
     else:
         raise NotImplementedError
