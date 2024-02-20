@@ -76,8 +76,11 @@ if __name__=='__main__':
     import sys
     sys.path.append('./')
     datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
-                            split_id=1)
-    train_dataset = datasets["validation"]
+                            split_id=0, ignore_verifications=True,
+                            perturbation_type='row',
+                            # download_mode='force_redownload'
+                            )
+    train_dataset = datasets["validation"].select(range(10))
     tokenizer = T5Tokenizer.from_pretrained("t5-small")
     train_dataset = train_dataset.map(
         preprocess_function,

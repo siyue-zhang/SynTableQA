@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./')
 from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
@@ -56,9 +58,12 @@ if __name__=='__main__':
     import sys
     sys.path.append('./')
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
-                            split_id=1)
-    train_dataset = datasets["train"].select(range(10))
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
+                            split_id=0, ignore_verifications=True,
+                            perturbation_type='row',
+                            # download_mode='force_redownload'
+                            )
+    train_dataset = datasets["validation"].select(range(10))
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,

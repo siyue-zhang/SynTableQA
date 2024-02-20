@@ -2,7 +2,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
-model_name="microsoft/tapex-large"
+model_name="neulab/omnitab-large"
 run_name="wikisql_tableqa3"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa3"
@@ -19,22 +19,21 @@ python ./run.py \
   --overwrite_output_dir \
   --load_best_model_at_end \
   --metric_for_best_model acc \
-  --per_device_train_batch_size 4 \
-  --gradient_accumulation_steps 4 \
-  --per_device_eval_batch_size 4 \
-  --num_train_epochs 100 \
+  --per_device_train_batch_size 6 \
+  --gradient_accumulation_steps 8 \
+  --per_device_eval_batch_size 6 \
+  --num_train_epochs 50 \
   --warmup_ratio 0.1 \
-  --learning_rate 3e-5 \
-  --weight_decay 0.01 \
-  --label_smoothing_factor 0.1 \
+  --learning_rate 2e-5 \
+  --fp16 \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
-  --eval_steps 50 \
-  --save_steps 50 \
+  --eval_steps 100 \
+  --save_steps 100 \
   --num_beams 5 \
   --generation_max_length 128 \
   --run_name ${run_name} \
   --task tableqa \
   --output_dir ${output_dir} \
-  --save_total_limit 1
+  --save_total_limit 1 

@@ -107,7 +107,6 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				four_folds = list(split_list(table_ids[0], 4))
 				dev_table_ids = four_folds[self.config.split_id-1] if self.config.split_id != 0 else table_ids[1]
 
-
 				train_qa = []
 				dev_qa = []
 				for qa in train_dev_qa_data:

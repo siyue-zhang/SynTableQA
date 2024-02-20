@@ -2,17 +2,15 @@ export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
-# model_name="microsoft/tapex-large"
 model_name="neulab/omnitab-large"
-run_name="wikisql_tableqa_ori"
+run_name="wikisql_tableqa0"
 dataset_name="wikisql"
-output_dir="output/wikisql_tableqa_ori"
+output_dir="output/wikisql_tableqa0"
 
 python ./run.py \
   --do_train \
   --do_eval \
   --dataset_name ${dataset_name} \
-  --squall_plus True \
   --split_id 0 \
   --model_name_or_path ${model_name} \
   --max_source_length 1024 \
