@@ -116,7 +116,6 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 					else:
 						train_qa.append(qa)
 
-
 				if self.config.perturbation != 'original':
 					assert self.config.split_id == 0
 
@@ -175,6 +174,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 				question = example["question"]
 				table_content = table_data[example["table_id"]]
+
 				if self.config.perturbation != 'original' and split_key=='dev':
 					answers = example['answers']
 				else:					
@@ -197,8 +197,8 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
 		from datasets import load_dataset
 		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
-								split_id=0,ignore_verifications=True,
-								perturbation_type='column',
+								split_id=0, ignore_verifications=True,
+								perturbation_type='row',
 								# download_mode='force_redownload'
 								)
 		sample = dataset["validation"][0]
