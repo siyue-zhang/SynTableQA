@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 model_name="neulab/omnitab-large"
 dataset_name="squall"
 output_dir="output/squall_plus_tableqa1"
-checkpoint=2000
+checkpoint=4050
 # model_name="neulab/omnitab-large-finetuned-wtq"
 
 python ./run.py \

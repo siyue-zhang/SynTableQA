@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=2,3
 export WANDB_PROJECT=STQA_squall
 export WANDB_ENTITY=siyue-zhang
 
