@@ -65,94 +65,66 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 	
 		def _split_generators(self, dl_manager):
 
-				table_ids = []
-				table_data = []
-				qa_data = []
-				for x in ['train', 'dev', 'test']:
-					ori_table_ids = []
-					ori_table_data = {}
-					with open(f'data/wikisql/{x}.tables.jsonl', "r", encoding="utf-8") as file:
-						for line in file:
-							json_data = json.loads(line)
-							table_id = json_data["id"]
-							if table_id not in ori_table_ids:
-								ori_table_ids.append(table_id)
-								ori_table_data[table_id] = json_data
-					table_ids.append(ori_table_ids)
-					table_data.append(ori_table_data)
+				# test set from RobuT
+				wikisql_qa_file = "robut_wikisql_qa.json"
+				wikisql_table_file = "robut_wikisql_table.json"
 
-					with open(f'data/wikisql/{x}.jsonl', "r", encoding="utf-8") as file:
-						ori_qa_data = []
-						question_id = f"{x}_"
-						for i, line in enumerate(file):
-							json_data = json.loads(line)
-							json_data['question_id'] = question_id + str(i)
-							ori_qa_data.append(json_data)
-					qa_data.append(ori_qa_data)
+				urls = _DATA_URL
+				root_dir = os.path.join(dl_manager.download_and_extract(urls))
 
-				test_qa = qa_data[-1]
-				test_table_data = table_data[-1]
+				qa_filepath = os.path.join(root_dir, "robut_data", wikisql_qa_file)
+				qa_data = json.load(open(qa_filepath))
+				table_filepath = os.path.join(root_dir, "robut_data", wikisql_table_file)
+				table_data = json.load(open(table_filepath))
+				for i in range(len(qa_data)):
+					qa_data[i]['question_id'] = f"r_{i}"
 
-				train_dev_table_data = {}
-				train_dev_table_data.update(table_data[0])
-				train_dev_table_data.update(table_data[1])
-				train_table_data = deepcopy(train_dev_table_data)
-				dev_table_data = deepcopy(train_dev_table_data)
+				test_qa_data = []
+				for item in qa_data:
+					if item['perturbation_type'] == self.config.perturbation:
+						test_qa_data.append(item)
 
-				train_dev_qa_data = []
-				train_dev_qa_data += qa_data[0]
-				train_dev_qa_data += qa_data[1]
+				# split original wikisql train set into 5 folds
+				ori_table_ids = []
+				ori_table_data = {}
+				with open('data/wikisql/train.tables.jsonl', "r", encoding="utf-8") as file:
+					for line in file:
+						json_data = json.loads(line)
+						table_id = json_data["id"]
+						if table_id not in ori_table_ids:
+							ori_table_ids.append(table_id)
+							ori_table_data[table_id] = json_data
 
-				# split train table ids into 4 folds
-				four_folds = list(split_list(table_ids[0], 4))
-				dev_table_ids = four_folds[self.config.split_id-1] if self.config.split_id != 0 else table_ids[1]
-
-
-				train_qa = []
-				dev_qa = []
-				for qa in train_dev_qa_data:
-					if qa['table_id'] in dev_table_ids:
-						dev_qa.append(qa)
-					else:
-						train_qa.append(qa)
-
-
-				if self.config.perturbation != 'original':
-					assert self.config.split_id == 0
-
-					# dev set from RobuT
-					wikisql_qa_file = "robut_wikisql_qa.json"
-					wikisql_table_file = "robut_wikisql_table.json"
-
-					urls = _DATA_URL
-					root_dir = os.path.join(dl_manager.download_and_extract(urls))
-
-					qa_filepath = os.path.join(root_dir, "robut_data", wikisql_qa_file)
-					qa_data = json.load(open(qa_filepath))
-					table_filepath = os.path.join(root_dir, "robut_data", wikisql_table_file)
-					table_data = json.load(open(table_filepath))
-
-					for i in range(len(qa_data)):
-						qa_data[i]['question_id'] = f"dev_{self.config.perturbation}_{i}"
-
-					dev_qa = []
-					for item in qa_data:
-						if item['perturbation_type'] == self.config.perturbation:
-							dev_qa.append(item)
-					
-					dev_table_data = table_data
-
+				# split_path = './task/wikisql_splits.json'
+				# if os.path.exists(split_path):
+				# 	with open(split_path, 'r') as json_file:
+				# 			splits = json.load(json_file)
+				# else:
+				splits = list(split_list(ori_table_ids, 5))
+					# with open(split_path, 'w') as f:
+					# 		json.dump(splits, f)
+				
+				dev_table_ids = splits[self.config.split_id]
+				train_qa_data, dev_qa_data = [], []
+				with open('data/wikisql/train.jsonl', "r", encoding="utf-8") as file:
+					for i, line in enumerate(file):
+						json_data = json.loads(line)
+						json_data['question_id'] = f"w_{i}"
+						if json_data['table_id'] in dev_table_ids:
+							dev_qa_data.append(json_data)
+						else:
+							train_qa_data.append(json_data)
 
 				return [
 						datasets.SplitGenerator(
 								name=datasets.Split.TRAIN, 
-								gen_kwargs={"split_key": "train", "qa_data": train_qa, "table_data": train_table_data}),
+								gen_kwargs={"split_key": "train", "qa_data": train_qa_data, "table_data": ori_table_data}),
 						datasets.SplitGenerator(
 								name=datasets.Split.VALIDATION, 
-								gen_kwargs={"split_key": "dev", "qa_data": dev_qa, "table_data": dev_table_data}),
+								gen_kwargs={"split_key": "dev", "qa_data": dev_qa_data, "table_data": ori_table_data}),
 						datasets.SplitGenerator(
 								name=datasets.Split.TEST, 
-								gen_kwargs={"split_key": "test", "qa_data": test_qa, "table_data": test_table_data}),
+								gen_kwargs={"split_key": "test", "qa_data": test_qa_data, "table_data": table_data}),
 				]
 
 		def _convert_to_human_readable(self, sel, agg, columns, conditions):
@@ -173,13 +145,14 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				# if example['question_id'] != 'w_17':
 				# 	continue
 
-				question = example["question"]
+				question = example["question"].strip()
 				table_content = table_data[example["table_id"]]
-				if self.config.perturbation != 'original' and split_key=='dev':
-					answers = example['answers']
-				else:					
+
+				if split_key == 'test':
+					answer = example["answers"]
+				else:
 					tapas_table = _convert_table_types(table_content)
-					answers = retrieve_wikisql_query_answer_tapas(tapas_table, example)
+					answer = retrieve_wikisql_query_answer_tapas(tapas_table, example)
 				
 				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
 
@@ -187,7 +160,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 						"id": example["question_id"],
 						"table_id": example["table_id"],
 						"question": question.lower(),
-						"answers": answers,
+						"answers": answer,
 						"table": {"header": table_content["header"], "rows": table_content["rows"]},
 						"perturbation_type": perturbation_type,
 						"split_key": split_key
@@ -196,10 +169,9 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
 		from datasets import load_dataset
-		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
-								split_id=0,ignore_verifications=True,
-								perturbation_type='column',
+		dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
+								split_id=1,ignore_verifications=True,
 								# download_mode='force_redownload'
 								)
-		sample = dataset["validation"][0]
+		sample = dataset["train"][0]
 		print(sample)

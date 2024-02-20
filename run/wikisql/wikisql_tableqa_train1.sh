@@ -2,10 +2,10 @@ export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
-model_name="microsoft/tapex-large"
-run_name="wikisql_tableqa1"
+model_name="neulab/omnitab-large"
+run_name="wikisql_tableqa_ori"
 dataset_name="wikisql"
-output_dir="output/wikisql_tableqa1"
+output_dir="output/wikisql_tableqa_ori"
 
 python ./run.py \
   --do_train \
@@ -22,7 +22,7 @@ python ./run.py \
   --per_device_train_batch_size 4 \
   --gradient_accumulation_steps 4 \
   --per_device_eval_batch_size 4 \
-  --num_train_epochs 100 \
+  --num_train_epochs 50 \
   --warmup_ratio 0.1 \
   --learning_rate 3e-5 \
   --weight_decay 0.01 \
@@ -30,8 +30,8 @@ python ./run.py \
   --logging_steps 10 \
   --evaluation_strategy steps \
   --predict_with_generate \
-  --eval_steps 50 \
-  --save_steps 50 \
+  --eval_steps 100 \
+  --save_steps 100 \
   --num_beams 5 \
   --generation_max_length 128 \
   --run_name ${run_name} \
