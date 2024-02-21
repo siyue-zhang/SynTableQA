@@ -278,13 +278,11 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 
             table = eval_dataset['table'][i]
             nl_header = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table['header']]
-            n_col = len(table["header"])
+            n_col = len(nl_header)
             nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
-            print('bf: ', pred)
             for j in range(n_col):
-                pred = pred.replace(f'{j+1}_{nl_header[j]}', nm_header[j])
-            print('af: ', pred)
-            assert 1==2
+                pred = pred.replace(nl_header[j], nm_header[j])
+
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
                 pred = fuzzy_replace(table, pred, mapping)
@@ -305,13 +303,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             tapex_acc = evaluate_example(pred, answers, sep)
             tapex_flag.append(tapex_acc)
             predicted.append(sep.join(predicted_values))
-
-            # predicted_values = to_value_list(predicted_values)
-            # target_values = to_value_list(answers)
-            # correct = check_denotation(target_values, predicted_values)
-            # correct_flag.append(correct)
-
-            # print(correct, '\n-------')
 
         if stage:
             to_save = {'id': eval_dataset['id'],
