@@ -422,9 +422,9 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                     break
             features.append(usePro)
 
-            # if the input is truncated
-            isTru = row['truncated_text_to_sql']
-            features.append(isTru)
+            # # if the input is truncated
+            # isTru = row['truncated_text_to_sql']
+            # features.append(isTru)
 
 
         if not qonly:
@@ -488,9 +488,9 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             # log_prob_sum = float(row['log_prob_sum_tableqa'])
             # features.append(log_prob_sum)
 
-            # if the input is truncated
-            isTru = row['truncated_tableqa']
-            features.append(isTru)
+            # # if the input is truncated
+            # isTru = row['truncated_tableqa']
+            # features.append(isTru)
             
             # if all answers are from the table input or question
             allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
