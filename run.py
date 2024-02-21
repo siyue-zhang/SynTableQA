@@ -17,9 +17,6 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     AutoTokenizer,
-    BartForSequenceClassification,
-    DataCollatorWithPadding,
-    Trainer,
     set_seed,
 )
 from transformers.file_utils import is_offline_mode
@@ -52,7 +49,7 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    # disable wandb
+    # Disable wandb during experiment
     if data_args.max_eval_samples or data_args.max_predict_samples:
         training_args.report_to = []
 
@@ -94,24 +91,16 @@ def main():
                 "the `--output_dir` or add `--overwrite_output_dir` to train from scratch."
             )
     
+    # Set random seed for reproducibility
     set_seed(training_args.seed)
 
-    # if data_args.task == 'selector':
-    #     task = "./task/selector.py"
-    #     raw_datasets = load_dataset(task, 
-    #                                 dataset=data_args.dataset_name, 
-    #                                 download_mode='force_redownload',
-    #                                 ignore_verifications=True,
-    #                                 test_split = data_args.test_split,
-    #                                 downsize=data_args.squall_downsize,
-    #                                 aug=data_args.aug)
+    # Load dataset
     if data_args.dataset_name == 'squall':
         task = "./task/squall_plus.py"
         raw_datasets = load_dataset(task, 
                                     plus=data_args.squall_plus, 
                                     downsize=data_args.squall_downsize,
                                     split_id=data_args.split_id,
-                                    aug=data_args.aug,
                                     download_mode='force_redownload',
                                     ignore_verifications=True)
     elif data_args.dataset_name == 'wikisql':
@@ -124,6 +113,7 @@ def main():
     else:
         raise NotImplementedError
 
+    # Load model configuration
     config = AutoConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -135,7 +125,7 @@ def main():
     config.early_stopping = False
     padding = "max_length" if data_args.pad_to_max_length else False
 
-    # load main tokenizer
+    # Load main tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -168,17 +158,10 @@ def main():
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-    # elif data_args.task.lower() == 'selector':
-    #     config.id2label = {0: "text_to_sql", 1: "tableqa"}
-    #     config.label2id = {"text_to_sql": 0, "tableqa": 1}
-    #     config.num_labels = 2
-    #     model = BartForSequenceClassification.from_pretrained(
-    #         pretrained_model_name_or_path=name,
-    #         config=config)
     else:
         raise NotImplementedError
 
-    # load preprocess_function
+    # Load dataset preprocess function
     preprocess_module = 'seq2seq.'
     if data_args.task.lower()=='selector':
         preprocess_module += 'selector'
@@ -256,28 +239,19 @@ def main():
                     )
 
     label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
-    
-    if data_args.task == 'selector':
-        data_collator = DataCollatorWithPadding(
-            tokenizer=tokenizer,
-            pad_to_multiple_of=8 if training_args.fp16 else None,
-        )
-    else:
-        data_collator = DataCollatorForSeq2Seq(
-            tokenizer,
-            model=model,
-            label_pad_token_id=label_pad_token_id,
-            pad_to_multiple_of=8 if training_args.fp16 else None,
-        )
 
-    # load prepare_compute_metrics
+    data_collator = DataCollatorForSeq2Seq(
+        tokenizer,
+        model=model,
+        label_pad_token_id=label_pad_token_id,
+        pad_to_multiple_of=8 if training_args.fp16 else None,
+    )
+
+    # Load prepare compute metrics function
     metric_module = 'metric.'
-    if data_args.task.lower()=='selector':
-        metric_module += 'selector'
-    else:
-        metric_module += data_args.dataset_name
-        if data_args.task.lower()=='tableqa':
-            metric_module += '_tableqa'
+    metric_module += data_args.dataset_name
+    if data_args.task.lower()=='tableqa':
+        metric_module += '_tableqa'
     prepare_compute_metrics = import_module(metric_module).prepare_compute_metrics
 
     if training_args.do_train:            
@@ -290,7 +264,6 @@ def main():
         dataset_name = data_args.dataset_name
         squall_plus_suffix = '_plus' if data_args.squall_plus else ''
         squall_downsize_suffix = f'_d{data_args.squall_downsize}' if data_args.squall_downsize else ''
-        augmentation_suffix = '_aug' if data_args.aug else ''
         split_id = data_args.split_id
         perturbation_suffix = (
             f'_{data_args.perturbation_type}'
@@ -302,7 +275,6 @@ def main():
             f'{dataset_name}'
             f'{squall_plus_suffix}'
             f'{squall_downsize_suffix}'
-            f'{augmentation_suffix}'
             f'_{data_args.task.lower()}'
             f'_{data_args.predict_split}'
             f'{split_id}'
@@ -315,7 +287,7 @@ def main():
             stage=stage, 
             fuzzy=data_args.postproc_fuzzy_string)
 
-    # trainer_class = Trainer if data_args.task == 'selector' else Seq2SeqTrainer
+    # Load trainer
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
@@ -360,66 +332,59 @@ def main():
     # Prediction
     if training_args.do_predict:
         logger.info("*** Predict ***")
-        if data_args.task == 'selector':
-            predict_results = trainer.predict(
-                predict_dataset,
-                metric_key_prefix="predict",
+ 
+        b = training_args.per_device_eval_batch_size
+        max_len = len(predict_dataset)
+        log_probs_sum = []
+        log_probs_mean = []
+        predictions = []
+
+        for i in tqdm(range(0, max_len, b)):
+            end = min(i+b, max_len) 
+
+            input_ids = predict_dataset['input_ids'][i:end]
+            input_ids = [item + [tokenizer.pad_token_id]*(data_args.max_source_length-len(item)) for item in input_ids]
+            input_ids = torch.tensor(input_ids).to(training_args.device)
+
+            attention_mask = predict_dataset['attention_mask'][i:end]
+            attention_mask = [item + [0]*(data_args.max_source_length-len(item)) for item in attention_mask]
+            attention_mask = torch.tensor(attention_mask).to(training_args.device)
+
+            # Generate the output using beam search
+            gen_outputs = model.generate(
+                inputs=input_ids,
+                attention_mask=attention_mask,
+                num_beams=data_args.num_beams,
+                max_length=data_args.val_max_target_length,
+                output_scores=True,
+                return_dict_in_generate=True,
             )
-            metrics = predict_results.metrics
-            trainer.log_metrics("predict", metrics)
-        else:
-            b = training_args.per_device_eval_batch_size
-            max_len = len(predict_dataset)
-            log_probs_sum = []
-            log_probs_mean = []
-            predictions = []
+            # Compute scores for beam search
+            scores = model.compute_transition_scores(
+                sequences=gen_outputs.sequences,
+                scores=gen_outputs.scores,
+                beam_indices=gen_outputs.beam_indices,
+            )
 
-            for i in tqdm(range(0, max_len, b)):
-                end = min(i+b, max_len) 
+            output_scores=[]
+            for sample in scores.tolist():
+                last = len(sample)-1
+                while last>0 and sample[last]==0:
+                    last -= 1
+                output_scores.append(sample[:last+1])
 
-                input_ids = predict_dataset['input_ids'][i:end]
-                input_ids = [item + [tokenizer.pad_token_id]*(data_args.max_source_length-len(item)) for item in input_ids]
-                input_ids = torch.tensor(input_ids).to(training_args.device)
+            log_probs_sum += [np.sum(x) for x in output_scores] # sum
+            log_probs_mean += [np.mean(x) for x in output_scores] # mean
+            tmp = gen_outputs.sequences.cpu().tolist()
+            predictions += [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
 
-                attention_mask = predict_dataset['attention_mask'][i:end]
-                attention_mask = [item + [0]*(data_args.max_source_length-len(item)) for item in attention_mask]
-                attention_mask = torch.tensor(attention_mask).to(training_args.device)
+        tmp = predict_dataset["labels"]
+        label_ids = [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
+        
+        eval_preds = EvalPrediction(predictions=predictions, label_ids=label_ids)
+        acc = compute_metrics(eval_preds, {'log_probs_sum': log_probs_sum, 'log_probs_mean': log_probs_mean})
+        print("predict: ", acc)
 
-                # generate the output using beam search
-                gen_outputs = model.generate(
-                    inputs=input_ids,
-                    attention_mask=attention_mask,
-                    num_beams=data_args.num_beams,
-                    max_length=data_args.val_max_target_length,
-                    output_scores=True,
-                    return_dict_in_generate=True,
-                )
-                # compute scores for beam search
-                scores = model.compute_transition_scores(
-                    sequences=gen_outputs.sequences,
-                    scores=gen_outputs.scores,
-                    beam_indices=gen_outputs.beam_indices,
-                )
-
-                output_scores=[]
-                for sample in scores.tolist():
-                    last = len(sample)-1
-                    while last>0 and sample[last]==0:
-                        last -= 1
-                    output_scores.append(sample[:last+1])
-
-                log_probs_sum += [np.sum(x) for x in output_scores] # sum
-                log_probs_mean += [np.mean(x) for x in output_scores] # mean
-                tmp = gen_outputs.sequences.cpu().tolist()
-                predictions += [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
-
-            tmp = predict_dataset["labels"]
-            label_ids = [item + [tokenizer.pad_token_id]*(data_args.val_max_target_length-len(item)) for item in tmp]
-            
-            eval_preds = EvalPrediction(predictions=predictions, label_ids=label_ids)
-            acc = compute_metrics(eval_preds, {'log_probs_sum': log_probs_sum, 'log_probs_mean': log_probs_mean})
-            print("predict: ", acc)
-  
 
 if __name__ == "__main__":
     main()

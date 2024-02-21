@@ -49,7 +49,7 @@ _URL_wtq = "https://github.com/ppasupat/WikiTableQuestions/archive/refs/heads/ma
 class SquallConfig(datasets.BuilderConfig):
     """BuilderConfig for Squall."""
 
-    def __init__(self, plus, split_id, downsize=None, aug=False, **kwargs):
+    def __init__(self, plus, split_id, downsize=None, **kwargs):
         """BuilderConfig for Squall.
         Args:
           **kwargs: keyword arguments forwarded to super.
@@ -58,7 +58,6 @@ class SquallConfig(datasets.BuilderConfig):
         self.split_id = split_id
         self.plus = plus
         self.downsize = downsize
-        self.aug = aug
 
 class Squall(datasets.GeneratorBasedBuilder):
     """SQUALL: Lexical-level Supervised Table Question Answering Dataset."""
@@ -125,13 +124,13 @@ class Squall(datasets.GeneratorBasedBuilder):
 
     def downsize_examples(self, factor, examples):
         # reduce the training size
-        splits = range(5)
         tbl_splits = []
-        for s in splits:
+        for s in range(5):
             with open(f"./data/squall/data/dev-{s}.json", 'r') as file:
                 data = json.load(file)
             tbls = list(set([example['tbl'] for example in data]))
             tbl_splits.append(tbls)
+        # take a subset from each dev split
         downsized_tbl_splits = [l[:len(l)//factor] for l in tbl_splits]
         flattened_tbls = [item for sublist in downsized_tbl_splits for item in sublist]
         examples = [ex for ex in examples if ex['tbl'] in flattened_tbls]
@@ -169,6 +168,7 @@ class Squall(datasets.GeneratorBasedBuilder):
         with open(path, encoding="utf-8") as f:
             examples = json.load(f)
         
+        # if downsize > 0, the training size is reduced
         if split_key == 'train' and self.config.downsize:
             examples = self.downsize_examples(self.config.downsize, examples)
 
@@ -198,8 +198,6 @@ class Squall(datasets.GeneratorBasedBuilder):
             new_tbls = sorted(list(set([x['tbl'] for x in new_examples])))
             # split tables into 5 folds
             result_splits = list(self.split_list(new_tbls, 5))
-            # print(result_splits)
-            
             new_tbls_dev = result_splits[split_id]
             new_tbls_train = [x for x in new_tbls if x not in new_tbls_dev]
             # put some examples into train set, and the rest into dev set by table id
@@ -208,27 +206,16 @@ class Squall(datasets.GeneratorBasedBuilder):
             else:
                 examples += [x for x in new_examples if x['tbl'] in new_tbls_dev]
 
-        if self.config.aug:
-            with open(f"llm/aug_questions.json", 'r') as file:
-                aug_questions = json.load(file)
-            examples_copy = deepcopy(examples)
-            for sample in examples_copy:
-                nt = sample['nt']
-                if nt in aug_questions:
-                    n_aug = len(aug_questions[nt])
-                    for j in range(n_aug):
-                        tmp = deepcopy(sample)
-                        tmp['question'] = aug_questions[nt][j]
-                        tmp['src'] = 'aug'
-                        examples.append(tmp)
-
         # generate each example
         for i, sample in enumerate(examples):
             tbl = sample["tbl"]
             db_path = f"{_dir_squall}/tables/db/{tbl}.db"
             json_path = f"{_dir_squall}/tables/json/{tbl}.json"
             nt = sample["nt"]
-            if isinstance(sample["nl"], list):
+
+            if 'question' in sample:
+                question = sample['question']
+            elif isinstance(sample["nl"], list):
                 if sample["nl"][-1] in '.?':
                     question = ' '.join(sample["nl"][:-1]) + sample["nl"][-1]
                 else:
@@ -236,16 +223,12 @@ class Squall(datasets.GeneratorBasedBuilder):
             else:
                 question = sample["nl"]
 
-            if 'question' in sample:
-                question = sample['question']
-
             # get sql query and answer text
             if split_key == 'test':
                 query = 'unk'
                 answer = test_label[test_label["id"]==sample["nt"]]["targetValue"].tolist()[0]
                 if isinstance(answer, list):
-                    answer_text = [str(x) for x in answer]
-                    answer_text = '|'.join(answer_text)
+                    answer_text = '|'.join([str(x) for x in answer])
                 else:
                     answer_text = str(answer)
             else:
@@ -255,10 +238,7 @@ class Squall(datasets.GeneratorBasedBuilder):
                     query = 'unk'
                 answer_text = sample['tgt']
             
-            if 'src' in sample:
-                src = sample['src']
-            else:
-                src = 'squall'
+            src = sample['src'] if 'src' in sample else 'squall' 
 
             yield i, {
                 "nt": nt,
@@ -279,7 +259,6 @@ if __name__=='__main__':
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                            plus=True, 
                            split_id=1,
-                           downsize=None,
-                           aug=False)
+                           downsize=5)
     sample = dataset["test"][7]
     print(sample)
