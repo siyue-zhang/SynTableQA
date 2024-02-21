@@ -955,7 +955,7 @@ if __name__=='__main__':
     text_to_sql_tokenizer = T5Tokenizer.from_pretrained("t5-large")
 
     # model = "AdaBoost"
-    model = "RandomForest"
+    model = 'RandomForest'
     dataset = 'squall'
     test_split = 1
     aug = False

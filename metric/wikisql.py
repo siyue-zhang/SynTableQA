@@ -280,11 +280,11 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             nl_header = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table['header']]
             n_col = len(table["header"])
             nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
-            # print('bf: ', pred)
+            print('bf: ', pred)
             for j in range(n_col):
                 pred = pred.replace(f'{j+1}_{nl_header[j]}', nm_header[j])
-            # print('af: ', pred)
-
+            print('af: ', pred)
+            assert 1==2
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
                 pred = fuzzy_replace(table, pred, mapping)
@@ -304,8 +304,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             pred = sep.join(predicted_values)
             tapex_acc = evaluate_example(pred, answers, sep)
             tapex_flag.append(tapex_acc)
+            predicted.append(sep.join(predicted_values))
 
-            # predicted.append(predicted_values)
             # predicted_values = to_value_list(predicted_values)
             # target_values = to_value_list(answers)
             # correct = check_denotation(target_values, predicted_values)
@@ -328,7 +328,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             if meta:
                 to_save['log_probs_sum'] = meta['log_probs_sum']
                 to_save['log_probs_avg'] = meta['log_probs_mean'] 
-            
+
             df = pd.DataFrame(to_save)
             df.to_csv(f'./predict/wikisql/{stage}.csv', na_rep='',index=False)
             print('predictions saved! ', stage)
