@@ -324,8 +324,8 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
         # number of rows
         features.append(table_shape[tbl][0])
         # # number of columns
-        features.append(table_shape[tbl][1])
-        # features.append(table_shape[tbl][2])
+        # features.append(table_shape[tbl][1])
+        features.append(table_shape[tbl][2])
         if verbose:
             print('Table has rows: ', table_shape[tbl][0])
 
@@ -342,7 +342,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                     print('  ', text_to_sql_value_list)
                     print('  sql after fuzzy: ', sql)
 
-            # # query use complex column
+            # query use complex column
             # hasLst = '_list' in sql
             # features.append(int(hasLst))
 
@@ -357,6 +357,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
 
             # hasLen = '_length' in sql
             # features.append(int(hasLen))
+                    
 
             # number of predicted tokens
             n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
@@ -422,9 +423,9 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                     break
             features.append(usePro)
 
-            # # if the input is truncated
-            # isTru = row['truncated_text_to_sql']
-            # features.append(isTru)
+            # if the input is truncated
+            isTru = row['truncated_text_to_sql']
+            features.append(isTru)
 
 
         if not qonly:
@@ -437,11 +438,11 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                     print('\nTableqa Answer: ', ans_tableqa)
                     print('  ', tableqa_value_list)
 
-            isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
-            features.append(isAbb)
+            # isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
+            # features.append(isAbb)
 
-            isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
-            features.append(isAbb)
+            # isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
+            # features.append(isAbb)
 
             # number of answers
             features.append(len(ans_tableqa_list))
@@ -488,9 +489,9 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             # log_prob_sum = float(row['log_prob_sum_tableqa'])
             # features.append(log_prob_sum)
 
-            # # if the input is truncated
-            # isTru = row['truncated_tableqa']
-            # features.append(isTru)
+            # if the input is truncated
+            isTru = row['truncated_tableqa']
+            features.append(isTru)
             
             # if all answers are from the table input or question
             allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
