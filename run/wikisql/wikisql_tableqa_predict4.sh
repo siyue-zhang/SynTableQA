@@ -1,9 +1,9 @@
 export CUDA_VISIBLE_DEVICES=0
 
-model_name="microsoft/tapex-large"
+model_name="neulab/omnitab-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa4"
-checkpoint=2600
+checkpoint=2800
 
 python ./run.py \
   --task tableqa \
@@ -15,7 +15,7 @@ python ./run.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --val_max_target_length 128 \
-  --per_device_eval_batch_size 4 \
+  --per_device_eval_batch_size 8 \
   --dataset_name ${dataset_name} \
   --split_id 4 \
   --predict_with_generate \

@@ -1,9 +1,9 @@
 export CUDA_VISIBLE_DEVICES=0
 
-model_name="microsoft/tapex-large"
+model_name="neulab/omnitab-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa0"
-checkpoint=2600
+checkpoint=
 # model_name="microsoft/tapex-large-finetuned-wikisql"
 
 python ./run.py \
