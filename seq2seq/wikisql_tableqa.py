@@ -1,5 +1,6 @@
 import sys
 sys.path.append('./')
+from copy import deepcopy
 from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
@@ -10,19 +11,20 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     input_truncated = []
     for i in range(len(examples['question'])): 
         table_content = examples['table'][i]
+        table_content_x = deepcopy(table_content)
         answer = examples['answers'][i]
         question = examples['question'][i]
 
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
             # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, answer).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
         else:
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, []).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
         input_sources.append(input_source)
         
-        n_row = len(examples['table'][i]['rows'])
-        truncated = f'row {n_row}' in input_source
+        n_row = len(table_content['rows'])
+        truncated = f'row {n_row}' not in input_source
         input_truncated.append(truncated)
 
         output_target = TABLE_PROCESSOR.process_output(answer).lower()
@@ -63,7 +65,7 @@ if __name__=='__main__':
                             perturbation_type='row',
                             # download_mode='force_redownload'
                             )
-    train_dataset = datasets["validation"].select(range(10))
+    train_dataset = datasets["validation"].select(range(1000))
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,

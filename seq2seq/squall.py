@@ -99,8 +99,8 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         else:
             input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
         
-        n_row = len(table_content_x['rows'])
-        truncated = f'row {n_row}' in input_source
+        n_row = len(table_content['rows'])
+        truncated = f'row {n_row}' not in input_source
         input_truncated.append(truncated)
 
         for j in range(len(table_content['ori_header'])):

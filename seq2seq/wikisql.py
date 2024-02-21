@@ -1,5 +1,6 @@
 import sys
 sys.path.append('./')
+from copy import deepcopy
 from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
@@ -22,18 +23,19 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             row = [f'{j+1}', '0'] + row
             new_rows.append(row)
         table_content['rows'] = new_rows
+        table_content_x = deepcopy(table_content)
 
         answer = examples["answers"][i]
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
             # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, answer).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
         else:
-            input_source = TABLE_PROCESSOR.process_input(table_content, question, []).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
         inputs.append(input_source)
 
         n_row = len(table_content['rows'])
-        truncated = f'row {n_row}' in input_source
+        truncated = f'row {n_row}' not in input_source
         input_truncated.append(truncated)
 
         output_target = TABLE_PROCESSOR.process_output(answer).lower()
@@ -80,7 +82,7 @@ if __name__=='__main__':
                             perturbation_type='row',
                             # download_mode='force_redownload'
                             )
-    train_dataset = datasets["validation"].select(range(10))
+    train_dataset = datasets["validation"].select(range(1000))
     tokenizer = T5Tokenizer.from_pretrained("t5-small")
     train_dataset = train_dataset.map(
         preprocess_function,

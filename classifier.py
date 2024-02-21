@@ -302,16 +302,6 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
         else:
             features.append(0)
 
-        # if "only" in qword:
-        #     features.append(1)
-        # else:
-        #     features.append(0)
-            
-        # if "or" in qword:
-        #     features.append(1)
-        # else:
-        #     features.append(0)
-
         features.append(len(tableqa_tokenizer.tokenize(question)))
         if verbose:
             print('Question token length: ', len(tableqa_tokenizer.tokenize(question)))
@@ -334,7 +324,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
         # number of rows
         features.append(table_shape[tbl][0])
         # # number of columns
-        # features.append(table_shape[tbl][1])
+        features.append(table_shape[tbl][1])
         # features.append(table_shape[tbl][2])
         if verbose:
             print('Table has rows: ', table_shape[tbl][0])
@@ -352,7 +342,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                     print('  ', text_to_sql_value_list)
                     print('  sql after fuzzy: ', sql)
 
-            # query use complex column
+            # # query use complex column
             # hasLst = '_list' in sql
             # features.append(int(hasLst))
 
@@ -371,8 +361,6 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             # number of predicted tokens
             n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
             features.append(n_tok_text_to_sql)
-
-            # features.append(int(ans_text_to_sql=='0'))
 
             # number of answers
             features.append(len(ans_text_to_sql_list))
@@ -401,13 +389,6 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                 if str(v)[0]=='N':
                     hasNum += 1
             features.append(hasNum)
-
-            # # answers have number, 01:47.6
-            # hasNum2 = 0
-            # for v in ans_text_to_sql_list:
-            #     if v.replace(':','').replace('.','').isnumeric():
-            #         hasNum2 += 1
-            # features.append(hasNum2)
 
             # answers have date
             hasDat = 0
@@ -452,16 +433,15 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
 
-            # features.append(int(ans_tableqa=='0'))
-
             if verbose:
                     print('\nTableqa Answer: ', ans_tableqa)
                     print('  ', tableqa_value_list)
 
-            # isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
-            # features.append(isAbb)
-            # isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
-            # features.append(isAbb)
+            isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
+            features.append(isAbb)
+
+            isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
+            features.append(isAbb)
 
             # number of answers
             features.append(len(ans_tableqa_list))
@@ -883,16 +863,15 @@ def load_and_predict(dataset, X, Y, model, name=""):
     with open("classifiers/{}_{}_{}.pkl".format(dataset, model, name), "rb") as f:
         classifier = pickle.load(f)
     # print ("coefs: ", classifier.coef_)
-    
     # return classifier.predict_proba(X)
     # return classifier.predict(X)
     return classifier.score(X, Y)
 
 
-def test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=""):
+def test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name="", qonly=False):
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
-    X, Y = extract_features(df_test, tableqa_tokenizer, text_to_sql_tokenizer)
+    X, Y = extract_features(df_test, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     with open("classifiers/{}_{}_{}.pkl".format(dataset, model, name), "rb") as f:
         classifier = pickle.load(f)
     pred = classifier.predict(X)
@@ -954,11 +933,12 @@ if __name__=='__main__':
     tableqa_tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-large")
     text_to_sql_tokenizer = T5Tokenizer.from_pretrained("t5-large")
 
-    # model = "AdaBoost"
+    # model = 'AdaBoost'
     model = 'RandomForest'
     dataset = 'squall'
     test_split = 1
     aug = False
+    qonly = False
     name = 'aug' if aug else ''
 
     df_train, df_dev = load_dfs(dataset, aug)
@@ -966,13 +946,13 @@ if __name__=='__main__':
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
 
-    X, Y = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer)
+    X, Y = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     fit_and_save(X, Y, model, name=name, dataset=dataset)
     print('\n')
 
-    X, Y = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer)
+    X, Y = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     dev_scores = load_and_predict(dataset, X, Y, model, name=name)
     print ("dev score: ", dev_scores, '\n')
 
-    df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name)
+    df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name, qonly=qonly)
     df_test.to_csv(f'./predict/{dataset}_classifier_test{test_split}.csv', na_rep='',index=False)
