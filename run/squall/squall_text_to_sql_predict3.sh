@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 model_name="t5-large"
 dataset_name="squall"
 output_dir="output/squall_text_to_sql3"
-checkpoint=2900
+checkpoint=4500
 
 python ./run.py \
   --task text_to_sql \
