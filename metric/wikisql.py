@@ -70,7 +70,7 @@ def find_fuzzy_col(col, mapping):
 
 def fuzzy_replace(table_content, pred, mapping):
 
-    verbose = False
+    verbose = True
     contents = table_content
     ori_pred = str(pred)
 
@@ -273,6 +273,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         tapex_flag = []
         sep = ', '
         for i, pred in enumerate(predictions):
+            print('bf: ', pred)
             answers = eval_dataset['answers'][i]
             answers = sep.join([a.strip().lower() for a in answers])
 
@@ -282,6 +283,8 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
             for j in range(n_col):
                 pred = pred.replace(nl_header[j], nm_header[j])
+            # convert all cell values into lower case
+            table['rows'] = [[item.lower() for item in row] for row in table['rows']]
 
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
@@ -291,11 +294,16 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             w = deepcopy(table)
             w['header'] = nm_header
             w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
- 
+
             try:
                 predicted_values = sqldf(pred).values.tolist()
             except Exception as e:
                 predicted_values = []
+
+            print(w)
+            print(pred)
+            print(predicted_values)
+            assert 1==2
 
             # Flatten the list and convert elements to strings
             predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []
