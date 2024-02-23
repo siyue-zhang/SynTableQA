@@ -4,8 +4,10 @@ model_name="t5-large"
 dataset_name="wikisql"
 # output_dir="output/squall_text_to_sql1"
 # checkpoint=4600
-output_dir="output/squall_text_to_sql2"
-checkpoint=1800
+# output_dir="output/squall_text_to_sql2"
+# checkpoint=1800
+output_dir="output/squall_text_to_sql1_fix"
+checkpoint=2100
 
 python ./run.py \
   --task text_to_sql \
@@ -18,11 +20,12 @@ python ./run.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --val_max_target_length 128 \
-  --per_device_eval_batch_size 4 \
+  --per_device_eval_batch_size 8 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --predict_with_generate \
-  --num_beams 5
+  --num_beams 5 
+
   # --max_predict_samples 1000
   # --perturbation_type combined \
   # --perturbation_type column \

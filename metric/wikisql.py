@@ -74,6 +74,10 @@ def fuzzy_replace(table_content, pred, mapping):
     contents = table_content
     ori_pred = str(pred)
 
+    # select col0 from w where col1< 150817.6878461314 and col3 = '1.928 (1.89%)'
+    print(pred)
+    assert 1==2
+
     # select col1 from table_1_10797463_1 where col4 = 65.9%
     pattern = r'((col\d+)\s*=\s*(\d+?\.\d+?%))'
     pairs = re.findall(pattern, pred)
@@ -286,6 +290,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             # convert all cell values into lower case
             table['rows'] = [[item.lower() for item in row] for row in table['rows']]
 
+            print(table)
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
                 pred = fuzzy_replace(table, pred, mapping)
@@ -293,19 +298,24 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 
             w = deepcopy(table)
             w['header'] = nm_header
+            for row in w['rows']:
+                for j in range(len(row)):
+                    if row[j].replace(',', '').replace('.', '').isdigit(): # Remove commas and dots for numeric check
+                        row[j] = float(row[j].replace(',', '')) # Convert to float if numeric
             w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
 
             try:
-                predicted_values = sqldf(pred).values.tolist()
+                predicted_values = sqldf(pred.replace('<',' <')).values.tolist()
             except Exception as e:
                 predicted_values = []
                 
-            # print(eval_dataset['question'][i])
-            # print(nl_header)
-            # print(w)
-            # print(pred)
-            # print(predicted_values)
-            # assert 1==2
+            print(eval_dataset['question'][i])
+            print(nl_header)
+            print(w)
+            print(w.dtypes)
+            print(pred)
+            print(predicted_values)
+            assert 1==2
 
             # Flatten the list and convert elements to strings
             predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []
