@@ -273,7 +273,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         tapex_flag = []
         sep = ', '
         for i, pred in enumerate(predictions):
-            print('bf: ', pred)
+            # print('bf: ', pred)
             answers = eval_dataset['answers'][i]
             answers = sep.join([a.strip().lower() for a in answers])
 
@@ -299,11 +299,13 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
                 predicted_values = sqldf(pred).values.tolist()
             except Exception as e:
                 predicted_values = []
-
-            print(w)
-            print(pred)
-            print(predicted_values)
-            assert 1==2
+                
+            # print(eval_dataset['question'][i])
+            # print(nl_header)
+            # print(w)
+            # print(pred)
+            # print(predicted_values)
+            # assert 1==2
 
             # Flatten the list and convert elements to strings
             predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []
