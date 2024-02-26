@@ -4,7 +4,6 @@ import pandas as pd
 from pandasql import sqldf
 from fuzzywuzzy import process
 from copy import deepcopy
-import ast
 # from metric.squall_evaluator import to_value_list, check_denotation
 
 from collections import defaultdict
@@ -310,15 +309,15 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 
             w = deepcopy(table)
             w['header'] = nm_header
-            for row in w['rows']:
-                for j in range(len(row)):
-                    if row[j].replace(',', '').replace('.', '').isdigit():
-                        try:
-                            # convert string to either float or int
-                            row[j] = ast.literal_eval(row[j])
-                        except Exception as e:
-                            pass
+            # _number convert
 
+            # for row in w['rows']:
+            #     for j, value in enumerate(row):
+            #         cleaned_value = value.replace(',', '')
+            #         if cleaned_value.replace('.', '').isdigit():
+            #             row[j] = float(cleaned_value) if '.' in cleaned_value else int(cleaned_value)
+            #         else:
+            #             row[j] = str(value)
             w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
 
             try:
@@ -326,13 +325,13 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             except Exception as e:
                 predicted_values = []
                 
-            # print(eval_dataset['question'][i])
-            # print(nl_header)
-            # print(w)
-            # print(w.dtypes)
-            # print(pred)
-            # print(predicted_values)
-            # assert 1==2
+            print(eval_dataset['question'][i])
+            print(nl_header)
+            print(w)
+            print(w.dtypes)
+            print(pred)
+            print(predicted_values)
+            assert 1==2
 
             # Flatten the list and convert elements to strings
             predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []

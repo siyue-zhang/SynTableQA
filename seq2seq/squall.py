@@ -9,7 +9,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     # preprocess the squall datasets for the model input
     TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter='|')
     # only keep cell truncation, remove row deletion
-    TABLE_PROCESSOR.table_truncate_funcs = TABLE_PROCESSOR.table_truncate_funcs[0:1]
+    # TABLE_PROCESSOR.table_truncate_funcs = TABLE_PROCESSOR.table_truncate_funcs[0:1]
 
     nts = examples["nt"]
     tbls = examples["tbl"]

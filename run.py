@@ -108,7 +108,7 @@ def main():
         raw_datasets = load_dataset(task, 
                                     split_id=data_args.split_id,
                                     perturbation_type=data_args.perturbation_type,
-                                    download_mode='force_redownload',
+                                    # download_mode='force_redownload',
                                     ignore_verifications=True)
     else:
         raise NotImplementedError

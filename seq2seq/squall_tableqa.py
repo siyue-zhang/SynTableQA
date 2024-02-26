@@ -131,7 +131,7 @@ if __name__=='__main__':
     # squall_tableqa can be plus or default
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                             split_id=1, plus=False)
-    train_dataset = datasets["validation"]
+    train_dataset = datasets["test"]
     tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-base")
     train_dataset = train_dataset.map(
         preprocess_function,

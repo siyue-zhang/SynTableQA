@@ -208,6 +208,10 @@ class Squall(datasets.GeneratorBasedBuilder):
 
         # generate each example
         for i, sample in enumerate(examples):
+
+            if sample["nt"] != 'nu-30':
+                continue
+
             tbl = sample["tbl"]
             db_path = f"{_dir_squall}/tables/db/{tbl}.db"
             json_path = f"{_dir_squall}/tables/json/{tbl}.json"

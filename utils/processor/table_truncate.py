@@ -144,7 +144,6 @@ class RowDeleteTruncate(TableTruncate):
             answer_set = set([])
         else:
             answer_set = set([ans_ex.lower() for ans_ex in answer])
-        # print(answer_set)
         # add question key words into answer set
         if question is not None:
             answer_set.update(question.split())
@@ -152,18 +151,15 @@ class RowDeleteTruncate(TableTruncate):
         row_max_len = len(table_content["rows"])
         for _row_idx, row in enumerate(table_content["rows"]):
             lower_row = set([str(cell).lower() for cell in row])
-            # print(lower_row)
-            # print(answer_set)
             if len(lower_row & answer_set) == 0 and len(lower_row & question_set) == 0:
                 truncated_unrelated_indices.append(_row_idx)
                 # print(_row_idx, ' is unrelated')
-                # assert 1==2
+                # print('answer set: ', answer_set, '\n')
             else:
                 # add neighbours to preserve information aggressively
                 related_indices.extend([_row_idx - 2, _row_idx - 1,
                                         _row_idx,
                                         _row_idx + 1, _row_idx + 2])
-
         # remove the neighbours
         truncated_unrelated_indices = [_row_idx for _row_idx in truncated_unrelated_indices
                                        if _row_idx not in related_indices]

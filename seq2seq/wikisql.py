@@ -2,6 +2,7 @@ import sys
 sys.path.append('./')
 from copy import deepcopy
 from utils.processor import get_default_processor
+import pandas as pd
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 
@@ -15,6 +16,30 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     for i in range(len(questions)):
         question = questions[i]
         table_content = examples["table"][i]
+
+        w = pd.DataFrame.from_records(table_content['rows'],columns=table_content['header'])
+        w_expand = {}
+        for col in w.columns:
+            data = w[col].tolist()
+            w_expand[col] = data
+            if any([d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit() for d in data]):
+                data_expand = []
+                for d in data:
+                    if d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit():
+                        if '.' in d:
+                            data_expand.append(str(float(d.replace('$','').replace('%','').replace(',',''))))
+                        else:
+                            data_expand.append(str(int(d.replace('$','').replace('%','').replace(',',''))))
+                    else:
+                        data_expand.append("")
+                w_expand[f'{col}_number'] = data_expand
+        w_expand = pd.DataFrame.from_dict(w_expand)
+
+        table_content = {
+            'header': w_expand.columns.tolist(),
+            'rows': w_expand.values.tolist()
+        }
+
         table_content['header'] = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table_content['header']]
         table_content['header'] = ['id', 'agg'] + table_content['header']
         table_content['header'] = [f'{k+1}_{x}' for k, x in enumerate(table_content['header'])]
@@ -23,15 +48,15 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             row = [f'{j+1}', '0'] + row
             new_rows.append(row)
         table_content['rows'] = new_rows
-        table_content_x = deepcopy(table_content)
+        table_content_copy = deepcopy(table_content)
 
         answer = examples["answers"][i]
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
             # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, answer).lower()
         else:
-            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
         inputs.append(input_source)
 
         n_row = len(table_content['rows'])
