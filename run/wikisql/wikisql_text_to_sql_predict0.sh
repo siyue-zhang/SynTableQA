@@ -6,8 +6,10 @@ dataset_name="wikisql"
 # checkpoint=4600
 # output_dir="output/squall_text_to_sql2"
 # checkpoint=1800
-output_dir="output/squall_text_to_sql1_fix"
-checkpoint=2100
+# output_dir="output/squall_text_to_sql1_fix"
+# checkpoint=3800
+# output_dir="output/squall_text_to_sql0_fix"
+# checkpoint=2700
 
 python ./run.py \
   --task text_to_sql \
@@ -24,9 +26,9 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --predict_with_generate \
-  --num_beams 5 
-
-  # --max_predict_samples 1000
+  --num_beams 5 \
+  --save_note fix1_3800 
+  # --max_predict_samples 500
   # --perturbation_type combined \
   # --perturbation_type column \
 

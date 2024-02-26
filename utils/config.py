@@ -52,6 +52,9 @@ class DataTrainingArguments:
     dataset_name: str = field(
         default="squall", metadata={"help": "squall, spider or selector"}
     )
+    save_note: str = field(
+        default="", metadata={"help": "suffix in save file"}
+    )
     squall_plus: bool = field(
         default=False, metadata={"help": "whether to use plus version"}
     )

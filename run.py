@@ -267,7 +267,7 @@ def main():
         split_id = data_args.split_id
         perturbation_suffix = (
             f'_{data_args.perturbation_type}'
-            if dataset_name == 'wikisql' and data_args.predict_split == 'test'
+            if dataset_name == 'wikisql' and data_args.predict_split == 'dev' and split_id == 0 and data_args.perturbation_type != 'original'
             else ''
         )
 
@@ -279,6 +279,7 @@ def main():
             f'_{data_args.predict_split}'
             f'{split_id}'
             f'{perturbation_suffix}'
+            f'_{data_args.save_note}'
         )
         
         compute_metrics = prepare_compute_metrics(

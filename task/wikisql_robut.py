@@ -168,8 +168,8 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 			
 			for idx, example in enumerate(qa_data):
 				
-				if example['question_id'] != 'dev_24':
-					continue
+				# if example['question_id'] != 'dev_61':
+				# 	continue
 
 				question = example["question"]
 				table_content = table_data[example["table_id"]]
@@ -179,6 +179,9 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				else:					
 					tapas_table = _convert_table_types(table_content)
 					answers = retrieve_wikisql_query_answer_tapas(tapas_table, example)
+				# print(example)
+				# print(answers)
+				# assert 1==2
 				
 				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
 
@@ -197,7 +200,7 @@ if __name__=='__main__':
 		from datasets import load_dataset
 		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
 								split_id=0, ignore_verifications=True,
-								perturbation_type='row',
+								# perturbation_type='row',
 								# download_mode='force_redownload'
 								)
 		sample = dataset["validation"][0]

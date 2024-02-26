@@ -164,7 +164,7 @@ def _get_float_answer(table,
             return 0.0
         else:
             return EMPTY_ANSWER_AGG
-
+        
     # Count can support non numeric answers.
     if aggregation_op == _Aggregation.COUNT:
         return float(len(answer_coordinates))

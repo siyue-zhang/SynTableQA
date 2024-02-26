@@ -4,6 +4,7 @@ import pandas as pd
 from pandasql import sqldf
 from fuzzywuzzy import process
 from copy import deepcopy
+import ast
 # from metric.squall_evaluator import to_value_list, check_denotation
 
 from collections import defaultdict
@@ -14,15 +15,21 @@ def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', ')
     _predict_values = defaultdict(lambda: 0)
     _ground_values = defaultdict(lambda: 0)
     for span in _predict_spans:
+        # 2,000
+        if span.replace(',','').replace('.','').isdigit():
+            span = span.replace(',','')
         try:
             _predict_values[float(span)] += 1
         except ValueError:
             _predict_values[span.strip()] += 1
     for span in _ground_spans:
+        if span.replace(',','').replace('.','').isdigit():
+            span = span.replace(',','')
         try:
             _ground_values[float(span)] += 1
         except ValueError:
             _ground_values[span.strip()] += 1
+
     _is_correct = _predict_values == _ground_values
     return _is_correct
 
@@ -70,13 +77,19 @@ def find_fuzzy_col(col, mapping):
 
 def fuzzy_replace(table_content, pred, mapping):
 
-    verbose = True
+    verbose = False
     contents = table_content
     ori_pred = str(pred)
 
     # select col0 from w where col1< 150817.6878461314 and col3 = '1.928 (1.89%)'
-    print(pred)
-    assert 1==2
+    # print(pred)
+    # assert 1==2
+
+    # select 10_location from w where 4_date = 'november 20'
+    # dev-160 select col1 from w where col3 ='shark' and col2 = 'week 14'
+    # dev-164 select 3_country from w where 4_interview_score = 9.40 and 7_average = 9.44
+    # select col0 from w where col1_score = 9.40 and col4 = 9.44
+    # 
 
     # select col1 from table_1_10797463_1 where col4 = 65.9%
     pattern = r'((col\d+)\s*=\s*(\d+?\.\d+?%))'
@@ -290,7 +303,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             # convert all cell values into lower case
             table['rows'] = [[item.lower() for item in row] for row in table['rows']]
 
-            print(table)
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
                 pred = fuzzy_replace(table, pred, mapping)
@@ -300,22 +312,27 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             w['header'] = nm_header
             for row in w['rows']:
                 for j in range(len(row)):
-                    if row[j].replace(',', '').replace('.', '').isdigit(): # Remove commas and dots for numeric check
-                        row[j] = float(row[j].replace(',', '')) # Convert to float if numeric
+                    if row[j].replace(',', '').replace('.', '').isdigit():
+                        try:
+                            # convert string to either float or int
+                            row[j] = ast.literal_eval(row[j])
+                        except Exception as e:
+                            pass
+
             w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
 
             try:
-                predicted_values = sqldf(pred.replace('<',' <')).values.tolist()
+                predicted_values = sqldf(pred).values.tolist()
             except Exception as e:
                 predicted_values = []
                 
-            print(eval_dataset['question'][i])
-            print(nl_header)
-            print(w)
-            print(w.dtypes)
-            print(pred)
-            print(predicted_values)
-            assert 1==2
+            # print(eval_dataset['question'][i])
+            # print(nl_header)
+            # print(w)
+            # print(w.dtypes)
+            # print(pred)
+            # print(predicted_values)
+            # assert 1==2
 
             # Flatten the list and convert elements to strings
             predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []
