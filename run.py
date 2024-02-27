@@ -101,7 +101,7 @@ def main():
                                     plus=data_args.squall_plus, 
                                     downsize=data_args.squall_downsize,
                                     split_id=data_args.split_id,
-                                    download_mode='force_redownload',
+                                    # download_mode='force_redownload',
                                     ignore_verifications=True)
     elif data_args.dataset_name == 'wikisql':
         task = "./task/wikisql_robut.py"

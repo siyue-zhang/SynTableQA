@@ -21,7 +21,9 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --split_id 1 \
   --predict_with_generate \
-  --num_beams 5 
+  --num_beams 5 \
+  --save_note new_fuzzy
+
 # --max_predict_samples 100  
 # --squall_downsize 5
 # --aug True \

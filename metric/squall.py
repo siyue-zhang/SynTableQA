@@ -3,55 +3,112 @@ import re
 import numpy as np
 import pandas as pd
 from fuzzywuzzy import process
+from fuzzywuzzy import fuzz
 from metric.squall_evaluator import Evaluator
+from collections import defaultdict
+from copy import deepcopy
 
-def find_best_match(contents, col, ori):
-    final_strings = []
-    done = False
-    for c in contents:
-        for cc in c:
-            if col == cc['col']:
-                strings = cc['data']
-                for item in strings:
-                    if isinstance(item, list):
-                        for ii in item:
-                            final_strings.append(str(ii))
-                    else:
-                        final_strings.append(str(item))
-                done = True
-            if done:
-                break
-        if done:
-            break
-    assert len(final_strings)>0, f'strings empty {final_strings}'
-    final_strings = list(set(final_strings))
-    best_match, _ = process.extractOne(ori, final_strings)
-    return best_match
+def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, ori3=None):
 
-def find_fuzzy_col(col, mapping):
-    assert col not in mapping
-    # col->ori
-    mapping_b = {value: key for key, value in mapping.items()}
-    match = re.match(r'^(c\d+)', col)
-    if match:
-        c_num = match.group(1)
-        # assert c_num in mapping, f'{c_num} not in {mapping}'
-        if c_num not in mapping:
-            print(f'predicted {c_num} is not valid ({mapping})')
-            return list(mapping.keys())[0]
-        else:
-            best_match, _ = process.extractOne(col.replace(c_num, mapping[c_num]), [value for _, value in mapping.items()])
+    if ori not in cell_dict:
+        candidates = list(cell_dict.keys())
+        candidates = sorted([x for x in candidates if isinstance(x, str)], key=len)
+        can = [x for x in candidates if len(x)>(len(ori)//2)]
+        if len(can)>0:
+            candidates = can
+        new_ori, _ = process.extractOne(ori, candidates)
+        to_replace = to_replace.replace(ori, new_ori)
     else:
-        best_match, _ = process.extractOne(col, [value for _, value in mapping.items()])
-    return mapping_b[best_match]
+        new_ori = ori
+
+    if col not in cell_dict[new_ori]:
+        if len(cell_dict[new_ori])>1:
+            col_choices = list(cell_dict[new_ori])
+            col_choices = sorted([mapping[x] for x in col_choices],key=len)
+            tmp = deepcopy(col)
+            prefix = tmp.split('_')[0]
+            if prefix[0] == 'c' and prefix in mapping:
+                tmp = tmp.replace(prefix, mapping[prefix])
+            new_col, _ = process.extractOne(tmp, col_choices)
+            new_col = mapping_b[new_col]
+        else:
+            new_col = list(cell_dict[new_ori])[0]
+        to_replace = to_replace.replace(col, new_col)
+    else:
+        new_col = col
+    
+    if ori2 or ori3:
+        candidates = [value for value in cell_dict if new_col in cell_dict[value]]
+        candidates = sorted([x for x in candidates if isinstance(x, str)], key=len)
+
+    if ori2 and ori2 not in cell_dict:
+        can = [x for x in candidates if len(x)>(len(ori)//2)]
+        if len(can)>0:
+            new_ori2, _ = process.extractOne(ori2, can)
+        else:
+            new_ori2, _ = process.extractOne(ori2, candidates)
+        to_replace = to_replace.replace(ori2, new_ori2)
+
+    if ori3 and ori3 not in cell_dict:
+        can = [x for x in candidates if len(x)>(len(ori)//2)]
+        if len(can)>0:
+            new_ori3, _ = process.extractOne(ori3, can)
+        else:
+            new_ori3, _ = process.extractOne(ori3, candidates)
+        to_replace = to_replace.replace(ori3, new_ori3)
+
+    return to_replace
+        
+
+# def find_best_match(contents, col, ori):
+#     final_strings = []
+#     done = False
+#     for c in contents:
+#         for cc in c:
+#             if col == cc['col']:
+#                 strings = cc['data']
+#                 for item in strings:
+#                     if isinstance(item, list):
+#                         for ii in item:
+#                             final_strings.append(str(ii))
+#                     else:
+#                         final_strings.append(str(item))
+#                 done = True
+#             if done:
+#                 break
+#         if done:
+#             break
+#     assert len(final_strings)>0, f'strings empty {final_strings}'
+#     final_strings = list(set(final_strings))
+#     best_match, _ = process.extractOne(ori, final_strings)
+#     return best_match
+
+# def find_fuzzy_col(col, mapping):
+#     assert col not in mapping
+#     # col->ori
+#     mapping_b = {value: key for key, value in mapping.items()}
+#     match = re.match(r'^(c\d+)', col)
+#     if match:
+#         c_num = match.group(1)
+#         # assert c_num in mapping, f'{c_num} not in {mapping}'
+#         if c_num not in mapping:
+#             print(f'predicted {c_num} is not valid ({mapping})')
+#             return list(mapping.keys())[0]
+#         else:
+#             best_match, _ = process.extractOne(col.replace(c_num, mapping[c_num]), [value for _, value in mapping.items()])
+#     else:
+#         best_match, _ = process.extractOne(col, [value for _, value in mapping.items()])
+#     return mapping_b[best_match]
 
 def fuzzy_replace(pred, table_id, mapping):
-    verbose = False
+
+    verbose = True
     table_path = f'./data/squall/tables/json/{table_id}.json'
     with open(table_path, 'r') as file:
         contents = json.load(file)
     contents = contents["contents"]
     ori_pred = str(pred)
+    mapping_b = {mapping[k]:k for k in mapping}
 
     # select c3 from w where c1 = 'american mcgee's crooked house' 
     indices = []
@@ -63,9 +120,18 @@ def fuzzy_replace(pred, table_id, mapping):
         pred = pred[:indices[2]] + "\"" + pred[indices[2]+1:]
 
     cols = []
+    cell_dict = defaultdict(lambda: set())
     for c in contents:
         for cc in c:
-            cols.append(cc['col'].strip().replace(' ','_').lower())
+            col_name = cc['col'].strip().replace(' ','_').lower()
+            cols.append(col_name)
+            if cc['type'] == 'TEXT':
+                for item in cc['data']:
+                    cell_dict[item].add(col_name)
+            elif cc['type'] == 'LIST TEXT':
+                for item in cc['data']:
+                    for list_item in item:
+                        cell_dict[list_item].add(col_name)
 
     pairs = re.findall(r'where (c[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?\'([^"]*?"[^"]*?\'[^"]*".*?)\'', pred)
     # select c5 from w where c2 = '"i'll be your fool tonight"'
@@ -78,14 +144,32 @@ def fuzzy_replace(pred, table_id, mapping):
                     col = col.split('and')[-1].strip()
                 if 'or ' in col:
                     col = col.split('or')[-1].strip()
-            if col not in cols:
-                print(f'A: {col} not in {cols}, query ({pred})')
-                col_replace = find_fuzzy_col(col, mapping)
-                pred = pred.replace(col, col_replace)
-                print(f' {col}-->{col_replace}')
-                col = col_replace
-            best_match = find_best_match(contents, col, ori)
-            best_match = best_match.replace('\'','\'\'')
+
+            if ori not in cell_dict:
+                candidates = list(cell_dict.keys())
+                candidates = sorted([x for x in candidates if isinstance(x, str)], key=len)
+                can = [x for x in candidates if len(x)>(len(ori)//2)]
+                if len(can)>0:
+                    candidates = can
+                new_ori, _ = process.extractOne(ori, candidates)
+            else:
+                new_ori = ori
+
+            if col not in cell_dict[new_ori]:
+                if len(cell_dict[new_ori])>1:
+                    col_choices = list(cell_dict[new_ori])
+                    col_choices = sorted([mapping[x] for x in col_choices], key=len)
+                    tmp = deepcopy(col)
+                    prefix = tmp.split('_')[0]
+                    if prefix[0] == 'c' and prefix in mapping:
+                        tmp = tmp.replace(prefix, mapping[prefix])
+                    new_col, _ = process.extractOne(tmp, col_choices)
+                    new_col = mapping_b[new_col]
+                else:
+                    new_col = list(cell_dict[new_ori])[0]
+                pred = pred.replace(col, new_col)
+
+            best_match = new_ori.replace('\'','\'\'')
             pred = pred.replace(f'\'{ori}\'', f'[X{n}]')
             n += 1
             buf.append(best_match)
@@ -112,19 +196,12 @@ def fuzzy_replace(pred, table_id, mapping):
         if verbose:
             print(f'B: part to be replaced: {to_replace}, col: {col}, string: {ori}')
 
-        if col not in cols:
-            print(f'B: {col} not in {cols}, query ({pred})')
-            col_replace = find_fuzzy_col(col, mapping)
-            to_replace = to_replace.replace(col, col_replace)
-            print(f' {col}-->{col_replace}')
-            col = col_replace
-        best_match = find_best_match(contents, col, ori)
-        to_replace = to_replace.replace(ori, best_match)
+        to_replace = correctify(col, ori, to_replace, cell_dict, mapping, mapping_b)
         replacement.append(to_replace)
-
+    
     for i in range(len(tokens)):
         pred = pred.replace(tokens[i], replacement[i])
-
+ 
 
     pairs = re.finditer(r'where (c[0-9]{1,}.{,20}?) in \(\s*?\'(.{1,}?)\'\s*?,\s*?\'(.{1,}?)\'\s*?\)', pred)
     tokens = []
@@ -152,19 +229,8 @@ def fuzzy_replace(pred, table_id, mapping):
         if verbose:
             print(f'C: part to be replaced: {to_replace}, col: {col}, string: {ori1}, {ori2}')
  
-        if col not in cols:
-            print(f'C: {col} not in {cols}, query ({pred})')
-            col_replace = find_fuzzy_col(col, mapping)
-            to_replace = to_replace.replace(col, col_replace)
-            print(f' {col}-->{col_replace}')
-            col = col_replace
+        to_replace = correctify(col, ori1, to_replace, cell_dict, mapping, mapping_b, ori2)
 
-        if verbose:
-            print(f'C')
- 
-        for ori in [ori1, ori2]:
-            best_match = find_best_match(contents, col, ori)
-            to_replace = to_replace.replace(ori, best_match)
         replacement.append(to_replace)
 
     for i in range(len(tokens)):
@@ -189,15 +255,8 @@ def fuzzy_replace(pred, table_id, mapping):
 
         if verbose:
             print(f'D: part to be replaced: {to_replace}, col: {col}, string: {ori1}, {ori2}, {ori3}')
-        if col not in cols:
-            print(f'D: {col} not in {cols}, query ({pred})')
-            col_replace = find_fuzzy_col(col, mapping)
-            to_replace = to_replace.replace(col, col_replace)
-            print(f' {col}-->{col_replace}')
-            col = col_replace
-        for ori in [ori1, ori2, ori3]:
-            best_match = find_best_match(contents, col, ori)
-            to_replace = to_replace.replace(ori, best_match)
+
+        to_replace = correctify(col, ori1, to_replace, cell_dict, mapping, mapping_b, ori2, ori3)
         replacement.append(to_replace)
 
     for i in range(len(tokens)):
@@ -227,6 +286,7 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
         ori_headers = eval_dataset['ori_headers'][i]
         nl = eval_dataset['question'][i]
         label = eval_dataset['query'][i]
+        print('\n', nt_id, ' : ', nl, ' ', table_id)
         # repalce the natural language header with c1, c2, ... headers
         for j, h in enumerate(nl_headers):
             pred=pred.replace(h, ori_headers[j])

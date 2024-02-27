@@ -292,11 +292,14 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             # print('bf: ', pred)
             answers = eval_dataset['answers'][i]
             answers = sep.join([a.strip().lower() for a in answers])
-
             table = eval_dataset['table'][i]
             nl_header = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table['header']]
+            is_expand = ['_number' in h for h in nl_header]
             n_col = len(nl_header)
             nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
+            print(nl_header)
+            print(nm_header)
+            print(pred)
             for j in range(n_col):
                 pred = pred.replace(nl_header[j], nm_header[j])
             # convert all cell values into lower case
@@ -309,15 +312,12 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 
             w = deepcopy(table)
             w['header'] = nm_header
-            # _number convert
-
-            # for row in w['rows']:
-            #     for j, value in enumerate(row):
-            #         cleaned_value = value.replace(',', '')
-            #         if cleaned_value.replace('.', '').isdigit():
-            #             row[j] = float(cleaned_value) if '.' in cleaned_value else int(cleaned_value)
-            #         else:
-            #             row[j] = str(value)
+            for row in w['rows']:
+                for j, value in enumerate(row):
+                    if is_expand[j]:
+                        row[j] = float(value) if value != '' else ''
+                    else:
+                        row[j] = str(value)
             w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
 
             try:

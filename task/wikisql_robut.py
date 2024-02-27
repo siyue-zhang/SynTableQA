@@ -168,8 +168,8 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 			
 			for idx, example in enumerate(qa_data):
 				
-				# if example['question_id'] != 'dev_2470':
-				# 	continue
+				if example['question_id'] != 'dev_2423':
+					continue
 
 				question = example["question"]
 				table_content = table_data[example["table_id"]]

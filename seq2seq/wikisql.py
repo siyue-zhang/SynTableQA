@@ -39,6 +39,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             'header': w_expand.columns.tolist(),
             'rows': w_expand.values.tolist()
         }
+        examples["table"][i] = table_content
 
         table_content['header'] = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table_content['header']]
         table_content['header'] = ['id', 'agg'] + table_content['header']
@@ -58,6 +59,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         else:
             input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
         inputs.append(input_source)
+        print(input_source, '\n')
 
         n_row = len(table_content['rows'])
         truncated = f'row {n_row}' not in input_source
