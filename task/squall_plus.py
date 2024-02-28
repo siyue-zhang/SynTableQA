@@ -209,7 +209,7 @@ class Squall(datasets.GeneratorBasedBuilder):
         # generate each example
         for i, sample in enumerate(examples):
 
-            # if sample["nt"] != 'nu-30':
+            # if sample["nt"] != 'nu-3':
             #     continue
 
             tbl = sample["tbl"]

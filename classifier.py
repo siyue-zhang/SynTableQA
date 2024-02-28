@@ -99,7 +99,7 @@ def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
 def load_dfs(dataset, aug=False, downsize_suffix=None):
     
     dfs_dev = []
-    train_dev_ratio = 0.1
+    train_dev_ratio = 0.2
     dataset_suffix = 'squall_plus' if dataset=='squall' else 'wikisql'
     downsize_suffix = downsize_suffix if downsize_suffix else ''
     aug_suffix = '_aug' if aug else ''
@@ -179,6 +179,7 @@ def separate_cols(cols):
 
     return original_cols, processed_cols
 
+
 def is_abbreviation(abbreviation, full_string):
     if len(abbreviation) > len(full_string):
         return False
@@ -189,17 +190,80 @@ def is_abbreviation(abbreviation, full_string):
             abbreviation_index += 1
     return abbreviation_index == len(abbreviation)
 
+
+def preprocess_df(df):
+
+    hq_overlap = []
+    complexCols = []
+    num_pro_cols = []
+    for index, row in df.iterrows():
+        
+        question = row["question"]
+        table_id = row["tbl"]
+        pro_col_names = []
+
+        db_path = 'data/squall/tables/json/' + table_id + '.json'
+        f = open(db_path)
+        data = json.load(f)
+
+        # number of headers have overlap words with question
+        headers = [h for k, h in enumerate(data['headers']) if k>1]
+        num_overlap = sum([h in question for h in headers])
+        hq_overlap.append(num_overlap)
+    
+        complexCol = []
+        for cc in data['contents']:
+            c = cc[0]
+            if len(cc)==1 and c['type']=='TEXT':
+                for sep in [', ', '&', '(']:
+                    isComplex = any([sep in str(y) for y in c['data'] if y])
+                    if isComplex:
+                        complexCol.append(c['col'])
+                        break
+
+
+        if len(complexCol)>0:
+            complexCols.append('|'.join(complexCol))
+        else:
+            complexCols.append('')
+
+        num_pro_col = 0
+        for cc in data['contents']:
+            for k, c in enumerate(cc):
+                if k>0:
+                    pro_col_names.append(c['col'])
+
+        pro_col_names = sorted(pro_col_names, key=len, reverse=True)
+        tmp = deepcopy(row['query_fuzzy'])
+        for x in pro_col_names:
+            count = tmp.count(x)
+            if count>0:
+                tmp = tmp.replace(x,'')
+            num_pro_col += count
+        num_pro_cols.append(num_pro_col)
+
+
+    df.loc[:,['hq_overlap']] = hq_overlap
+    df.loc[:, ['complexCols']] = complexCols
+    df.loc[:, ['num_pro_col']] = num_pro_cols
+    
+    return df
+
+
 def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
 
     X = []
     Y = []
+    feature_names = []
     table_shape = {}
     verbose = False
+    acc_abb = []
 
     for index, row in df.iterrows():
 
         features = []
         row = dict(row)
+        add_name  = index==0
 
         ####### question features #######
         question = row["question"]
@@ -211,110 +275,160 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             print('\nQuestion: ', question)
 
         qword = question.lower().split()
-        if "what" in qword:
-            features.append(1)
-            if verbose:
-                print('qword => what')
-        else:
-            features.append(0)
+        # if "total" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('total')
+
+        # if "difference" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('difference')
+
+        # if "what" in qword and 'amount' not in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('what')
+
+        # if "what" in qword and 'amount' in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('what amount')
         
-        if "who" in qword:
-            features.append(1)
-            if verbose:
-                print('qword => who')
-        else:
-            features.append(0)
+        # if "who" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('who')
         
-        if "which" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "which" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('which')
         
-        if "when" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "when" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('when')
         
-        if "where" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "where" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('where')
+
+
+        # if "how" in qword and "much" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('how much')
         
-        if "how" in qword and "much" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-        
-        if "how" in qword and "many" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "how" in qword and "many" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('how many')
 
-        if "how" in qword and "long" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "how" in qword and "long" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('how long')
 
-        if "how" in qword and all([w not in qword for w in ['much', 'many', 'long']]):
-            features.append(1)
-        else:
-            features.append(0)
+        # if "how" in qword and all([w not in qword for w in ['much', 'many', 'long']]):
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('how')
 
-        if "is" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "is" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('is')
 
-        if "was" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "was" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('was')
 
-        if "are" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "are" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('are')
 
-        if "were" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "were" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('were')
 
-        if "does" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "does" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('does')
 
-        if "did" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "did" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('did')
 
-        if "do" in qword:
-            features.append(1)
-        else:
-            features.append(0)
+        # if "do" in qword:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('do')
 
-        if qword[0] in ['name','list','tell']:
-            features.append(1)
-            if verbose:
-                print('qword => name, list, tell')
-        else:
-            features.append(0)
+        # if qword[0] in ['name','list','tell']:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('name/list/tell')
+
 
         features.append(len(tableqa_tokenizer.tokenize(question)))
-        if verbose:
-            print('Question token length: ', len(tableqa_tokenizer.tokenize(question)))
+        if add_name:
+            feature_names.append('question token number')
 
-        # number of numerical values in question
         qwords = deepcopy(qword)
         num_count = 0
         for w in qwords:
             if w.replace('.', '').replace(',', '').replace('-', '').isnumeric():
                 num_count += 1
         features.append(num_count)
-        if verbose:
-            print('Question has numerical values: ', num_count)
+        if add_name:
+            feature_names.append('number of numerical values in question')
 
         ####### context table features #######
         tbl = row['tbl']
@@ -323,50 +437,86 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             table_shape[tbl] = get_table_shape(tbl)
         # number of rows
         features.append(table_shape[tbl][0])
-        # # number of columns
-        # features.append(table_shape[tbl][1])
-        features.append(table_shape[tbl][2])
-        if verbose:
-            print('Table has rows: ', table_shape[tbl][0])
+        if add_name:
+            feature_names.append('number of table rows')
 
+        # number of columns
+        # features.append(table_shape[tbl][1])
+        # features.append(table_shape[tbl][2])
+        # if add_name:
+        #     feature_names.append('number of table columns')
+
+        # number of overlap between header words and question words
+        features.append(row['hq_overlap'])
+        if add_name:
+            feature_names.append('number of overlap between header and question')
+        
         if not qonly:
             ####### text_to_sql answer features #######
             ans_text_to_sql = str(row['ans_text_to_sql'])
             ans_text_to_sql_list = ans_text_to_sql.split('|')
             text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
             sql = row['query_fuzzy']
-            # sql = row['query_pred']
+            sql_ori = row['query_pred']
 
-            if verbose:
-                    print('\nText_to_sql Answer: ', ans_text_to_sql)
-                    print('  ', text_to_sql_value_list)
-                    print('  sql after fuzzy: ', sql)
+            # if sql use complex columns
+            # hasCmp = 0
+            # print(tbl)
+            # print(sql)
+            # print(row['complexCols'])
+            # if row['complexCols']:
+            #     for c in row['complexCols'].split('|'):
+            #         if c in sql:
+            #             hasCmp += 1
+            # # print(hasCmp, '\\\\\n')
+            # features.append(hasCmp)
 
             # query use complex column
-            # hasLst = '_list' in sql
-            # features.append(int(hasLst))
+            hasLst = '_list' in sql
+            features.append(int(hasLst))
+            if add_name:
+                feature_names.append('_list')
 
-            # hasFst = any([x in sql for x in ['_first', '_second']])
-            # features.append(int(hasFst))
+            hasFst = any([x in sql for x in ['_first', '_second']])
+            features.append(int(hasFst))
+            if add_name:
+                feature_names.append('_first/second')
 
-            # hasMm = any([x in sql for x in ['_maximum', '_minimum']])
-            # features.append(int(hasMm))
+            hasFst = any([x in sql for x in ['_parsed']])
+            features.append(int(hasFst))
+            if add_name:
+                feature_names.append('_parsed')
 
-            # hasTim = any([x in sql for x in ['_year', '_month', '_day']])
-            # features.append(int(hasTim))
+            hasMm = any([x in sql for x in ['_maximum', '_minimum']])
+            features.append(int(hasMm))
+            if add_name:
+                feature_names.append('_min/max')
 
-            # hasLen = '_length' in sql
-            # features.append(int(hasLen))
-                    
+            hasTim = any([x in sql for x in ['_year', '_month', '_day']])
+            features.append(int(hasTim))
+            if add_name:
+                feature_names.append('_year/month/day')
+
+            hasTim = any([x in sql for x in ['_hour', '_min']])
+            features.append(int(hasTim))
+            if add_name:
+                feature_names.append('_hour/min')
+
+            hasLen = '_length' in sql
+            features.append(int(hasLen))
+            if add_name:
+                feature_names.append('_length')
 
             # number of predicted tokens
-            n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
+            n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(sql_ori))
             features.append(n_tok_text_to_sql)
+            if add_name:
+                feature_names.append('number of sql tokens')
 
             # number of answers
             features.append(len(ans_text_to_sql_list))
-            if verbose:
-                    print('  Number of answers: ', len(ans_text_to_sql_list))
+            if add_name:
+                feature_names.append('number of ans_tts')
 
             # answers have none
             hasNan = 0
@@ -374,8 +524,8 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                 if ans.lower() in ['nan', 'none', '']:
                     hasNan += 1
             features.append(hasNan)
-            if verbose:
-                print('  Number of NAN answers: ', hasNan)
+            if add_name:
+                feature_names.append('number of Nan ans')
 
             # answers have string
             hasStr = 0
@@ -383,49 +533,52 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                 if str(v)[0]=='S':
                     hasStr += 1
             features.append(hasStr)
+            if add_name:
+                feature_names.append('number of String ans')
 
             # answers have number
-            hasNum = 0
+            hasNum_tts = 0
             for v in text_to_sql_value_list:
                 if str(v)[0]=='N':
-                    hasNum += 1
-            features.append(hasNum)
+                    hasNum_tts += 1
+            features.append(hasNum_tts)
+            if add_name:
+                feature_names.append('number of Numeric ans')
 
             # answers have date
-            hasDat = 0
-            for v in text_to_sql_value_list:
-                if str(v)[0]=='D':
-                    hasDat += 1
-            features.append(hasDat)
+            # hasDat_tts = 0
+            # for v in text_to_sql_value_list:
+            #     if str(v)[0]=='D':
+            #         hasDat_tts += 1
+            # features.append(hasDat)
 
-            # number of overlap words between question and answer
-            qwords = set(question.lower().split())
-            awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
-            num_overlap = len(qwords.intersection(awords))
-            features.append(num_overlap)
-            if verbose:
-                print('  Number of overlap words between question and answer: ', num_overlap)
+            # # number of overlap words between question and answer
+            # qwords = set(question.lower().split())
+            # awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
+            # num_overlap = len(qwords.intersection(awords))
+            # features.append(num_overlap)
+            # if add_name:
+            #     feature_names.append('number of overlap words between question and answer')
 
             # generation probability
             log_prob_avg = float(row['log_prob_avg_text_to_sql'])
             features.append(log_prob_avg)
+            if add_name:
+                feature_names.append('avg log prob tts')
 
             # log_prob_sum = float(row['log_prob_sum_text_to_sql'])
             # features.append(log_prob_sum)
 
             # if the predicted sql after fuzzy match uses the processed column
-            cols = row['nl_headers'].split('|')
-            original_cols, processed_cols = separate_cols(cols)
-            usePro = 0
-            for col in processed_cols:
-                if col in sql:
-                    usePro = 1
-                    break
-            features.append(usePro)
+            features.append(row['num_pro_col'])
+            if add_name:
+                feature_names.append('number of processed column sql used')
 
             # if the input is truncated
             isTru = row['truncated_text_to_sql']
             features.append(isTru)
+            if add_name:
+                feature_names.append('tts table is truncated')
 
 
         if not qonly:
@@ -434,24 +587,16 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
 
-            if verbose:
-                    print('\nTableqa Answer: ', ans_tableqa)
-                    print('  ', tableqa_value_list)
-
-            # isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
-            # features.append(isAbb)
-
-            # isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
-            # features.append(isAbb)
-
             # number of answers
             features.append(len(ans_tableqa_list))
-            if verbose:
-                    print('  Number of answers: ', len(ans_tableqa_list))
+            if add_name:
+                feature_names.append('number of tqa ans')
 
             # number of predicted tokens
             n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
             features.append(n_tok_tableqa)
+            if add_name:
+                feature_names.append('number of tqa pred tokens')
 
             # answers have string
             hasStr = 0
@@ -459,47 +604,98 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
                 if str(v)[0]=='S':
                     hasStr += 1
             features.append(hasStr)
-            
+            if add_name:
+                feature_names.append('number of String ans')
+
             # answers have number
-            hasNum = 0
+            hasNum_tqa = 0
             for v in tableqa_value_list:
                 if str(v)[0]=='N':
-                    hasNum += 1
-            features.append(hasNum)
+                    hasNum_tqa += 1
+            features.append(hasNum_tqa)
+            if add_name:
+                feature_names.append('number of Numeric ans')
 
             # answers have date
-            hasDat = 0
-            for v in tableqa_value_list:
-                if str(v)[0]=='D':
-                    hasDat += 1
-            features.append(hasDat)
+            # hasDat_tqa = 0
+            # for v in tableqa_value_list:
+            #     if str(v)[0]=='D':
+            #         hasDat_tqa += 1
+            # features.append(hasDat)
+            
+            # if ans_tableqa is a subset of ans_text_to_sql
+            isSub = int(all([x in ans_text_to_sql_list for x in ans_tableqa_list]))
+            features.append(isSub)
+            if add_name:
+                feature_names.append('if ans_tableqa is a subset of ans_text_to_sql')
 
-            # number of overlap words between question and answer
-            qwords = set(question.lower().split())
-            awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
-            num_overlap = len(qwords.intersection(awords))
-            features.append(num_overlap)
-            if verbose:
-                print('  Number of overlap words between question and answer', num_overlap)
+            # if isSub:
+            #     print(row['id'])
+            #     print(row['acc_tableqa'], ans_tableqa_list, row['acc_text_to_sql'], ans_text_to_sql_list)
+            #     print('sub', isSub, '\n')
+
+            isAbb = 0
+            isAbb_b = 0
+            if len(ans_tableqa_list)==1 and len(ans_text_to_sql_list)==1:
+                A = ans_text_to_sql
+                B = ans_tableqa
+                if hasNum_tqa==0 and hasNum_tts==0:
+                    mkrs = ['\n', '(', '-', ',', '&']
+                    if any([m in A for m in mkrs]):
+                        isAbb = int(is_abbreviation(B,A))
+                    if any([m in A for m in mkrs]):
+                        isAbb_b = int(is_abbreviation(A,B))
+                
+                if isAbb:
+                    acc_abb.append(row['acc_tableqa'])
+                    
+            features.append(isAbb)
+            if add_name:
+                    feature_names.append('if ans_tableqa is a substring of ans_text_to_sql')
+
+            # features.append(isAbb_b)
+            # if add_name:
+            #         feature_names.append('opposite substring')
+
+                # if isAbb:
+                #     print(row['id'])
+                #     print(row['acc_tableqa'], ans_tableqa_list, row['acc_text_to_sql'], ans_text_to_sql_list)
+                #     print(ans_tableqa.lower(), '/', ans_text_to_sql)
+                #     print('abb', isAbb, '\n')
+            # features.append(isAbb_b)
+
+
+            # # number of overlap words between question and answer
+            # qwords = set(question.lower().split())
+            # awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
+            # num_overlap = len(qwords.intersection(awords))
+            # features.append(num_overlap)
+            # if add_name:
+            #     feature_names.append('number of overlap words between question and answer')
 
             # generation probability
             log_prob_avg = float(row['log_prob_avg_tableqa'])
             features.append(log_prob_avg)
+            if add_name:
+                feature_names.append('avg log prob tqa')
 
             # log_prob_sum = float(row['log_prob_sum_tableqa'])
             # features.append(log_prob_sum)
+            # if add_name:
+            #     feature_names.append('sum log prob tqa')
 
             # if the input is truncated
             isTru = row['truncated_tableqa']
             features.append(isTru)
-            
+            if add_name:
+                feature_names.append('tqa table is truncated')
+
             # if all answers are from the table input or question
             allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
             allFromTable = int(allFromTable)
             features.append(allFromTable)
-            if verbose:
-                print('  All answers from table or question: ', allFromTable)
-                print('------------------------------')
+            if add_name:
+                feature_names.append('tqa answer is a substring from tableinput or question')
 
         X.append(features)
         Y.append(int(row['labels']))
@@ -508,8 +704,9 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
     Y = np.array(Y)
     
     print ("data shape: ", X.shape)
-
-    return X, Y
+    if 'if ans_tableqa is a substring of ans_text_to_sql' in feature_names:
+        print('acc_isAbb', round(np.mean(acc_abb),3), len(acc_abb))
+    return X, Y, feature_names
 
 
 def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=False):
@@ -860,19 +1057,29 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
     return X, Y
 
 
-def load_and_predict(dataset, X, Y, model, name=""):
+def load_and_predict(dataset, X, Y, feature_names, model, name=""):
     with open("classifiers/{}_{}_{}.pkl".format(dataset, model, name), "rb") as f:
         classifier = pickle.load(f)
     # print ("coefs: ", classifier.coef_)
     # return classifier.predict_proba(X)
     # return classifier.predict(X)
+    f = classifier.feature_importances_
+    names = feature_names
+
+    print('\n-----------\n')
+    print(len(names), ' : ', len(f))
+    assert len(names)==len(f)
+    for x, y in zip(names, f):
+        print(x, ' : ', round(y,4))
+    print('\n-----------\n')
+
     return classifier.score(X, Y)
 
 
 def test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name="", qonly=False):
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
-    X, Y = extract_features(df_test, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
+    X, Y, feature_names = extract_features(df_test, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     with open("classifiers/{}_{}_{}.pkl".format(dataset, model, name), "rb") as f:
         classifier = pickle.load(f)
     pred = classifier.predict(X)
@@ -947,13 +1154,20 @@ if __name__=='__main__':
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
 
-    X, Y = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
+    df_train = preprocess_df(df_train)
+    X, Y, feature_names = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     fit_and_save(X, Y, model, name=name, dataset=dataset)
     print('\n')
 
-    X, Y = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
-    dev_scores = load_and_predict(dataset, X, Y, model, name=name)
+    df_dev = preprocess_df(df_dev)
+    X, Y, feature_names = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
+    dev_scores = load_and_predict(dataset, X, Y, feature_names, model, name=name)
     print ("dev score: ", dev_scores, '\n')
 
+    df_test = preprocess_df(df_test)
     df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name, qonly=qonly)
+    
+    desired_order_selected = ['id', 'tbl', 'question', 'answer', 'acc_tableqa', 'ans_tableqa', 'acc_text_to_sql', 'ans_text_to_sql', 'query_pred', 'query_fuzzy', 'pred', 'labels', 'scores', 'oracle']
+    remaining_columns = [col for col in df_test.columns if col not in desired_order_selected]
+    df_test = df_test[desired_order_selected + remaining_columns]
     df_test.to_csv(f'./predict/{dataset}_classifier_test{test_split}.csv', na_rep='',index=False)

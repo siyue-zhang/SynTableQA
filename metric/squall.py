@@ -7,8 +7,21 @@ from fuzzywuzzy import fuzz
 from metric.squall_evaluator import Evaluator
 from collections import defaultdict
 from copy import deepcopy
+import re
 
-def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, ori3=None):
+def header_check(pred, mapping_b):
+
+    words = [x.strip() for x in pred.replace('!',' !').split()]
+    correct_map = {}
+    for w in words:
+        if re.match(r'^\d*_', w) and w not in mapping_b:
+            correct_map[w] = process.extractOne(w,mapping_b.keys())[0]
+    for x in sorted(correct_map.keys(), key=len):
+        pred = pred.replace(x, correct_map[x])
+    
+    return pred
+
+def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, ori3=None, add_quote=False):
 
     if ori not in cell_dict:
         candidates = list(cell_dict.keys())
@@ -17,7 +30,10 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
         if len(can)>0:
             candidates = can
         new_ori, _ = process.extractOne(ori, candidates)
-        to_replace = to_replace.replace(ori, new_ori)
+        if add_quote:
+            to_replace = to_replace.replace(f'"{ori}"', f"'{new_ori}'")
+        else:
+            to_replace = to_replace.replace(ori, new_ori)
     else:
         new_ori = ori
 
@@ -60,60 +76,21 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
     return to_replace
         
 
-# def find_best_match(contents, col, ori):
-#     final_strings = []
-#     done = False
-#     for c in contents:
-#         for cc in c:
-#             if col == cc['col']:
-#                 strings = cc['data']
-#                 for item in strings:
-#                     if isinstance(item, list):
-#                         for ii in item:
-#                             final_strings.append(str(ii))
-#                     else:
-#                         final_strings.append(str(item))
-#                 done = True
-#             if done:
-#                 break
-#         if done:
-#             break
-#     assert len(final_strings)>0, f'strings empty {final_strings}'
-#     final_strings = list(set(final_strings))
-#     best_match, _ = process.extractOne(ori, final_strings)
-#     return best_match
 
-# def find_fuzzy_col(col, mapping):
-#     assert col not in mapping
-#     # col->ori
-#     mapping_b = {value: key for key, value in mapping.items()}
-#     match = re.match(r'^(c\d+)', col)
-#     if match:
-#         c_num = match.group(1)
-#         # assert c_num in mapping, f'{c_num} not in {mapping}'
-#         if c_num not in mapping:
-#             print(f'predicted {c_num} is not valid ({mapping})')
-#             return list(mapping.keys())[0]
-#         else:
-#             best_match, _ = process.extractOne(col.replace(c_num, mapping[c_num]), [value for _, value in mapping.items()])
-#     else:
-#         best_match, _ = process.extractOne(col, [value for _, value in mapping.items()])
-#     return mapping_b[best_match]
-
-def fuzzy_replace(pred, table_id, mapping):
+def string_check(pred, mapping, contents):
 
     verbose = True
-    table_path = f'./data/squall/tables/json/{table_id}.json'
-    with open(table_path, 'r') as file:
-        contents = json.load(file)
     contents = contents["contents"]
     ori_pred = str(pred)
     mapping_b = {mapping[k]:k for k in mapping}
 
     # select c3 from w where c1 = 'american mcgee's crooked house' 
     indices = []
+    in_double_quote = False
     for i, char in enumerate(pred):
-        if char == "'":
+        if char == '"':
+            in_double_quote = True if in_double_quote == False else False
+        if char == "'" and in_double_quote == False:
             indices.append(i)
     if len(indices) == 3:
         pred = pred[:indices[0]] + "\"" + pred[indices[0]+1:]
@@ -133,6 +110,35 @@ def fuzzy_replace(pred, table_id, mapping):
                     for list_item in item:
                         cell_dict[list_item].add(col_name)
 
+    # select 1_id from w where 7_title = "alfie's birthday party"
+    pairs = re.finditer(r'where (c[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?"([^"]*?\'[^"]*?)"', pred)
+    tokens = []
+    replacement = []
+    for idx, match in enumerate(pairs):
+        start = match.start(0)
+        end = match.end(0)
+        col = pred[match.start(1):match.end(1)]
+        ori = pred[match.start(2):match.end(2)]
+        to_replace = pred[start:end]
+
+        token = str(idx) + '_'*(end-start-len(str(idx)))
+        tokens.append(token)
+        pred = pred[:start] + token + pred[end:]
+
+        if col not in cols:
+            if 'and' in col:
+                col = col.split('and')[-1].strip()
+            if 'or ' in col:
+                col = col.split('or')[-1].strip()
+        if verbose:
+            print(f'B: part to be replaced: {to_replace}, col: {col}, string: {ori}')
+
+        to_replace = correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, add_quote=True)
+        replacement.append(to_replace)
+
+    for i in range(len(tokens)):
+        pred = pred.replace(tokens[i], replacement[i])
+    
     pairs = re.findall(r'where (c[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?\'([^"]*?"[^"]*?\'[^"]*".*?)\'', pred)
     # select c5 from w where c2 = '"i'll be your fool tonight"'
     buf = []
@@ -270,7 +276,6 @@ def fuzzy_replace(pred, table_id, mapping):
     
     if pred != ori_pred:
         print('String is replaced by fuzzy match!')
-        print(table_path)
         print(f'From: {ori_pred}')
         print(f'To  : {pred}\n')
 
@@ -288,12 +293,19 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
         label = eval_dataset['query'][i]
         print('\n', nt_id, ' : ', nl, ' ', table_id)
         # repalce the natural language header with c1, c2, ... headers
-        for j, h in enumerate(nl_headers):
-            pred=pred.replace(h, ori_headers[j])
+        mapping = {ori: col for ori, col in zip(ori_headers, nl_headers)}
+        mapping_b = {mapping[k]:k for k in mapping}
+
+        table_path = f'./data/squall/tables/json/{table_id}.json'
+        with open(table_path, 'r') as file:
+            contents = json.load(file)
+
+        pred = header_check(pred, mapping_b)
+        for h in sorted(nl_headers, key=len, reverse=True):
+            pred=pred.replace(h, mapping_b[h])
         # print('pred before fuzzy: ', pred)
         if fuzzy:
-            mapping = {ori: col for ori, col in zip(ori_headers, nl_headers)}
-            pred = fuzzy_replace(pred, table_id, mapping)
+            pred = string_check(pred, mapping, contents)
         # print('nt: ', nt_id, 'fuzzy query: ', pred)
         result_dict = {"sql": pred, "id": nt_id, "tgt": label}
         res = {"table_id": table_id,
