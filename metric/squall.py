@@ -10,15 +10,15 @@ from copy import deepcopy
 import re
 
 def header_check(pred, mapping_b):
-
-    words = [x.strip() for x in pred.replace('!',' !').split()]
+    words = [x.strip() for x in pred.split()]
     correct_map = {}
     for w in words:
         if re.match(r'^\d*_', w) and w not in mapping_b:
-            correct_map[w] = process.extractOne(w,mapping_b.keys())[0]
+            tmp = '_'.join(w.split('_')[1:])
+            correct_map[w] = process.extractOne(tmp,sorted(mapping_b.keys(),key=len))[0]
+    pred = ' '.join(words)
     for x in sorted(correct_map.keys(), key=len):
         pred = pred.replace(x, correct_map[x])
-    
     return pred
 
 def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, ori3=None, add_quote=False):
@@ -26,9 +26,9 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
     if ori not in cell_dict:
         candidates = list(cell_dict.keys())
         candidates = sorted([x for x in candidates if isinstance(x, str)], key=len)
-        can = [x for x in candidates if len(x)>(len(ori)//2)]
-        if len(can)>0:
-            candidates = can
+        # can = [x for x in candidates if len(x)>(len(ori)//2)]
+        # if len(can)>0:
+        #     candidates = can
         new_ori, _ = process.extractOne(ori, candidates)
         if add_quote:
             to_replace = to_replace.replace(f'"{ori}"', f"'{new_ori}'")
@@ -201,9 +201,10 @@ def string_check(pred, mapping, contents):
                 col = col.split('or')[-1].strip()
         if verbose:
             print(f'B: part to be replaced: {to_replace}, col: {col}, string: {ori}')
-
+        print(col, ori, to_replace)
         to_replace = correctify(col, ori, to_replace, cell_dict, mapping, mapping_b)
         replacement.append(to_replace)
+        print(to_replace)
     
     for i in range(len(tokens)):
         pred = pred.replace(tokens[i], replacement[i])
@@ -284,7 +285,7 @@ def string_check(pred, mapping, contents):
 def postprocess_text(decoded_preds, eval_dataset, fuzzy):
     predictions = []
     for i, pred in enumerate(decoded_preds):
-        pred=pred.replace('!>', '<').replace('< =', '<=').replace('> =', '>=')
+        pred=pred.replace('!', ' !').replace('!>', '<').replace('< =', '<=').replace('> =', '>=')
         table_id = eval_dataset['tbl'][i]
         nt_id = eval_dataset['nt'][i]
         nl_headers = eval_dataset['nl_headers'][i]
@@ -300,13 +301,15 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
         with open(table_path, 'r') as file:
             contents = json.load(file)
 
-        pred = header_check(pred, mapping_b)
-        for h in sorted(nl_headers, key=len, reverse=True):
-            pred=pred.replace(h, mapping_b[h])
-        # print('pred before fuzzy: ', pred)
         if fuzzy:
+            pred = header_check(pred, mapping_b)
+            used = []
+            for h in sorted(nl_headers, key=len, reverse=True):
+                if h in pred and all([h not in u for u in used]):
+                    pred=pred.replace(h, mapping_b[h])
+                    used.append(mapping_b[h])
             pred = string_check(pred, mapping, contents)
-        # print('nt: ', nt_id, 'fuzzy query: ', pred)
+
         result_dict = {"sql": pred, "id": nt_id, "tgt": label}
         res = {"table_id": table_id,
                "json_path": eval_dataset['json_path'][i],

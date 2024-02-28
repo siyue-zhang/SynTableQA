@@ -17,7 +17,7 @@ python ./run.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --val_max_target_length 128 \
-  --per_device_eval_batch_size 4 \
+  --per_device_eval_batch_size 8 \
   --dataset_name ${dataset_name} \
   --split_id 4 \
   --predict_with_generate \

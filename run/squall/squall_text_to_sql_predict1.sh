@@ -22,9 +22,8 @@ python ./run.py \
   --split_id 1 \
   --predict_with_generate \
   --num_beams 5 \
-  --save_note new_fuzzy
-
-  # --max_predict_samples 200
+  --save_note new_fuzzy 
+# --max_predict_samples 100
 # --aug True 
 # --max_predict_samples 500  
 # --squall_downsize 5
