@@ -196,6 +196,10 @@ def preprocess_df(df):
     hq_overlap = []
     complexCols = []
     num_pro_cols = []
+    Abb = []
+    Abb_b = []
+    Sub = []
+    Sub_b = []
     for index, row in df.iterrows():
         
         question = row["question"]
@@ -243,9 +247,52 @@ def preprocess_df(df):
         num_pro_cols.append(num_pro_col)
 
 
+
+
+        ans_text_to_sql = str(row['ans_text_to_sql'])
+        ans_text_to_sql_list = ans_text_to_sql.split('|')
+        text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
+
+        ans_tableqa = str(row['ans_tableqa'])
+        ans_tableqa_list = ans_tableqa.split('|')
+        tableqa_value_list = to_value_list(ans_tableqa_list)
+
+
+        hasNum_tqa = 0
+        for v in tableqa_value_list:
+            if str(v)[0]=='N':
+                hasNum_tqa += 1
+        hasNum_tts = 0
+        for v in text_to_sql_value_list:
+            if str(v)[0]=='N':
+                hasNum_tts += 1
+
+        isAbb, isAbb_b = 0, 0
+        if len(ans_tableqa_list)==1 and len(ans_text_to_sql_list)==1:
+            A = ans_text_to_sql
+            B = ans_tableqa
+            if hasNum_tqa==0 and hasNum_tts==0:
+                mkrs = ['\n', '(', '-', ',', '&']
+                if any([m in A for m in mkrs]):
+                    isAbb = int(is_abbreviation(B,A))
+                if any([m in B for m in mkrs]):
+                    isAbb_b = int(is_abbreviation(A,B))
+        Abb.append(isAbb)
+        Abb_b.append(isAbb_b)
+
+        isSub = int(all([x in ans_text_to_sql_list for x in ans_tableqa_list]))
+        isSub_b = int(all([x in ans_tableqa_list for x in ans_text_to_sql_list]))
+        Sub.append(isSub)
+        Sub_b.append(isSub_b)
+
     df.loc[:,['hq_overlap']] = hq_overlap
     df.loc[:, ['complexCols']] = complexCols
     df.loc[:, ['num_pro_col']] = num_pro_cols
+    df.loc[:, ['tqa_is_abb']] = Abb
+    df.loc[:, ['tts_is_abb']] = Abb_b
+    df.loc[:, ['tqa_is_sub']] = Sub
+    df.loc[:, ['tts_is_sub']] = Sub_b
+
     
     return df
 
@@ -257,7 +304,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
     feature_names = []
     table_shape = {}
     verbose = False
-    acc_abb = []
+    # acc_abb = []
 
     for index, row in df.iterrows():
 
@@ -282,6 +329,13 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
         # if add_name:
         #     feature_names.append('total')
 
+        # if "consecutive" in question:
+        #     features.append(1)
+        # else:
+        #     features.append(0)
+        # if add_name:
+        #     feature_names.append('consecutive')
+
         # if "difference" in qword:
         #     features.append(1)
         # else:
@@ -289,19 +343,23 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
         # if add_name:
         #     feature_names.append('difference')
 
-        # if "what" in qword and 'amount' not in qword:
+        # askNum = False
+        # if any([x in question for x in ['number of', 'amount of']]):
+        #     askNum = True
+
+        # if "what" in qword and not askNum:
         #     features.append(1)
         # else:
         #     features.append(0)
         # if add_name:
         #     feature_names.append('what')
 
-        # if "what" in qword and 'amount' in qword:
+        # if "what" in qword and askNum:
         #     features.append(1)
         # else:
         #     features.append(0)
         # if add_name:
-        #     feature_names.append('what amount')
+        #     feature_names.append('what number')
         
         # if "who" in qword:
         #     features.append(1)
@@ -459,6 +517,11 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             sql = row['query_fuzzy']
             sql_ori = row['query_pred']
 
+            # yesNo = int(ans_text_to_sql.lower() in ['yes', 'no'])
+            # features.append(yesNo)
+            # if add_name:
+            #     feature_names.append('yes/no')
+
             # if sql use complex columns
             # hasCmp = 0
             # print(tbl)
@@ -556,6 +619,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             # qwords = set(question.lower().split())
             # awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
             # num_overlap = len(qwords.intersection(awords))
+            # num_overlap = int(num_overlap>0 and ' or ' in question)
             # features.append(num_overlap)
             # if add_name:
             #     feature_names.append('number of overlap words between question and answer')
@@ -586,6 +650,11 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             ans_tableqa = str(row['ans_tableqa'])
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
+
+            # yesNo = int(ans_tableqa.lower() in ['yes', 'no'])
+            # features.append(yesNo)
+            # if add_name:
+            #     feature_names.append('yes/no')
 
             # number of answers
             features.append(len(ans_tableqa_list))
@@ -624,51 +693,28 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             # features.append(hasDat)
             
             # if ans_tableqa is a subset of ans_text_to_sql
-            isSub = int(all([x in ans_text_to_sql_list for x in ans_tableqa_list]))
-            features.append(isSub)
+            features.append(row['tqa_is_sub'])
             if add_name:
                 feature_names.append('if ans_tableqa is a subset of ans_text_to_sql')
 
-            # if isSub:
-            #     print(row['id'])
-            #     print(row['acc_tableqa'], ans_tableqa_list, row['acc_text_to_sql'], ans_text_to_sql_list)
-            #     print('sub', isSub, '\n')
+            # features.append(row['tts_is_sub'])
+            # if add_name:
+            #     feature_names.append('if tts is a subset of tqa')
 
-            isAbb = 0
-            isAbb_b = 0
-            if len(ans_tableqa_list)==1 and len(ans_text_to_sql_list)==1:
-                A = ans_text_to_sql
-                B = ans_tableqa
-                if hasNum_tqa==0 and hasNum_tts==0:
-                    mkrs = ['\n', '(', '-', ',', '&']
-                    if any([m in A for m in mkrs]):
-                        isAbb = int(is_abbreviation(B,A))
-                    if any([m in A for m in mkrs]):
-                        isAbb_b = int(is_abbreviation(A,B))
-                
-                if isAbb:
-                    acc_abb.append(row['acc_tableqa'])
-                    
-            features.append(isAbb)
+
+            features.append(row['tqa_is_abb'])
             if add_name:
                     feature_names.append('if ans_tableqa is a substring of ans_text_to_sql')
 
-            # features.append(isAbb_b)
-            # if add_name:
-            #         feature_names.append('opposite substring')
-
-                # if isAbb:
-                #     print(row['id'])
-                #     print(row['acc_tableqa'], ans_tableqa_list, row['acc_text_to_sql'], ans_text_to_sql_list)
-                #     print(ans_tableqa.lower(), '/', ans_text_to_sql)
-                #     print('abb', isAbb, '\n')
-            # features.append(isAbb_b)
-
+            features.append(row['tts_is_abb'])
+            if add_name:
+                    feature_names.append('if tts is a substring of tqa')
 
             # # number of overlap words between question and answer
             # qwords = set(question.lower().split())
             # awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
             # num_overlap = len(qwords.intersection(awords))
+            # num_overlap = int(num_overlap>0 and ' or ' in question)
             # features.append(num_overlap)
             # if add_name:
             #     feature_names.append('number of overlap words between question and answer')
@@ -704,8 +750,8 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
     Y = np.array(Y)
     
     print ("data shape: ", X.shape)
-    if 'if ans_tableqa is a substring of ans_text_to_sql' in feature_names:
-        print('acc_isAbb', round(np.mean(acc_abb),3), len(acc_abb))
+    # if 'if ans_tableqa is a substring of ans_text_to_sql' in feature_names:
+    #     print('acc_isAbb', round(np.mean(acc_abb),3), len(acc_abb))
     return X, Y, feature_names
 
 
@@ -1063,6 +1109,7 @@ def load_and_predict(dataset, X, Y, feature_names, model, name=""):
     # print ("coefs: ", classifier.coef_)
     # return classifier.predict_proba(X)
     # return classifier.predict(X)
+
     f = classifier.feature_importances_
     names = feature_names
 
@@ -1087,15 +1134,18 @@ def test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, mod
     acc_scores = []
     cls_scores = []
     oracle = []
+    diff = []
     for i in range(df_test.shape[0]):
         score = df_test.loc[i, 'acc_text_to_sql'] if pred[i]==0 else df_test.loc[i, 'acc_tableqa']
         acc_scores.append(int(score))
         if df_test.loc[i, 'acc_text_to_sql'] != df_test.loc[i, 'acc_tableqa']:
             cls_scores.append(int(pred[i]==Y[i]))
         oracle.append(int((df_test.loc[i, 'acc_text_to_sql']+df_test.loc[i, 'acc_tableqa'])>0))
-
+        diff.append(int(df_test.loc[i, 'acc_text_to_sql']!=df_test.loc[i, 'acc_tableqa']))
+    
     df_test.loc[:, ['scores']] = acc_scores
     df_test.loc[:, ['oracle']] = oracle
+    df_test.loc[:, ['diff']] = diff
 
     print("test score: ", np.round(np.mean(cls_scores),4))
     print('\n')
@@ -1167,7 +1217,7 @@ if __name__=='__main__':
     df_test = preprocess_df(df_test)
     df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name, qonly=qonly)
     
-    desired_order_selected = ['id', 'tbl', 'question', 'answer', 'acc_tableqa', 'ans_tableqa', 'acc_text_to_sql', 'ans_text_to_sql', 'query_pred', 'query_fuzzy', 'pred', 'labels', 'scores', 'oracle']
+    desired_order_selected = ['id', 'tbl', 'question', 'answer', 'acc_tableqa', 'ans_tableqa', 'acc_text_to_sql', 'ans_text_to_sql', 'query_pred', 'query_fuzzy', 'pred', 'labels', 'scores', 'oracle', 'diff']
     remaining_columns = [col for col in df_test.columns if col not in desired_order_selected]
     df_test = df_test[desired_order_selected + remaining_columns]
     df_test.to_csv(f'./predict/{dataset}_classifier_test{test_split}.csv', na_rep='',index=False)

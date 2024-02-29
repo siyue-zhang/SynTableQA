@@ -1,8 +1,14 @@
+# system_prompt = """
+# You are an assistant helping users choose the correct answer to the question and the table provided. \
+# Your should choose one from the answer A and B provided and explain the reasoning. \
+# In the last sentence of your response, you should write either "A is more likely to be correct." or "B is more likely to be correct." \
+# If there is not enough information in the table, you should respond "A is more likely to be correct.". \
+# """
+
 system_prompt = """
-You are an assistant helping users choose the correct answer to the question and the table provided. \
-Your should choose one from the answer A and B provided and explain the reasoning. \
-In the last sentence of your response, you should write either "A is more likely to be correct." or "B is more likely to be correct." \
-If there is not enough information in the table, you should respond "A is more likely to be correct.". \
+You will get a table, a question, and candidate answers. In the table, each cell is separated by "|". \
+You should choose the more likely candidate based on the provided table information. \
+The last sentence should be your choice "A", "B", or "C".
 """
 
 # nt-13417 203_37
