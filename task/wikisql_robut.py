@@ -7,6 +7,8 @@ from datasets import load_dataset
 from utils.misc import split_list
 from copy import deepcopy
 from utils.executor import retrieve_wikisql_query_answer_tapas, _TYPE_CONVERTER
+from utils.query import Query
+from utils.dbengine import DBEngine
 
 _DATA_URL = (
 		"https://raw.githubusercontent.com/yilunzhao/RobuT/main/robut_data.zip"
@@ -53,6 +55,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 										"table_id": datasets.Value("string"),
 										"question": datasets.Value("string"),
 										"answers": datasets.features.Sequence(datasets.Value("string")),
+										"sql": datasets.Value("string"),
 										"table": {
 												"header": datasets.features.Sequence(datasets.Value("string")),
 												"rows": datasets.features.Sequence(datasets.features.Sequence(datasets.Value("string"))),
@@ -168,8 +171,9 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 			
 			for idx, example in enumerate(qa_data):
 				
-				if example['question_id'] != 'dev_2423':
-					continue
+				# if example['question_id'] != 'dev_2423':
+				# 	continue
+				print(example)
 
 				question = example["question"]
 				table_content = table_data[example["table_id"]]
@@ -185,11 +189,23 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				
 				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
 
+				db_engine = DBEngine('data/wikisql/train.db')
+				if 'sql' in example:
+					sql_raw = example["sql"]
+					gold_query = Query.from_dict(sql_raw, ordered=False)
+					gold_result = db_engine.execute_query(example['table_id'], gold_query, lower=True)
+					print(gold_query, '\n', gold_result,'\n\n\n\n')
+					assert 1==2
+				else:
+					sql = 'unk'
+
+
 				yield idx, {
 						"id": example["question_id"],
 						"table_id": example["table_id"],
 						"question": question.lower(),
 						"answers": answers,
+						"sql":sql,
 						"table": {"header": table_content["header"], "rows": table_content["rows"]},
 						"perturbation_type": perturbation_type,
 						"split_key": split_key
@@ -198,10 +214,10 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
 		from datasets import load_dataset
-		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
+		dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
 								split_id=0, ignore_verifications=True,
 								# perturbation_type='row',
 								# download_mode='force_redownload'
 								)
-		sample = dataset["validation"][0]
+		sample = dataset["train"][0]
 		print(sample)

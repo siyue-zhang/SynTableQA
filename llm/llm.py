@@ -93,6 +93,7 @@ A: No. In the provided table, the coach chal port has 641 wins and the coach fre
         truncated = int(df.loc[i, 'truncated_tableqa']) == 1
         if truncated:
             content = 'At each time, you will get a table, a question, and a potential answer. In the table, cells are separated by "|".\n'
+            # to be checked if example is effective
             content += example
             question = context.split('col :')[0]
             content += f"\nQuestion:{question}"

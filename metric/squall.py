@@ -79,7 +79,7 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
 
 def string_check(pred, mapping, contents):
 
-    verbose = True
+    verbose = False
     contents = contents["contents"]
     ori_pred = str(pred)
     mapping_b = {mapping[k]:k for k in mapping}
@@ -292,7 +292,7 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
         ori_headers = eval_dataset['ori_headers'][i]
         nl = eval_dataset['question'][i]
         label = eval_dataset['query'][i]
-        print('\n', nt_id, ' : ', nl, ' ', table_id)
+        # print('\n', nt_id, ' : ', nl, ' ', table_id)
         # repalce the natural language header with c1, c2, ... headers
         mapping = {ori: col for ori, col in zip(ori_headers, nl_headers)}
         mapping_b = {mapping[k]:k for k in mapping}

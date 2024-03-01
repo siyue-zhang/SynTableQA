@@ -59,7 +59,9 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         else:
             input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
         inputs.append(input_source)
+
         print(input_source, '\n')
+        assert 1==2
 
         n_row = len(table_content['rows'])
         truncated = f'row {n_row}' not in input_source
@@ -104,7 +106,7 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     import sys
     sys.path.append('./')
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
                             split_id=0, ignore_verifications=True,
                             perturbation_type='row',
                             # download_mode='force_redownload'

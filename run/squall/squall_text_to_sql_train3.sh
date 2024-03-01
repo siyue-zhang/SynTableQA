@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_squall
 export WANDB_ENTITY=siyue-zhang
 
 model_name="t5-large"
-run_name="squall_text_to_sql3"
+run_name="squall_d5_text_to_sql3"
 dataset_name="squall"
-output_dir="output/squall_text_to_sql3"
+output_dir="output/squall_d5_text_to_sql3"
 
 python ./run.py \
   --do_train \
@@ -24,7 +24,7 @@ python ./run.py \
   --split_id 3 \
   --per_device_train_batch_size 4 \
   --per_device_eval_batch_size 8 \
-  --gradient_accumulation_steps 8 \
+  --gradient_accumulation_steps 16 \
   --postproc_fuzzy_string True \
   --learning_rate 3e-4 \
   --weight_decay 0.01 \
@@ -35,8 +35,9 @@ python ./run.py \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --save_steps 100 \
-  --eval_steps 100
+  --save_steps 50 \
+  --eval_steps 50 \
+  --squall_downsize 5
   
   # --squall_downsize 5
   # --max_eval_samples 50 \

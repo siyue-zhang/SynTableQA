@@ -3,9 +3,9 @@ export WANDB_PROJECT=STQA_squall
 export WANDB_ENTITY=siyue-zhang
 
 model_name="t5-large"
-run_name="squall_d10_text_to_sql1"
+run_name="squall_d5_text_to_sql1"
 dataset_name="squall"
-output_dir="output/squall_d10_text_to_sql1"
+output_dir="output/squall_d5_text_to_sql1"
 
 python ./run.py \
   --do_train \
@@ -37,7 +37,7 @@ python ./run.py \
   --evaluation_strategy steps \
   --save_steps 50 \
   --eval_steps 50 \
-  --squall_downsize 10
+  --squall_downsize 5
   
   # --max_eval_samples 50 \
   # --max_train_samples 100 \
