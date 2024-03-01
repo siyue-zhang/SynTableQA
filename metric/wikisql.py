@@ -288,6 +288,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         fuzzy_query = []
         tapex_flag = []
         sep = ', '
+
         for i, pred in enumerate(predictions):
             # print('bf: ', pred)
             answers = eval_dataset['answers'][i]
@@ -306,19 +307,23 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             # table['rows'] = [[item.lower() for item in row] for row in table['rows']]
 
             if fuzzy:
-                mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
-                pred = fuzzy_replace(table, pred, mapping)
+                # mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
+                # pred = fuzzy_replace(table, pred, mapping)
                 fuzzy_query.append(pred)
 
             w = deepcopy(table)
             w['header'] = nm_header
-            for row in w['rows']:
-                for j, value in enumerate(row):
-                    if is_expand[j]:
-                        row[j] = float(value) if value != '' else ''
-                    else:
-                        row[j] = str(value)
+            # for row in w['rows']:
+            #     for j, value in enumerate(row):
+            #         if is_expand[j]:
+            #             row[j] = float(value) if value != '' else ''
+            #         else:
+            #             row[j] = str(value)
             w = pd.DataFrame.from_records(w['rows'],columns=w['header'])
+
+
+            pred = eval['sql'][i]
+            print(pred)
 
             try:
                 predicted_values = sqldf(pred).values.tolist()
