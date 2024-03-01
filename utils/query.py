@@ -49,12 +49,27 @@ class Query:
         return hash(tuple(sorted(self.__dict__.items())))
 
     def __repr__(self):
-        rep = 'SELECT {agg} {sel} FROM table'.format(
-            agg=self.agg_ops[self.agg_index],
-            sel='col{}'.format(self.sel_index),
-        )
+        # modified for sql execution
+        if self.agg_ops[self.agg_index]=='':
+            rep = 'SELECT {agg} {sel} FROM w'.format(
+                agg=self.agg_ops[self.agg_index],
+                sel='col{}'.format(self.sel_index),
+            )
+        else:
+            rep = 'SELECT {agg} ( {sel} ) FROM w'.format(
+                agg=self.agg_ops[self.agg_index],
+                sel='col{}'.format(self.sel_index),
+            )
         if self.conditions:
-            rep +=  ' WHERE ' + ' AND '.join(['{} {} {}'.format('col{}'.format(i), self.cond_ops[o], v) for i, o, v in self.conditions])
+            tmp = deepcopy(self.conditions)
+            for k,(_, _, v) in enumerate(self.conditions):
+                if isinstance(v, str):
+                    v=v.lower()
+                    if "'" in v:
+                        v = v.replace("'", "''")
+                    v = "'"+v+"'"
+                    tmp[k][2] = v
+            rep +=  ' WHERE ' + ' AND '.join(['{} {} {}'.format('col{}'.format(i), self.cond_ops[o], v) for i, o, v in tmp])
         return rep
 
     def to_dict(self):

@@ -9,6 +9,9 @@ from copy import deepcopy
 from utils.executor import retrieve_wikisql_query_answer_tapas, _TYPE_CONVERTER
 from utils.query import Query
 from utils.dbengine import DBEngine
+import pandas as pd
+from pandasql import sqldf
+from metric.wikisql import evaluate_example
 
 _DATA_URL = (
 		"https://raw.githubusercontent.com/yilunzhao/RobuT/main/robut_data.zip"
@@ -58,6 +61,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 										"sql": datasets.Value("string"),
 										"table": {
 												"header": datasets.features.Sequence(datasets.Value("string")),
+												"types": datasets.features.Sequence(datasets.Value("string")),
 												"rows": datasets.features.Sequence(datasets.features.Sequence(datasets.Value("string"))),
 										},
 										"perturbation_type": datasets.Value("string"),
@@ -171,13 +175,20 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 			
 			for idx, example in enumerate(qa_data):
 				
-				# if example['question_id'] != 'dev_2423':
-				# 	continue
+				if example['question_id'] != 'dev_31':
+					continue
 
-				question = example["question"]
+				question = example["question"].lower()
+
 				table_content = table_data[example["table_id"]]
 				header_lower = [x.lower() if isinstance(x,str) else x for x in table_content['header']]
 				rows_lower = [[y.lower() if isinstance(y,str) else y for y in x] for x in table_content['rows']]
+				table_content['header'] = header_lower
+				table_content['rows'] = rows_lower
+				table = {'header':header_lower,
+						'types':table_content['types'],
+						'rows':rows_lower}
+
 				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
 
 				if self.config.perturbation != 'original' and split_key=='dev':
@@ -194,6 +205,32 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 					sql_raw = example["sql"]
 					gold_query = Query.from_dict(sql_raw, ordered=False)
+					sql = str(gold_query).lower()
+
+					# # sql: Sydney Football Stadium, Sydney (1)
+					# # table: Sydney Football Stadium , Sydney (1)
+					# if 'sydney football stadium, sydney' in sql:
+					# 	wrong = 'sydney football stadium, sydney'
+					# 	correct = 'sydney football stadium , sydney'
+					# 	sql = sql.replace(wrong, correct)
+
+					# w = pd.DataFrame.from_records(table['rows'],columns=[f'col{k}' for k in range(len(header_lower))])
+					# try:
+					# 	predicted_values = sqldf(sql).values.tolist()
+					# except Exception as e:
+					# 	predicted_values = []
+					# predicted_values = [str(item).strip().lower() for sublist in predicted_values for item in sublist] if predicted_values else []
+					# check = evaluate_example(', '.join(predicted_values), ', '.join(answers), target_delimiter=', ')
+					# print(answers)
+					# print(predicted_values)
+					# print(check)
+					# if not check:
+					# 	print(question)
+					# 	print(sql)
+					# 	print(w)
+					# 	print(w['col5'])
+					# 	assert 1==2
+					# print('\n----------\n')
 
 					# db_engine = db_engine_test if split_key=='test' else db_engine_train
 
@@ -209,7 +246,6 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 					# 	except Exception as e:
 					# 		gold_result = 'ERROR'
 					
-					sql = gold_query
 					# answers = gold_result
 
 				# print('tapex: ', answers, 'wikisql: ', gold_result, '\n')
@@ -218,13 +254,14 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 				answers = [x.lower() if isinstance(x,str) else x for x in answers]
 
+
 				yield idx, {
 						"id": example["question_id"],
 						"table_id": example["table_id"],
-						"question": question.lower(),
+						"question": question,
 						"answers": answers,
 						"sql":sql,
-						"table": {"header": header_lower, "rows": rows_lower},
+						"table": table,
 						"perturbation_type": perturbation_type,
 						"split_key": split_key
 				}
@@ -232,7 +269,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
 		from datasets import load_dataset
-		dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
+		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
 								split_id=0, ignore_verifications=True,
 								# perturbation_type='row',
 								# download_mode='force_redownload'

@@ -1,9 +1,9 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1
 
 model_name="t5-large"
 dataset_name="wikisql"
-output_dir="output/squall_text_to_sql1"
-checkpoint=4600
+output_dir="output/wikisql_text_to_sql0"
+checkpoint=350
 # output_dir="output/squall_text_to_sql2"
 # checkpoint=1800
 # output_dir="output/squall_text_to_sql1_fix"
@@ -28,7 +28,7 @@ python ./run.py \
   --predict_with_generate \
   --num_beams 5 \
   --save_note xx \
-  --max_predict_samples 5
+  --max_predict_samples 500
   # --perturbation_type combined \
   # --perturbation_type column \
 

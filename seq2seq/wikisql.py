@@ -106,7 +106,7 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     import sys
     sys.path.append('./')
-    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
+    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
                             split_id=0, ignore_verifications=True,
                             # perturbation_type='row',
                             # download_mode='force_redownload'
