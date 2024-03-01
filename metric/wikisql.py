@@ -294,16 +294,16 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
             answers = sep.join([a.strip().lower() for a in answers])
             table = eval_dataset['table'][i]
             nl_header = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table['header']]
-            is_expand = ['_number' in h for h in nl_header]
+            # is_expand = ['_number' in h for h in nl_header]
             n_col = len(nl_header)
-            nm_header = ['id', 'agg'] + [f"col{j}" for j in range(n_col-2)]
+            nm_header = [f"col{j}" for j in range(n_col)]
             print(nl_header)
             print(nm_header)
             print(pred)
             for j in range(n_col):
                 pred = pred.replace(nl_header[j], nm_header[j])
             # convert all cell values into lower case
-            table['rows'] = [[item.lower() for item in row] for row in table['rows']]
+            # table['rows'] = [[item.lower() for item in row] for row in table['rows']]
 
             if fuzzy:
                 mapping = {ori: col for ori, col in zip(nm_header, nl_header)}

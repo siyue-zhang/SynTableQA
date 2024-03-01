@@ -173,32 +173,50 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				
 				# if example['question_id'] != 'dev_2423':
 				# 	continue
-				print(example)
 
 				question = example["question"]
 				table_content = table_data[example["table_id"]]
+				header_lower = [x.lower() if isinstance(x,str) else x for x in table_content['header']]
+				rows_lower = [[y.lower() if isinstance(y,str) else y for y in x] for x in table_content['rows']]
+				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
 
 				if self.config.perturbation != 'original' and split_key=='dev':
 					answers = example['answers']
-				else:					
+					sql = 'unk'
+				else:
+					# tapex answers					
 					tapas_table = _convert_table_types(table_content)
 					answers = retrieve_wikisql_query_answer_tapas(tapas_table, example)
-				# print(example)
-				# print(answers)
-				# assert 1==2
 				
-				perturbation_type = example["perturbation_type"] if "perturbation_type" in example else "original"
+					# db_engine_train = DBEngine('data/wikisql/train.db')
+					# db_engine_dev = DBEngine('data/wikisql/dev.db')
+					# db_engine_test = DBEngine('data/wikisql/test.db')
 
-				db_engine = DBEngine('data/wikisql/train.db')
-				if 'sql' in example:
 					sql_raw = example["sql"]
 					gold_query = Query.from_dict(sql_raw, ordered=False)
-					gold_result = db_engine.execute_query(example['table_id'], gold_query, lower=True)
-					print(gold_query, '\n', gold_result,'\n\n\n\n')
-					assert 1==2
-				else:
-					sql = 'unk'
 
+					# db_engine = db_engine_test if split_key=='test' else db_engine_train
+
+					# try:
+					# 	gold_result = db_engine.execute_query(example['table_id'], gold_query, lower=True)
+					# except Exception as e:
+					# 	gold_result = 'ERROR'
+					
+					# if gold_result=='ERROR' and split_key!='test':
+					# 	db_engine = db_engine_dev
+					# 	try:
+					# 		gold_result = db_engine.execute_query(example['table_id'], gold_query, lower=True)
+					# 	except Exception as e:
+					# 		gold_result = 'ERROR'
+					
+					sql = gold_query
+					# answers = gold_result
+
+				# print('tapex: ', answers, 'wikisql: ', gold_result, '\n')
+				# assert '|'.join([x.lower() for x in answers]) == '|'.join(gold_result)
+				# assert 1==2
+
+				answers = [x.lower() if isinstance(x,str) else x for x in answers]
 
 				yield idx, {
 						"id": example["question_id"],
@@ -206,7 +224,7 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 						"question": question.lower(),
 						"answers": answers,
 						"sql":sql,
-						"table": {"header": table_content["header"], "rows": table_content["rows"]},
+						"table": {"header": header_lower, "rows": rows_lower},
 						"perturbation_type": perturbation_type,
 						"split_key": split_key
 				}

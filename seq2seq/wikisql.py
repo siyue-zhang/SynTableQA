@@ -18,59 +18,59 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         table_content = examples["table"][i]
 
         w = pd.DataFrame.from_records(table_content['rows'],columns=table_content['header'])
-        w_expand = {}
-        for col in w.columns:
-            data = w[col].tolist()
-            w_expand[col] = data
-            if any([d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit() for d in data]):
-                data_expand = []
-                for d in data:
-                    if d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit():
-                        if '.' in d:
-                            data_expand.append(str(float(d.replace('$','').replace('%','').replace(',',''))))
-                        else:
-                            data_expand.append(str(int(d.replace('$','').replace('%','').replace(',',''))))
-                    else:
-                        data_expand.append("")
-                w_expand[f'{col}_number'] = data_expand
-        w_expand = pd.DataFrame.from_dict(w_expand)
+        # w_expand = {}
+        # for col in w.columns:
+        #     data = w[col].tolist()
+        #     w_expand[col] = data
+        #     if any([d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit() for d in data]):
+        #         data_expand = []
+        #         for d in data:
+        #             if d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit():
+        #                 if '.' in d:
+        #                     data_expand.append(str(float(d.replace('$','').replace('%','').replace(',',''))))
+        #                 else:
+        #                     data_expand.append(str(int(d.replace('$','').replace('%','').replace(',',''))))
+        #             else:
+        #                 data_expand.append("")
+        #         w_expand[f'{col}_number'] = data_expand
+        # w_expand = pd.DataFrame.from_dict(w_expand)
 
-        table_content = {
-            'header': w_expand.columns.tolist(),
-            'rows': w_expand.values.tolist()
-        }
+        # table_content = {
+        #     'header': w_expand.columns.tolist(),
+        #     'rows': w_expand.values.tolist()
+        # }
         examples["table"][i] = table_content
 
         table_content['header'] = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table_content['header']]
-        table_content['header'] = ['id', 'agg'] + table_content['header']
+        # table_content['header'] = ['id', 'agg'] + table_content['header']
         table_content['header'] = [f'{k+1}_{x}' for k, x in enumerate(table_content['header'])]
-        new_rows = []
-        for j, row in enumerate(table_content['rows']):
-            row = [f'{j+1}', '0'] + row
-            new_rows.append(row)
-        table_content['rows'] = new_rows
+        # new_rows = []
+        # for j, row in enumerate(table_content['rows']):
+        #     row = [f'{j+1}', '0'] + row
+        #     new_rows.append(row)
+        # table_content['rows'] = new_rows
         table_content_copy = deepcopy(table_content)
 
         answer = examples["answers"][i]
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
             # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, answer).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, answer).strip().lower()
         else:
-            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
-        inputs.append(input_source)
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).strip().lower()
+        input = input_source.replace('<', '!>')
+        inputs.append(input)
 
-        print(input_source, '\n')
-        assert 1==2
-
+        last_cell = table_content['rows'][-1][-1].strip()
         n_row = len(table_content['rows'])
-        truncated = f'row {n_row}' not in input_source
+        truncated = (f'row {n_row}' not in input_source) or (last_cell!=input_source.split('|')[-1].strip())
         input_truncated.append(truncated)
 
         output_target = TABLE_PROCESSOR.process_output(answer).lower()
         output_targets.append(output_target)
 
-        outputs.append('unk')
+        output = examples['sql'][i].replace('<', '!>')
+        outputs.append(output)
         
     # use t5 tokenizer to convert text to ids        
     model_inputs = {
@@ -108,7 +108,7 @@ if __name__=='__main__':
     sys.path.append('./')
     datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
                             split_id=0, ignore_verifications=True,
-                            perturbation_type='row',
+                            # perturbation_type='row',
                             # download_mode='force_redownload'
                             )
     train_dataset = datasets["validation"].select(range(1000))
