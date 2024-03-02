@@ -37,7 +37,7 @@ python ./run.py \
   --evaluation_strategy steps \
   --save_steps 100 \
   --eval_steps 100 \
-  --max_eval_samples 4000
+  --max_eval_samples 2000
   # --max_train_samples 100 \
 
 

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from wikisql import evaluate_example
+from metric.wikisql import evaluate_example
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
     def compute_metrics(eval_preds, meta=None):

@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
