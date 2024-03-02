@@ -18,37 +18,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         table_content = examples["table"][i]
 
         w = pd.DataFrame.from_records(table_content['rows'],columns=table_content['header'])
-        # w_expand = {}
-        # for col in w.columns:
-        #     data = w[col].tolist()
-        #     w_expand[col] = data
-        #     if any([d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit() for d in data]):
-        #         data_expand = []
-        #         for d in data:
-        #             if d.replace('$','').replace('%','').replace(',','').replace('.','',1).isdigit():
-        #                 if '.' in d:
-        #                     data_expand.append(str(float(d.replace('$','').replace('%','').replace(',',''))))
-        #                 else:
-        #                     data_expand.append(str(int(d.replace('$','').replace('%','').replace(',',''))))
-        #             else:
-        #                 data_expand.append("")
-        #         w_expand[f'{col}_number'] = data_expand
-        # w_expand = pd.DataFrame.from_dict(w_expand)
-
-        # table_content = {
-        #     'header': w_expand.columns.tolist(),
-        #     'rows': w_expand.values.tolist()
-        # }
         examples["table"][i] = table_content
 
         table_content['header'] = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table_content['header']]
-        # table_content['header'] = ['id', 'agg'] + table_content['header']
         table_content['header'] = [f'{k+1}_{x}' for k, x in enumerate(table_content['header'])]
-        # new_rows = []
-        # for j, row in enumerate(table_content['rows']):
-        #     row = [f'{j+1}', '0'] + row
-        #     new_rows.append(row)
-        # table_content['rows'] = new_rows
         table_content_copy = deepcopy(table_content)
 
         answer = examples["answers"][i]

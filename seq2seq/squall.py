@@ -100,9 +100,12 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
         else:
             input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
-        
+    
+        # to be tested
+        last_cell = table_content['rows'][-1][-1].strip()
         n_row = len(table_content['rows'])
-        truncated = f'row {n_row}' not in input_source
+        truncated = (f'row {n_row}' not in input_source) or (last_cell!=input_source.split('|')[-1].strip())
+        # truncated = f'row {n_row}' not in input_source
         input_truncated.append(truncated)
 
         for j in range(len(table_content['ori_header'])):

@@ -5,26 +5,27 @@ from utils.processor import get_default_processor
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 	
-    TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter=', ')
+    TABLE_PROCESSOR = get_default_processor(max_cell_length=50, max_input_length=1024, target_delimiter=', ')
     input_sources = []
     output_targets = []
     input_truncated = []
     for i in range(len(examples['question'])): 
         table_content = examples['table'][i]
-        table_content_x = deepcopy(table_content)
+        table_content_copy = deepcopy(table_content)
         answer = examples['answers'][i]
         question = examples['question'][i]
 
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
             # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, answer).lower()
         else:
-            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
         input_sources.append(input_source)
-        
+    
+        last_cell = table_content['rows'][-1][-1].strip()
         n_row = len(table_content['rows'])
-        truncated = f'row {n_row}' not in input_source
+        truncated = (f'row {n_row}' not in input_source) or (last_cell!=input_source.split('|')[-1].strip())
         input_truncated.append(truncated)
 
         output_target = TABLE_PROCESSOR.process_output(answer).lower()

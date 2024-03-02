@@ -82,22 +82,28 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         
         df = table_contents[tbl]
         table_content = {'header': df.columns.tolist(), 'rows': df.values.tolist()}
-        table_content_x = deepcopy(table_content)
+        table_content_copy = deepcopy(table_content)
         answer = answer_texts[i].split('|')
         question = nls[i]
 
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;
             # otherwise, we cannot utilize answer information
-            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, answer).lower()
         else:
-            input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
+            input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
         input_sources.append(input_source)
         
+        # to be tested
+        last_cell = table_content['rows'][-1][-1].strip()
+        print(table_content)
+        print(last_cell)
+        print(input_source)
         n_row = len(table_content['rows'])
-        truncated = f'row {n_row}' not in input_source
+        truncated = (f'row {n_row}' not in input_source) or (last_cell!=input_source.split('|')[-1].strip())
+        # truncated = f'row {n_row}' not in input_source
         input_truncated.append(truncated)
-
+        assert 1==2
         output_target = TABLE_PROCESSOR.process_output(answer).lower()
         output_targets.append(output_target)
 

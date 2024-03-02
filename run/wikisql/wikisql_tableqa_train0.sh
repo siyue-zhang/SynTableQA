@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=2,3
 export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
@@ -10,6 +10,7 @@ output_dir="output/wikisql_tableqa0"
 python ./run.py \
   --do_train \
   --do_eval \
+  --num_train_epochs 10 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --model_name_or_path ${model_name} \
@@ -22,7 +23,6 @@ python ./run.py \
   --per_device_train_batch_size 6 \
   --gradient_accumulation_steps 8 \
   --per_device_eval_batch_size 6 \
-  --num_train_epochs 50 \
   --warmup_ratio 0.1 \
   --learning_rate 2e-5 \
   --fp16 \

@@ -1,25 +1,6 @@
 import numpy as np
 import pandas as pd
-from collections import defaultdict
 from wikisql import evaluate_example
-
-# def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', '):
-#     _predict_spans = _predict_str.split(target_delimiter)
-#     _ground_spans = _ground_str.split(target_delimiter)
-#     _predict_values = defaultdict(lambda: 0)
-#     _ground_values = defaultdict(lambda: 0)
-#     for span in _predict_spans:
-#         try:
-#             _predict_values[float(span)] += 1
-#         except ValueError:
-#             _predict_values[span.strip()] += 1
-#     for span in _ground_spans:
-#         try:
-#             _ground_values[float(span)] += 1
-#         except ValueError:
-#             _ground_values[span.strip()] += 1
-#     _is_correct = _predict_values == _ground_values
-#     return _is_correct
 
 def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):    
     def compute_metrics(eval_preds, meta=None):
@@ -36,6 +17,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         predictions = decoded_preds
         tapex_flag = []
         sep = ', '
+        
         for i, pred in enumerate(predictions):
             answers = eval_dataset['answers'][i]
             answers = sep.join([a.strip().lower() for a in answers])
