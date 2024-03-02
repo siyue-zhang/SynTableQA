@@ -84,18 +84,6 @@ def string_check(pred, mapping, contents):
     ori_pred = str(pred)
     mapping_b = {mapping[k]:k for k in mapping}
 
-    # select c3 from w where c1 = 'american mcgee's crooked house' 
-    indices = []
-    in_double_quote = False
-    for i, char in enumerate(pred):
-        if char == '"':
-            in_double_quote = True if in_double_quote == False else False
-        if char == "'" and in_double_quote == False:
-            indices.append(i)
-    if len(indices) == 3:
-        pred = pred[:indices[0]] + "\"" + pred[indices[0]+1:]
-        pred = pred[:indices[2]] + "\"" + pred[indices[2]+1:]
-
     cols = []
     cell_dict = defaultdict(lambda: set())
     for c in contents:
@@ -109,6 +97,19 @@ def string_check(pred, mapping, contents):
                 for item in cc['data']:
                     for list_item in item:
                         cell_dict[list_item].add(col_name)
+
+    # select c3 from w where c1 = 'american mcgee's crooked house' 
+    indices = []
+    in_double_quote = False
+    for i, char in enumerate(pred):
+        if char == '"':
+            in_double_quote = True if in_double_quote == False else False
+        if char == "'" and in_double_quote == False:
+            indices.append(i)
+    if len(indices) == 3:
+        pred = pred[:indices[0]] + "\"" + pred[indices[0]+1:]
+        pred = pred[:indices[2]] + "\"" + pred[indices[2]+1:]
+
 
     # select 1_id from w where 7_title = "alfie's birthday party"
     pairs = re.finditer(r'where (c[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?"([^"]*?\'[^"]*?)"', pred)
@@ -180,6 +181,7 @@ def string_check(pred, mapping, contents):
             n += 1
             buf.append(best_match)
 
+	# select c1 from w where c4 = 'prime minister of italy'
     pairs = re.finditer(r'where (c[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?\'(.{1,}?)\'', pred)
     tokens = []
     replacement = []

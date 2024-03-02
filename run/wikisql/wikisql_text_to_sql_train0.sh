@@ -35,9 +35,9 @@ python ./run.py \
   --logging_steps 10 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps \
-  --save_steps 50 \
-  --eval_steps 50 \
-  --max_eval_samples 100
+  --save_steps 100 \
+  --eval_steps 100 \
+  --max_eval_samples 4000
   # --max_train_samples 100 \
 
 

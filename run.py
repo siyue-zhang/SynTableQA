@@ -50,7 +50,8 @@ def main():
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # Disable wandb during experiment
-    if data_args.max_eval_samples or data_args.max_predict_samples:
+    # if data_args.max_eval_samples or data_args.max_predict_samples:
+    if data_args.max_predict_samples:
         training_args.report_to = []
 
     # Setup logging

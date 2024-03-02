@@ -4,8 +4,15 @@ import pandas as pd
 from pandasql import sqldf
 from fuzzywuzzy import process
 from copy import deepcopy
-# from metric.squall_evaluator import to_value_list, check_denotation
 from collections import defaultdict
+
+# select  col1 from w where col3 = 'st. john''s'
+# select col10 from w where col2 = '10' and col6 = '283'
+# select count ( col0 ) from w where col2 = 'michael schumacher' and col3 = 'david coulthard' and col5 = 'mclaren - mercedes'
+# select col6 from w where col2 = '"buzzkill"'
+# select col10 from w where col4 = 27
+# select col0 from w where col1 = '9.40' and col4 = '9.44'
+# select col2 from w where col0 = 1
 
 def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', '):
 	_predict_spans = _predict_str.split(target_delimiter)
@@ -32,82 +39,124 @@ def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', ')
 	return _is_correct
 
 
-def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b):
-
-	if ori not in cell_dict:
-		candidates = list(cell_dict.keys())
-		candidates = sorted([x for x in candidates if isinstance(x, str)], key=len)
-		new_ori, _ = process.extractOne(ori, candidates)
-		to_replace = to_replace.replace(ori, new_ori)
-	else:
-		new_ori = ori
-
-	if col not in cell_dict[new_ori]:
-		if len(cell_dict[new_ori])>1:
-			col_choices = list(cell_dict[new_ori])
-			col_choices = sorted([mapping[x] for x in col_choices],key=len)
-			col_pred = mapping[col]
-			tmp = '_'.join(col_pred.split('_')[1:])
-			new_col, _ = process.extractOne(tmp, col_choices)
-			new_col = mapping_b[new_col]
-		else:
-			new_col = list(cell_dict[new_ori])[0]
-		to_replace = to_replace.replace(col, new_col)
-	else:
-		new_col = col
-
-	return to_replace
-
-
 def string_check(pred, mapping, table):
-	print('A: ', pred)
-	mapping_b = {mapping[k]:k for k in mapping}
-	cell_dict = defaultdict(lambda: set())
-	nm_headers = [f'col{i}' for i in range(len(table['header']))]
-	types = table['types']
-	for row in table['rows']:
-		for k, cell in enumerate(row):
-			if types[k].lower() == 'text':
-				cell_dict[cell].add(nm_headers[k])
 
-	# select col1 from w where col4 = 'prime minister of italy'
-	pairs = re.finditer(r'where (col[0-9]{1,}.{,20}?)\s*?[!=><]{1,}\s*?\'(.{1,}?)\'', pred)
-	tokens = []
-	replacement = []
-	for idx, match in enumerate(pairs):
-		start = match.start(0)
-		end = match.end(0)
-		col = pred[match.start(1):match.end(1)]
-		ori = pred[match.start(2):match.end(2)]
-		to_replace = pred[start:end]
+	pred = pred.lower()
+	pred_copy = deepcopy(pred)
+	wwhere = ' where '
+	aand = ' and '
 
-		token = str(idx) + '_'*(end-start-len(str(idx)))
-		tokens.append(token)
-		pred = pred[:start] + token + pred[end:]
+	# 'select col3 from w where col2 = \'"home is where the hospital is"\''
+	pairs = re.finditer(r'(\'.*? where .*?\')', pred)
+	for x in pairs:
+		ori = pred[x.start(0):x.end(0)]
+		new = ori.replace(wwhere, ' !!! ')
+		pred = pred.replace(ori, new)
 
-		to_replace = correctify(col, ori, to_replace, cell_dict, mapping, mapping_b)
-		replacement.append(to_replace)
-		print(to_replace)
+	seperated = pred.split(wwhere)
 
-	for i in range(len(tokens)):
-		pred = pred.replace(tokens[i], replacement[i])
 
-	print(cell_dict)
-	print(pred)
-	print(mapping)
+	if len(seperated) == 1:
+		return pred_copy
+	elif len(seperated) > 2:
+		print('ALARM ', pred)
+		print(seperated)
+		raise ValueError
+	else:
+		mapping_b = {mapping[k]:k for k in mapping}
+		cell_dict = defaultdict(lambda: set())
+		nm_headers = [f'col{i}' for i in range(len(table['header']))]
+		types = table['types']
+		for row in table['rows']:
+			for k, cell in enumerate(row):
+				cell_dict[str(cell)].add(nm_headers[k])
 
-	assert 1==2
-	# select col0 from w where col1 = '9.40' and col4 = '9.44'
+		if not cell_dict:
+			return pred_copy
+
+		before_where, after_where = seperated
+
+		# "select  col5 from w where col4 = 'karen felix and don woodard'"
+		pairs = re.finditer(r'(\'.*? and .*?\')', after_where)
+		for x in pairs:
+			# "select col3 from w where col9 = '1-0' and col6 = '1-0'"
+			ori = after_where[x.start(0):x.end(0)]
+			if "'" in ori[1:-1]:
+				continue
+			new = ori.replace(aand, ' ??? ')
+			after_where = after_where.replace(ori, new)
+
+		conds = after_where.split(aand)
+		print('conds: ', conds)
+		new_conds = []
+		for cond in conds:
+
+			col=None
+			val=None
+			for op in ['=','<','>']:
+				if op in cond:
+					loc = cond.index(op)
+					col = cond[:loc].strip()
+					val = cond[loc+1:].strip().replace(' ??? ', aand).replace(' !!! ', wwhere)
+					break
+
+			if not col or not val:
+				new_conds.append(cond)
+				continue
+
+			if val[0]=="'":
+
+				if val[-1]!="'":
+					val+="'"
+
+				val_in_quote = val[1:-1].replace("''","'")
+				if val_in_quote not in cell_dict:
+					candidates = list(cell_dict.keys())
+					candidates = sorted([x for x in candidates if isinstance(x, str)], key=len)
+					new_val, _ = process.extractOne(val_in_quote, candidates)
+					col_candidates = cell_dict[new_val]
+				else:
+					col_candidates = cell_dict[val_in_quote]
+					new_val = val_in_quote
+				
+				new_val = new_val.replace("'","''")
+				new_val = f"'{new_val}'"
+
+				if col in col_candidates:
+					new_col = col
+				elif len(col_candidates)==1:
+					new_col = list(col_candidates)[0]
+				else:
+					if col not in mapping:
+						new_col, _ = process.extractOne(col, col_candidates)
+						print('HEHEHE ', new_col)
+					else:
+						nl_col = mapping[col]
+						col_candidates = [mapping[x] for x in col_candidates]
+						new_col, _ = process.extractOne(nl_col, col_candidates)
+						new_col = mapping_b[new_col]
+
+				new_cond = f'{new_col} {op} {new_val}'
+				new_conds.append(new_cond)
+			else:
+				new_conds.append(cond)
+				continue
+		
+		pred = f'{before_where.strip()} where {aand.join(new_conds)}' 
+		if pred.replace(' ','') != pred_copy.replace(' ',''):
+			print('From: ', pred_copy)
+			print('To: ', pred)
 
 	return pred
+
+
 
 def postprocess_text(decoded_preds, eval_dataset, fuzzy):
 	predictions=[]
 	for i, pred in enumerate(decoded_preds):
-		# print(eval_dataset['question'][i])
-		# print(eval_dataset['sql'][i])
-		# print(pred)
-		# assert 1==2[']
+		print(eval_dataset['id'][i], eval_dataset['question'][i])
+		print('Raw prediction: ', pred)
+
 		pred=pred.replace('!', ' !').replace('!>', '<').replace('< =', '<=').replace('> =', '>=')
 		table = eval_dataset['table'][i]
 		
@@ -121,9 +170,13 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
 		mapping = {ori: col for ori, col in zip(nm_header, nl_header)}
 
 		if fuzzy:
-			pred = string_check(pred, mapping, table)
-
+			try:
+				pred = string_check(pred, mapping, table)
+			except Exception as e:
+				pass
 		predictions.append(pred)
+
+		print('\n---------------------\n')
 	
 	return predictions
 
@@ -163,7 +216,7 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 			acc = evaluate_example(predicted_string, answers, target_delimiter=', ')
 			tapex_flag.append(acc)
 			predicted.append(sep.join(predicted_values))
-
+			
 		if stage:
 			to_save = {'id': eval_dataset['id'],
 					   'table_id': eval_dataset['table_id'],

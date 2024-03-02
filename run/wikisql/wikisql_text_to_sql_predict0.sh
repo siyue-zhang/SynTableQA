@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=3
 
 model_name="t5-large"
 dataset_name="wikisql"
@@ -27,8 +27,10 @@ python ./run.py \
   --split_id 0 \
   --predict_with_generate \
   --num_beams 5 \
-  --save_note xx \
-  --max_predict_samples 500
+  --max_eval_samples 1000 \
+  --max_predict_samples 1000
   # --perturbation_type combined \
   # --perturbation_type column \
+  # --save_note xx \
+
 

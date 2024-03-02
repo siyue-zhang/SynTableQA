@@ -58,6 +58,10 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, answer).strip().lower()
         else:
             input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).strip().lower()
+
+        types = table_content['types']
+        str_types = 'type : ' + ' | '.join(types) + ' row 1 :'
+        input_source = input_source.replace('row 1 :', str_types)
         input = input_source.replace('<', '!>')
         inputs.append(input)
 
