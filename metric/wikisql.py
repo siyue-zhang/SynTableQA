@@ -6,6 +6,7 @@ from fuzzywuzzy import process
 from copy import deepcopy
 from collections import defaultdict
 import pickle
+import logging
 
 # select  col1 from w where col3 = 'st. john''s'
 # select col10 from w where col2 = '10' and col6 = '283'
@@ -154,9 +155,12 @@ def string_check(pred, mapping, table):
 
 def postprocess_text(decoded_preds, eval_dataset, fuzzy):
 	predictions=[]
+	L = len(decoded_preds)
 	for i, pred in enumerate(decoded_preds):
-		print(eval_dataset['id'][i], eval_dataset['question'][i])
-		print('Raw prediction: ', pred)
+		
+		id = eval_dataset['id'][i]
+		logging.warning(f'{i}/{L}: {id}')
+		logging.warning(f'Raw prediction: {pred}')
 
 		pred=pred.replace('!', ' !').replace('!>', '<').replace('< =', '<=').replace('> =', '>=')
 		table = eval_dataset['table'][i]
