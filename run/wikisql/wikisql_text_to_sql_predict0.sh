@@ -1,15 +1,9 @@
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0,1
 
 model_name="t5-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_text_to_sql0"
-checkpoint=350
-# output_dir="output/squall_text_to_sql2"
-# checkpoint=1800
-# output_dir="output/squall_text_to_sql1_fix"
-# checkpoint=3800
-# output_dir="output/squall_text_to_sql0_fix"
-# checkpoint=2700
+checkpoint=1000
 
 python ./run.py \
   --task text_to_sql \
@@ -22,13 +16,14 @@ python ./run.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --val_max_target_length 128 \
-  --per_device_eval_batch_size 8 \
+  --per_device_eval_batch_size 16 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --predict_with_generate \
-  --num_beams 5 \
-  --max_eval_samples 1000 \
-  --max_predict_samples 1000
+  --num_beams 5 
+
+  # --max_eval_samples 1000 \
+  # --max_predict_samples 1000
   # --perturbation_type combined \
   # --perturbation_type column \
   # --save_note xx \

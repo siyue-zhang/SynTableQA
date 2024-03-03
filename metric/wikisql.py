@@ -5,6 +5,7 @@ from pandasql import sqldf
 from fuzzywuzzy import process
 from copy import deepcopy
 from collections import defaultdict
+import pickle
 
 # select  col1 from w where col3 = 'st. john''s'
 # select col10 from w where col2 = '10' and col6 = '283'
@@ -192,6 +193,20 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 		decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
 		# labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
 		# decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+		# save intermediate results
+		dump_data = {
+			"eval_dataset": eval_dataset,
+			"decoded_preds": decoded_preds,
+			"stage": stage,
+			"tokenizer": tokenizer,
+			"meta": meta
+		}
+
+		with open(f'tmp/{stage}_tmp.pkl', 'wb') as file:
+			pickle.dump(dump_data, file)
+		assert 1==2
+
 		# prepare the prediction format for the evaluator
 		predictions = postprocess_text(decoded_preds, eval_dataset, fuzzy)
 		predicted = []
