@@ -44,7 +44,6 @@ def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', ')
 def string_check(pred, mapping, table):
 
 	# BUGS
-	# -> dev_117: select count ( col2 ) from w where col1 = 'east west' and col3 = 'none' and col0 ='sh 202'
 	# 
 
 	pred = pred.lower()
@@ -85,7 +84,8 @@ def string_check(pred, mapping, table):
 		# "select  col5 from w where col4 = 'karen felix and don woodard'"
 		pairs = re.finditer(r'(\'.*? and .*?\')', after_where)
 		for x in pairs:
-			# "select col3 from w where col9 = '1-0' and col6 = '1-0'"
+			# select col3 from w where col9 = '1-0' and col6 = '1-0'
+			# select count ( col2 ) from w where col1 = 'east west' and col3 = 'none' and col0 ='sh 202'
 			ori = after_where[x.start(0):x.end(0)]
 			if "'" in ori[1:-1] or re.search(r'col\d{1,}', ori[1:-1]):
 				continue
