@@ -8,10 +8,6 @@ from utils.misc import split_list
 from copy import deepcopy
 from utils.executor import retrieve_wikisql_query_answer_tapas, _TYPE_CONVERTER
 from utils.query import Query
-from utils.dbengine import DBEngine
-import pandas as pd
-from pandasql import sqldf
-from metric.wikisql import evaluate_example
 
 _DATA_URL = (
 		"https://raw.githubusercontent.com/yilunzhao/RobuT/main/robut_data.zip"
@@ -112,7 +108,9 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 				# split train table ids into 4 folds
 				four_folds = list(split_list(table_ids[0], 4))
-				dev_table_ids = four_folds[self.config.split_id-1] if self.config.split_id != 0 else table_ids[1]
+				downsize_factor = [2,1.4,1.6,1.6]
+				downsized_four_folds = [ids[:int(len(ids)/f)] for ids, f in zip(four_folds, downsize_factor)]
+				dev_table_ids = downsized_four_folds[self.config.split_id-1] if self.config.split_id != 0 else table_ids[1]
 
 				train_qa = []
 				dev_qa = []
@@ -175,8 +173,8 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 			
 			for idx, example in enumerate(qa_data):
 				
-				# if example['question_id'] != 'dev_248':
-				# 	continue
+				if example['question_id'] != 'dev_117':
+					continue
 
 				question = example["question"].lower()
 
@@ -232,28 +230,8 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 					# 	assert 1==2
 					# print('\n----------\n')
 
-					# db_engine = db_engine_test if split_key=='test' else db_engine_train
-
-					# try:
-					# 	gold_result = db_engine.execute_query(example['table_id'], gold_query, lower=True)
-					# except Exception as e:
-					# 	gold_result = 'ERROR'
-					
-					# if gold_result=='ERROR' and split_key!='test':
-					# 	db_engine = db_engine_dev
-					# 	try:
-					# 		gold_result = db_engine.execute_query(example['table_id'], gold_query, lower=True)
-					# 	except Exception as e:
-					# 		gold_result = 'ERROR'
-					
-					# answers = gold_result
-
-				# print('tapex: ', answers, 'wikisql: ', gold_result, '\n')
-				# assert '|'.join([x.lower() for x in answers]) == '|'.join(gold_result)
-				# assert 1==2
 
 				answers = [x.lower() if isinstance(x,str) else x for x in answers]
-
 
 				yield idx, {
 						"id": example["question_id"],
@@ -269,10 +247,10 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 
 if __name__=='__main__':
 		from datasets import load_dataset
-		dataset = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
-								split_id=0, ignore_verifications=True,
+		dataset = load_dataset("./task/wikisql_robut.py", 
+								split_id=1, ignore_verifications=True,
 								# perturbation_type='row',
 								# download_mode='force_redownload'
 								)
 		sample = dataset["train"][0]
-		print(sample)
+		# print(sample)

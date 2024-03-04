@@ -3,9 +3,9 @@ export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
 model_name="neulab/omnitab-large"
-run_name="wikisql_tableqa1"
+run_name="wikisql_tableqa1_R"
 dataset_name="wikisql"
-output_dir="output/wikisql_tableqa1"
+output_dir="output/wikisql_tableqa1_R"
 
 python ./run.py \
   --do_train \

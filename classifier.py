@@ -200,6 +200,8 @@ def preprocess_df(df):
     Abb_b = []
     Sub = []
     Sub_b = []
+
+    partial_cells = []
     for index, row in df.iterrows():
         
         question = row["question"]
@@ -219,12 +221,11 @@ def preprocess_df(df):
         for cc in data['contents']:
             c = cc[0]
             if len(cc)==1 and c['type']=='TEXT':
-                for sep in [', ', '&', '(']:
+                for sep in [', ', '&', '(', ' - ']:
                     isComplex = any([sep in str(y) for y in c['data'] if y])
                     if isComplex:
                         complexCol.append(c['col'])
                         break
-
 
         if len(complexCol)>0:
             complexCols.append('|'.join(complexCol))
@@ -245,8 +246,6 @@ def preprocess_df(df):
                 tmp = tmp.replace(x,'')
             num_pro_col += count
         num_pro_cols.append(num_pro_col)
-
-
 
 
         ans_text_to_sql = str(row['ans_text_to_sql'])
@@ -285,13 +284,36 @@ def preprocess_df(df):
         Sub.append(isSub)
         Sub_b.append(isSub_b)
 
+
+
+        partial_cell = 0
+        candidates = []
+        for c in data['contents']:
+            if c[0]['col'] in complexCol:
+                for cc in c[0]['data']:
+                    if cc:
+                        candidates.append(cc)
+        if len(ans_tableqa_list)==1 and ans_tableqa not in candidates:
+            if not ans_tableqa.isdigit() and ans_tableqa not in ['yes','no'] and f'"{ans_tableqa}"' not in candidates:
+                if any([ans_tableqa in x for x in candidates]):
+                    partial_cell = 1
+        partial_cells.append(partial_cell)
+        # if partial_cell:
+        #     print(question)
+        #     print(ans_tableqa)
+        #     print(complexCol)
+        #     print(candidates)
+        #     print('\n-----------------\n')
+
+
     df.loc[:,['hq_overlap']] = hq_overlap
-    df.loc[:, ['complexCols']] = complexCols
+    df.loc[:, ['complex_cols']] = complexCols
     df.loc[:, ['num_pro_col']] = num_pro_cols
     df.loc[:, ['tqa_is_abb']] = Abb
     df.loc[:, ['tts_is_abb']] = Abb_b
     df.loc[:, ['tqa_is_sub']] = Sub
     df.loc[:, ['tts_is_sub']] = Sub_b
+    df.loc[:, ['partial_cells']] = partial_cells
 
     
     return df
@@ -710,6 +732,7 @@ def extract_squall_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly=
             if add_name:
                     feature_names.append('if tts is a substring of tqa')
 
+
             # # number of overlap words between question and answer
             # qwords = set(question.lower().split())
             # awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
@@ -767,330 +790,6 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
         features = []
         row = dict(row)
 
-        ####### question features #######
-        question = row["question"]
-        if question[-1] in ['.','?']:
-            question = question[:-1] + ' ' + question[-1]
-
-        if verbose:
-            print('Sample: ', {k:row[k] for k in row if k not in ['input_tokens','nl_headers']})
-            print('\nQuestion: ', question)
-
-        qword = question.lower().split()
-        if "what" in qword:
-            features.append(1)
-            if verbose:
-                print('qword => what')
-        else:
-            features.append(0)
-        
-        if "who" in qword:
-            features.append(1)
-            if verbose:
-                print('qword => who')
-        else:
-            features.append(0)
-        
-        if "which" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-        
-        if "when" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-        
-        if "where" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-        
-        if "how" in qword and "much" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-        
-        if "how" in qword and "many" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "how" in qword and "long" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "how" in qword and all([w not in qword for w in ['much', 'many', 'long']]):
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "is" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "was" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "are" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "were" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "does" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "did" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if "do" in qword:
-            features.append(1)
-        else:
-            features.append(0)
-
-        if qword[0] in ['name','list','tell']:
-            features.append(1)
-            if verbose:
-                print('qword => name, list, tell')
-        else:
-            features.append(0)
-
-        # if "only" in qword:
-        #     features.append(1)
-        # else:
-        #     features.append(0)
-            
-        # if "or" in qword:
-        #     features.append(1)
-        # else:
-        #     features.append(0)
-
-        features.append(len(tableqa_tokenizer.tokenize(question)))
-        if verbose:
-            print('Question token length: ', len(tableqa_tokenizer.tokenize(question)))
-
-        # number of numerical values in question
-        qwords = deepcopy(qword)
-        num_count = 0
-        for w in qwords:
-            if w.replace('.', '').replace(',', '').replace('-', '').isnumeric():
-                num_count += 1
-        features.append(num_count)
-        if verbose:
-            print('Question has numerical values: ', num_count)
-
-        ####### context table features #######
-        tbl = row['table_id']
-        get_table_shape = get_wikisql_table_shape
-        if tbl not in table_shape:
-            table_shape[tbl] = get_table_shape(tbl)
-        # number of rows
-        features.append(table_shape[tbl][0])
-        # # number of columns
-        # features.append(table_shape[tbl][1])
-        # features.append(table_shape[tbl][2])
-        if verbose:
-            print('Table has rows: ', table_shape[tbl][0])
-
-        if not qonly:
-            ####### text_to_sql answer features #######
-            ans_text_to_sql = str(row['ans_text_to_sql'])
-            ans_text_to_sql_list = ans_text_to_sql.split('|')
-            text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
-            sql = row['query_fuzzy']
-            # sql = row['query_pred']
-
-            if verbose:
-                    print('\nText_to_sql Answer: ', ans_text_to_sql)
-                    print('  ', text_to_sql_value_list)
-                    print('  sql after fuzzy: ', sql)
-
-            # # query use complex column
-            # hasLst = '_list' in sql
-            # features.append(int(hasLst))
-
-            # hasFst = any([x in sql for x in ['_first', '_second']])
-            # features.append(int(hasFst))
-
-            # hasMm = any([x in sql for x in ['_maximum', '_minimum']])
-            # features.append(int(hasMm))
-
-            # hasTim = any([x in sql for x in ['_year', '_month', '_day']])
-            # features.append(int(hasTim))
-
-            # hasLen = '_length' in sql
-            # features.append(int(hasLen))
-
-            # # number of predicted tokens
-            # n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(row['query_pred']))
-            # features.append(n_tok_text_to_sql)
-
-            # features.append(int(ans_text_to_sql=='0'))
-
-            # number of answers
-            features.append(len(ans_text_to_sql_list))
-            if verbose:
-                    print('  Number of answers: ', len(ans_text_to_sql_list))
-
-            # answers have none
-            hasNan = 0
-            for ans in ans_text_to_sql_list:
-                if ans.lower() in ['nan', 'none', '']:
-                    hasNan += 1
-            features.append(hasNan)
-            if verbose:
-                print('  Number of NAN answers: ', hasNan)
-            # answers have none
-                
-            # hasNL = ans_text_to_sql.count('\n')
-            # features.append(hasNL)
-            # if verbose:
-            #     print('  Number of \\n: ', hasNL)
-
-            # answers have string
-            hasStr = 0
-            for v in text_to_sql_value_list:
-                if str(v)[0]=='S':
-                    hasStr += 1
-            features.append(hasStr)
-
-            # answers have number
-            hasNum = 0
-            for v in text_to_sql_value_list:
-                if str(v)[0]=='N':
-                    hasNum += 1
-            features.append(hasNum)
-
-            # # answers have number, 01:47.6
-            # hasNum2 = 0
-            # for v in ans_text_to_sql_list:
-            #     if v.replace(':','').replace('.','').isnumeric():
-            #         hasNum2 += 1
-            # features.append(hasNum2)
-
-            # answers have date
-            hasDat = 0
-            for v in text_to_sql_value_list:
-                if str(v)[0]=='D':
-                    hasDat += 1
-            features.append(hasDat)
-
-            # number of overlap words between question and answer
-            qwords = set(question.lower().split())
-            awords = set(re.split(r'\s|\|', ans_text_to_sql.lower()))
-            num_overlap = len(qwords.intersection(awords))
-            features.append(num_overlap)
-            if verbose:
-                print('  Number of overlap words between question and answer: ', num_overlap)
-
-            # # generation probability
-            # log_prob_avg = float(row['log_prob_avg_text_to_sql'])
-            # features.append(log_prob_avg)
-
-            # log_prob_sum = float(row['log_prob_sum_text_to_sql'])
-            # features.append(log_prob_sum)
-
-            # if the predicted sql after fuzzy match uses the processed column
-            cols = row['nl_headers'].split('|')
-            original_cols, processed_cols = separate_cols(cols)
-            usePro = 0
-            for col in processed_cols:
-                if col in sql:
-                    usePro = 1
-                    break
-            features.append(usePro)
-
-            # if the input is truncated
-            isTru = row['truncated_text_to_sql']
-            features.append(isTru)
-
-
-        if not qonly:
-            ####### tableqa answer features #######
-            ans_tableqa = str(row['ans_tableqa'])
-            ans_tableqa_list = ans_tableqa.split('|')
-            tableqa_value_list = to_value_list(ans_tableqa_list)
-
-            # features.append(int(ans_tableqa=='0'))
-
-            if verbose:
-                    print('\nTableqa Answer: ', ans_tableqa)
-                    print('  ', tableqa_value_list)
-
-            # isAbb = int(is_abbreviation(ans_text_to_sql, ans_tableqa.lower()))
-            # features.append(isAbb)
-            # isAbb = int(is_abbreviation(ans_tableqa.lower(), ans_text_to_sql))
-            # features.append(isAbb)
-
-            # number of answers
-            features.append(len(ans_tableqa_list))
-            if verbose:
-                    print('  Number of answers: ', len(ans_tableqa_list))
-
-            # # number of predicted tokens
-            # n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
-            # features.append(n_tok_tableqa)
-
-            # answers have string
-            hasStr = 0
-            for v in tableqa_value_list:
-                if str(v)[0]=='S':
-                    hasStr += 1
-            features.append(hasStr)
-            
-            # answers have number
-            hasNum = 0
-            for v in tableqa_value_list:
-                if str(v)[0]=='N':
-                    hasNum += 1
-            features.append(hasNum)
-
-            # answers have date
-            hasDat = 0
-            for v in tableqa_value_list:
-                if str(v)[0]=='D':
-                    hasDat += 1
-            features.append(hasDat)
-
-            # number of overlap words between question and answer
-            qwords = set(question.lower().split())
-            awords = set(re.split(r'\s|\|', ans_tableqa.lower()))
-            num_overlap = len(qwords.intersection(awords))
-            features.append(num_overlap)
-            if verbose:
-                print('  Number of overlap words between question and answer', num_overlap)
-
-            # # generation probability
-            # log_prob_avg = float(row['log_prob_avg_tableqa'])
-            # features.append(log_prob_avg)
-
-            # log_prob_sum = float(row['log_prob_sum_tableqa'])
-            # features.append(log_prob_sum)
-
-            # if the input is truncated
-            isTru = row['truncated_tableqa']
-            features.append(isTru)
-            
-            # # if all answers are from the table input or question
-            # allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
-            # allFromTable = int(allFromTable)
-            # features.append(allFromTable)
-            # if verbose:
-            #     print('  All answers from table or question: ', allFromTable)
-            #     print('------------------------------')
 
         X.append(features)
         Y.append(int(row['labels']))

@@ -43,6 +43,10 @@ def evaluate_example(_predict_str: str, _ground_str: str, target_delimiter=', ')
 
 def string_check(pred, mapping, table):
 
+	# BUGS
+	# -> dev_117: select count ( col2 ) from w where col1 = 'east west' and col3 = 'none' and col0 ='sh 202'
+	# 
+
 	pred = pred.lower()
 	pred_copy = deepcopy(pred)
 	wwhere = ' where '
@@ -207,9 +211,10 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
 			"meta": meta
 		}
 
-		with open(f'tmp/{stage}_tmp.pkl', 'wb') as file:
-			pickle.dump(dump_data, file)
-		assert 1==2
+		if stage:
+			with open(f'tmp/{stage}_tmp.pkl', 'wb') as file:
+				pickle.dump(dump_data, file)
+			assert 1==2
 
 		# prepare the prediction format for the evaluator
 		predictions = postprocess_text(decoded_preds, eval_dataset, fuzzy)

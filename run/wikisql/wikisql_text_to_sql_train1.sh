@@ -3,9 +3,9 @@ export WANDB_PROJECT=STQA_wikisql
 export WANDB_ENTITY=siyue-zhang
 
 model_name="t5-large"
-run_name="wikisql_text_to_sql1"
+run_name="wikisql_text_to_sql1_R"
 dataset_name="wikisql"
-output_dir="output/wikisql_text_to_sql1"
+output_dir="output/wikisql_text_to_sql1_R"
 
 python ./run.py \
   --do_train \
