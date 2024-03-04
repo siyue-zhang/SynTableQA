@@ -87,7 +87,7 @@ def string_check(pred, mapping, table):
 		for x in pairs:
 			# "select col3 from w where col9 = '1-0' and col6 = '1-0'"
 			ori = after_where[x.start(0):x.end(0)]
-			if "'" in ori[1:-1]:
+			if "'" in ori[1:-1] or re.search(r'col\d{1,}', ori[1:-1]):
 				continue
 			new = ori.replace(aand, ' ??? ')
 			after_where = after_where.replace(ori, new)
