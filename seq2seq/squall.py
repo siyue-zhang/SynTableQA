@@ -100,7 +100,11 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
             input_source = TABLE_PROCESSOR.process_input(table_content_x, question, answer).lower()
         else:
             input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
-    
+
+        ################
+        # special case   
+        input_source = input_source.split('row 1')[0].strip()
+  
         last_cell = str(table_content['rows'][-1][-1]).lower().strip()[:15]
         n_row = len(table_content['rows'])
         truncated = (f'row {n_row}' not in input_source) or (last_cell not in input_source.split('|')[-1].strip())
@@ -154,7 +158,7 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     # ensure squall <-> default
     # squall_tableqa can be plus or default
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/squall_plus.py", 
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                             plus=True, split_id=1)
     train_dataset = datasets["validation"]
     tokenizer = T5Tokenizer.from_pretrained("t5-small")

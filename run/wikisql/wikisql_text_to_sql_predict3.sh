@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 model_name="t5-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_text_to_sql3"
-checkpoint=1400
+checkpoint=2000
 
 python ./run.py \
   --task text_to_sql \

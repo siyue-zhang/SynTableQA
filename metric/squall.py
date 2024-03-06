@@ -305,11 +305,14 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
 
         if fuzzy:
             pred = header_check(pred, mapping_b)
-            used = []
-            for h in sorted(nl_headers, key=len, reverse=True):
-                if h in pred and all([h not in u for u in used]):
-                    pred=pred.replace(h, mapping_b[h])
-                    used.append(mapping_b[h])
+
+        used = []
+        for h in sorted(nl_headers, key=len, reverse=True):
+            if h in pred and all([h not in u for u in used]):
+                pred=pred.replace(h, mapping_b[h])
+                used.append(mapping_b[h])
+                
+        if fuzzy:
             pred = string_check(pred, mapping, contents)
 
         result_dict = {"sql": pred, "id": nt_id, "tgt": label}

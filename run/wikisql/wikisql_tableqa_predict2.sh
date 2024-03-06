@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 model_name="neulab/omnitab-large"
 dataset_name="wikisql"
 output_dir="output/wikisql_tableqa2"
-checkpoint=2300
+checkpoint=2900
 
 python ./run.py \
   --task tableqa \

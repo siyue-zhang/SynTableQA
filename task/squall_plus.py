@@ -206,6 +206,8 @@ class Squall(datasets.GeneratorBasedBuilder):
             else:
                 examples += [x for x in new_examples if x['tbl'] in new_tbls_dev]
 
+        count_wtq = 0
+        count_squall = 0
         # generate each example
         for i, sample in enumerate(examples):
 
@@ -243,7 +245,11 @@ class Squall(datasets.GeneratorBasedBuilder):
                 answer_text = sample['tgt']
             
             src = sample['src'] if 'src' in sample else 'squall' 
-
+            
+            if src=='squall':
+                count_squall+=1
+            else:
+                count_wtq+=1
             yield i, {
                 "nt": nt,
                 "tbl": tbl,
@@ -256,13 +262,15 @@ class Squall(datasets.GeneratorBasedBuilder):
                 "split_key": split_key
             }
 
+        print('----')
+        print(count_wtq, 'wtq')
+        print(count_squall, 'squall')
         
 
 if __name__=='__main__':
     from datasets import load_dataset
     dataset = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/squall_plus.py", 
                            plus=True, 
-                           split_id=1,
-                           downsize=5)
+                           split_id=1)
     sample = dataset["test"][7]
     print(sample)
