@@ -103,7 +103,7 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
 
         ################
         # special case   
-        input_source = input_source.split('row 1')[0].strip()
+        # input_source = input_source.split('row 1')[0].strip()
   
         last_cell = str(table_content['rows'][-1][-1]).lower().strip()[:15]
         n_row = len(table_content['rows'])

@@ -2,8 +2,8 @@ export CUDA_VISIBLE_DEVICES=0
 
 model_name="t5-large"
 dataset_name="squall"
-output_dir="output/squall_text_to_sql3"
-checkpoint=4500
+output_dir="output/squall_d5_text_to_sql3"
+checkpoint=1200
 
 python ./run.py \
   --task text_to_sql \
@@ -22,7 +22,7 @@ python ./run.py \
   --split_id 3 \
   --predict_with_generate \
   --num_beams 5 \
-  --save_note new_fuzzy
+  --squall_downsize 5
   
 # --aug True 
 # --max_predict_samples 500  

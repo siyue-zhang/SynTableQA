@@ -96,11 +96,12 @@ def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
     return df
 
 
-def load_dfs(dataset, aug=False, downsize_suffix=None):
+def load_dfs(dataset, aug=False, downsize=None):
     
     dfs_dev = []
     train_dev_ratio = 0.2
     dataset_suffix = 'squall_plus' if dataset=='squall' else 'wikisql'
+    downsize_suffix = '_d'+str(downsize) if downsize else ''
     downsize_suffix = downsize_suffix if downsize_suffix else ''
     aug_suffix = '_aug' if aug else ''
 
@@ -114,7 +115,7 @@ def load_dfs(dataset, aug=False, downsize_suffix=None):
     dfs_dev = pd.concat(dfs_dev, ignore_index=True).reset_index()
     tbls = list(set(dfs_dev['tbl'].to_list()))
 
-    split_path = f'./task/classifier_{dataset}_splits.json'
+    split_path = f'./task/classifier_{dataset}{downsize_suffix}_splits.json'
     if os.path.exists(split_path):
         with open(split_path, 'r') as json_file:
             splits = json.load(json_file)
@@ -144,9 +145,10 @@ def load_dfs(dataset, aug=False, downsize_suffix=None):
     return df_train, df_dev
 
 
-def load_df_test(dataset, test_split, downsize_suffix=None):
+def load_df_test(dataset, test_split, downsize=None):
 
     dataset_suffix = 'squall_plus' if dataset=='squall' else 'wikisql'
+    downsize_suffix = '_d'+str(downsize) if downsize else ''
     downsize_suffix = downsize_suffix if downsize_suffix else ''
 
     tableqa_test = pd.read_csv(f"./predict/{dataset}/{dataset_suffix}_tableqa_test{test_split}.csv")
@@ -880,6 +882,9 @@ def fit_and_save(X, Y, model, tol=1e-5, name="", dataset="squall"):
 
     print ("Acc on training set: {:.3f}".format(train_score))
 
+    if not name:
+        name = ''
+        
     with open("classifiers/{}_{}_{}.pkl".format(dataset, model, name), "wb") as f:
         pickle.dump(classifier, f)
 
@@ -896,10 +901,12 @@ if __name__=='__main__':
     test_split = 1
     aug = False
     qonly = False
-    name = 'aug' if aug else ''
+    downsize = None
+    # name = f'd{downsize}'
+    name = None
 
-    df_train, df_dev = load_dfs(dataset, aug)
-    df_test = load_df_test(dataset, test_split)
+    df_train, df_dev = load_dfs(dataset, aug, downsize=downsize)
+    df_test = load_df_test(dataset, test_split, downsize=downsize)
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
 
