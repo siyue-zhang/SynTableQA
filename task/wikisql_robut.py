@@ -183,6 +183,17 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 				rows_lower = [[y.lower() if isinstance(y,str) else y for y in x] for x in table_content['rows']]
 				table_content['header'] = header_lower
 				table_content['rows'] = rows_lower
+
+				if 'types' not in table_content:
+					types = []
+					for k in range(len(table_content['header'])):
+						data_col = [row[k] for row in table_content['rows']]
+						if all([d.replace('.','').isdigit() for d in data_col]):
+							types.append('real')
+						else:
+							types.append('text')
+					table_content['types'] = types
+
 				table = {'header':header_lower,
 						'types':table_content['types'],
 						'rows':rows_lower}
@@ -248,9 +259,9 @@ class Wikisql(datasets.GeneratorBasedBuilder):
 if __name__=='__main__':
 		from datasets import load_dataset
 		dataset = load_dataset("./task/wikisql_robut.py", 
-								split_id=1, ignore_verifications=True,
-								# perturbation_type='row',
+								split_id=0, ignore_verifications=True,
+								perturbation_type='word',
 								# download_mode='force_redownload'
 								)
-		sample = dataset["train"][0]
-		# print(sample)
+		sample = dataset["validation"][0]
+		print(sample)

@@ -70,7 +70,9 @@ def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
         df = tableqa_dev[['id','tbl','question','answer','src']]
         df.loc[:,['nl_headers']] = text_to_sql_dev['nl_headers']
     else:
-        df = tableqa_dev[['id','table_id','question','answer','perturbation']]
+        df = tableqa_dev[['id','question','answers','perturbation_type']]
+        df = df.rename(columns={'answers': 'answer', 'perturbation_type':'perturbation'})
+        df.loc[:,['tbl']] = text_to_sql_dev['table_id']
 
     df.loc[:,['ans_text_to_sql']] = text_to_sql_dev['queried_ans']
     df.loc[:,['ans_tableqa']] = tableqa_dev['predictions']
@@ -784,14 +786,163 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
 
     X = []
     Y = []
+    feature_names = []
     table_shape = {}
-    verbose = False
 
     for index, row in df.iterrows():
 
         features = []
         row = dict(row)
+        add_name  = index==0
 
+        ####### question features #######
+        question = row["question"]
+        if question[-1] in ['.','?']:
+            question = question[:-1] + ' ' + question[-1]
+
+        qword = question.lower().split()
+        features.append(len(tableqa_tokenizer.tokenize(question)))
+        if add_name:
+            feature_names.append('question token number')
+
+        qwords = deepcopy(qword)
+        num_count = 0
+        for w in qwords:
+            if w.replace('.', '').replace(',', '').replace('-', '').isnumeric():
+                num_count += 1
+        features.append(num_count)
+        if add_name:
+            feature_names.append('number of numerical values in question')
+
+        ####### context table features #######
+        tbl = row['tbl']
+        # get_table_shape = get_squall_table_shape
+        # if tbl not in table_shape:
+        #     table_shape[tbl] = get_table_shape(tbl)
+        # # number of rows
+        # features.append(table_shape[tbl][0])
+        # if add_name:
+        #     feature_names.append('number of table rows')
+        
+        # features.append(row['hq_overlap'])
+        # if add_name:
+        #     feature_names.append('number of overlap between header and question')
+        
+        if not qonly:
+            ####### text_to_sql answer features #######
+            ans_text_to_sql = str(row['ans_text_to_sql'])
+            ans_text_to_sql_list = ans_text_to_sql.split('|')
+            text_to_sql_value_list = to_value_list(ans_text_to_sql_list)
+            sql = row['query_fuzzy']
+            sql_ori = row['query_pred']
+
+            # number of predicted tokens
+            n_tok_text_to_sql = len(text_to_sql_tokenizer.tokenize(sql_ori))
+            features.append(n_tok_text_to_sql)
+            if add_name:
+                feature_names.append('number of sql tokens')
+
+            # number of answers
+            features.append(len(ans_text_to_sql_list))
+            if add_name:
+                feature_names.append('number of ans_tts')
+
+            # answers have none
+            hasNan = 0
+            for ans in ans_text_to_sql_list:
+                if ans.lower() in ['nan', 'none', '']:
+                    hasNan += 1
+            features.append(hasNan)
+            if add_name:
+                feature_names.append('number of Nan ans')
+
+            # answers have string
+            hasStr = 0
+            for v in text_to_sql_value_list:
+                if str(v)[0]=='S':
+                    hasStr += 1
+            features.append(hasStr)
+            if add_name:
+                feature_names.append('number of String ans')
+
+            # answers have number
+            hasNum_tts = 0
+            for v in text_to_sql_value_list:
+                if str(v)[0]=='N':
+                    hasNum_tts += 1
+            features.append(hasNum_tts)
+            if add_name:
+                feature_names.append('number of Numeric ans')
+
+            log_prob_avg = float(row['log_prob_avg_text_to_sql'])
+            features.append(log_prob_avg)
+            if add_name:
+                feature_names.append('avg log prob tts')
+
+            # if the input is truncated
+            isTru = row['truncated_text_to_sql']
+            features.append(isTru)
+            if add_name:
+                feature_names.append('tts table is truncated')
+
+        if not qonly:
+            ####### tableqa answer features #######
+            ans_tableqa = str(row['ans_tableqa'])
+            ans_tableqa_list = ans_tableqa.split('|')
+            tableqa_value_list = to_value_list(ans_tableqa_list)
+
+            # yesNo = int(ans_tableqa.lower() in ['yes', 'no'])
+            # features.append(yesNo)
+            # if add_name:
+            #     feature_names.append('yes/no')
+
+            # number of answers
+            features.append(len(ans_tableqa_list))
+            if add_name:
+                feature_names.append('number of tqa ans')
+
+            # number of predicted tokens
+            n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
+            features.append(n_tok_tableqa)
+            if add_name:
+                feature_names.append('number of tqa pred tokens')
+
+            # answers have string
+            hasStr = 0
+            for v in tableqa_value_list:
+                if str(v)[0]=='S':
+                    hasStr += 1
+            features.append(hasStr)
+            if add_name:
+                feature_names.append('number of String ans')
+
+            # answers have number
+            hasNum_tqa = 0
+            for v in tableqa_value_list:
+                if str(v)[0]=='N':
+                    hasNum_tqa += 1
+            features.append(hasNum_tqa)
+            if add_name:
+                feature_names.append('number of Numeric ans')
+
+            # generation probability
+            log_prob_avg = float(row['log_prob_avg_tableqa'])
+            features.append(log_prob_avg)
+            if add_name:
+                feature_names.append('avg log prob tqa')
+
+            # if the input is truncated
+            isTru = row['truncated_tableqa']
+            features.append(isTru)
+            if add_name:
+                feature_names.append('tqa table is truncated')
+
+            # if all answers are from the table input or question
+            allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
+            allFromTable = int(allFromTable)
+            features.append(allFromTable)
+            if add_name:
+                feature_names.append('tqa answer is a substring from tableinput or question')
 
         X.append(features)
         Y.append(int(row['labels']))
@@ -801,7 +952,7 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
     
     print ("data shape: ", X.shape)
 
-    return X, Y
+    return X, Y, feature_names
 
 
 def load_and_predict(dataset, X, Y, feature_names, model, name=""):
@@ -897,30 +1048,35 @@ if __name__=='__main__':
 
     # model = 'AdaBoost'
     model = 'RandomForest'
-    dataset = 'squall'
-    test_split = 1
+    dataset = 'wikisql'
+    # dataset = 'squall'
+    # test_split = 1
+    test_split = 0
     aug = False
     qonly = False
     downsize = None
     # name = f'd{downsize}'
-    name = None
+    name = ''
 
     df_train, df_dev = load_dfs(dataset, aug, downsize=downsize)
     df_test = load_df_test(dataset, test_split, downsize=downsize)
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
 
-    df_train = preprocess_df(df_train)
+    if dataset=='squall':
+        df_train = preprocess_df(df_train)
     X, Y, feature_names = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     fit_and_save(X, Y, model, name=name, dataset=dataset)
     print('\n')
 
-    df_dev = preprocess_df(df_dev)
+    if dataset=='squall':
+        df_dev = preprocess_df(df_dev)
     X, Y, feature_names = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     dev_scores = load_and_predict(dataset, X, Y, feature_names, model, name=name)
     print ("dev score: ", dev_scores, '\n')
 
-    df_test = preprocess_df(df_test)
+    if dataset=='squall':
+        df_test = preprocess_df(df_test)
     df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name, qonly=qonly)
     
     desired_order_selected = ['id', 'tbl', 'question', 'answer', 'acc_tableqa', 'ans_tableqa', 'acc_text_to_sql', 'ans_text_to_sql', 'query_pred', 'query_fuzzy', 'pred', 'labels', 'scores', 'oracle', 'diff']
