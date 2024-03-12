@@ -43,27 +43,6 @@ def get_squall_table_shape(tbl):
     return n_rows, n_cols, n_processed_cols
 
 
-def get_wikisql_table_shape(tbl):
-
-    db_path = 'data/squall/tables/json/' + tbl + '.json'
-    f = open(db_path)
-    data = json.load(f)
-    contents = data['contents']
-    n_rows = 0
-    n_cols = 0
-    n_processed_cols = 0
-    for l in contents:
-        for k, col in enumerate(l):
-            if k==0 and col['col'] not in ['id', 'agg']:
-                n_cols += 1
-            n_processed_cols += 1
-            if n_rows==0:
-                n_rows = len(col['data'])
-    # print(tbl, n_rows, n_cols, n_processed_cols)     
-
-    return n_rows, n_cols, n_processed_cols
-
-
 def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
 
     if dataset=='squall':
@@ -98,18 +77,17 @@ def combine_csv(tableqa_dev, text_to_sql_dev, dataset):
     return df
 
 
-def load_dfs(dataset, aug=False, downsize=None):
+def load_dfs(dataset, downsize=None):
     
     dfs_dev = []
     train_dev_ratio = 0.2
     dataset_suffix = 'squall_plus' if dataset=='squall' else 'wikisql'
     downsize_suffix = '_d'+str(downsize) if downsize else ''
     downsize_suffix = downsize_suffix if downsize_suffix else ''
-    aug_suffix = '_aug' if aug else ''
 
     for s in range(5):
-        tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dataset_suffix}{aug_suffix}_tableqa_dev{s}.csv")
-        text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dataset_suffix}{downsize_suffix}{aug_suffix}_text_to_sql_dev{s}.csv")
+        tableqa_dev = pd.read_csv(f"./predict/{dataset}/{dataset_suffix}_tableqa_dev{s}.csv")
+        text_to_sql_dev = pd.read_csv(f"./predict/{dataset}/{dataset_suffix}{downsize_suffix}_text_to_sql_dev{s}.csv")
         df = combine_csv(tableqa_dev, text_to_sql_dev, dataset)
         df = df[df['acc_tableqa'] != df['acc_text_to_sql']]
         dfs_dev.append(df)
@@ -195,7 +173,7 @@ def is_abbreviation(abbreviation, full_string):
     return abbreviation_index == len(abbreviation)
 
 
-def preprocess_df(df):
+def preprocess_squall_df(df):
 
     hq_overlap = []
     complexCols = []
@@ -319,6 +297,23 @@ def preprocess_df(df):
     df.loc[:, ['tts_is_sub']] = Sub_b
     df.loc[:, ['partial_cells']] = partial_cells
 
+    
+    return df
+
+def preprocess_wikisql_df(df):
+
+    hq_overlap = []
+
+    for index, row in df.iterrows():
+        
+        question = row["question"]
+        headers = row["input_tokens"].split('row 1')[0].split('col :')[1].split('|')
+        headers = [x.strip() for x in headers]
+        # number of headers have overlap words with question
+        num_overlap = sum([h in question for h in headers])
+        hq_overlap.append(num_overlap)
+
+    df.loc[:,['hq_overlap']] = hq_overlap
     
     return df
 
@@ -795,6 +790,20 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
         row = dict(row)
         add_name  = index==0
 
+        if add_name:
+            for s in ['train','dev','test']:
+                table_path = f'data/wikisql/{s}.tables.jsonl'
+                with open(table_path, 'r') as f:
+                    for line in f:
+                        table = json.loads(line)
+                        table_shape[table['id']] = (len(table['rows']), len(table['header']))
+            robut = 'data/robut/robut_wikisql_table.json'
+            with open(robut, 'r') as f:
+                data = json.load(f)
+            for k in data:
+                data[k] = (len(data[k]['rows']), len(data[k]['header']))
+            table_shape.update(data)
+
         ####### question features #######
         question = row["question"]
         if question[-1] in ['.','?']:
@@ -816,17 +825,14 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
 
         ####### context table features #######
         tbl = row['tbl']
-        # get_table_shape = get_squall_table_shape
-        # if tbl not in table_shape:
-        #     table_shape[tbl] = get_table_shape(tbl)
-        # # number of rows
-        # features.append(table_shape[tbl][0])
-        # if add_name:
-        #     feature_names.append('number of table rows')
+        # number of rows
+        features.append(table_shape[tbl][0])
+        if add_name:
+            feature_names.append('number of table rows')
         
-        # features.append(row['hq_overlap'])
-        # if add_name:
-        #     feature_names.append('number of overlap between header and question')
+        features.append(row['hq_overlap'])
+        if add_name:
+            feature_names.append('number of overlap between header and question')
         
         if not qonly:
             ####### text_to_sql answer features #######
@@ -842,10 +848,10 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             if add_name:
                 feature_names.append('number of sql tokens')
 
-            # number of answers
-            features.append(len(ans_text_to_sql_list))
-            if add_name:
-                feature_names.append('number of ans_tts')
+            # # number of answers
+            # features.append(len(ans_text_to_sql_list))
+            # if add_name:
+            #     feature_names.append('number of ans_tts')
 
             # answers have none
             hasNan = 0
@@ -891,15 +897,10 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             ans_tableqa_list = ans_tableqa.split('|')
             tableqa_value_list = to_value_list(ans_tableqa_list)
 
-            # yesNo = int(ans_tableqa.lower() in ['yes', 'no'])
-            # features.append(yesNo)
+            # # number of answers
+            # features.append(len(ans_tableqa_list))
             # if add_name:
-            #     feature_names.append('yes/no')
-
-            # number of answers
-            features.append(len(ans_tableqa_list))
-            if add_name:
-                feature_names.append('number of tqa ans')
+            #     feature_names.append('number of tqa ans')
 
             # number of predicted tokens
             n_tok_tableqa = len(tableqa_tokenizer.tokenize(ans_tableqa))
@@ -937,12 +938,12 @@ def extract_wikisql_features(df, tableqa_tokenizer, text_to_sql_tokenizer, qonly
             if add_name:
                 feature_names.append('tqa table is truncated')
 
-            # if all answers are from the table input or question
-            allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
-            allFromTable = int(allFromTable)
-            features.append(allFromTable)
-            if add_name:
-                feature_names.append('tqa answer is a substring from tableinput or question')
+            # # if all answers are from the table input or question
+            # allFromTable = all([v.lower() in row['input_tokens'] for v in ans_tableqa_list])
+            # allFromTable = int(allFromTable)
+            # features.append(allFromTable)
+            # if add_name:
+            #     feature_names.append('tqa answer is a substring from tableinput or question')
 
         X.append(features)
         Y.append(int(row['labels']))
@@ -1052,31 +1053,28 @@ if __name__=='__main__':
     # dataset = 'squall'
     # test_split = 1
     test_split = 0
-    aug = False
     qonly = False
     downsize = None
     # name = f'd{downsize}'
     name = ''
 
-    df_train, df_dev = load_dfs(dataset, aug, downsize=downsize)
+    df_train, df_dev = load_dfs(dataset, downsize=downsize)
     df_test = load_df_test(dataset, test_split, downsize=downsize)
 
     extract_features = extract_squall_features if dataset=='squall' else extract_wikisql_features
+    preprocess_df = preprocess_squall_df if dataset=='squall' else preprocess_wikisql_df
 
-    if dataset=='squall':
-        df_train = preprocess_df(df_train)
+    df_train = preprocess_df(df_train)
     X, Y, feature_names = extract_features(df_train, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     fit_and_save(X, Y, model, name=name, dataset=dataset)
     print('\n')
 
-    if dataset=='squall':
-        df_dev = preprocess_df(df_dev)
+    df_dev = preprocess_df(df_dev)
     X, Y, feature_names = extract_features(df_dev, tableqa_tokenizer, text_to_sql_tokenizer, qonly)
     dev_scores = load_and_predict(dataset, X, Y, feature_names, model, name=name)
     print ("dev score: ", dev_scores, '\n')
 
-    if dataset=='squall':
-        df_test = preprocess_df(df_test)
+    df_test = preprocess_df(df_test)
     df_test_predict = test_predict(dataset, df_test, tableqa_tokenizer, text_to_sql_tokenizer, model, name=name, qonly=qonly)
     
     desired_order_selected = ['id', 'tbl', 'question', 'answer', 'acc_tableqa', 'ans_tableqa', 'acc_text_to_sql', 'ans_text_to_sql', 'query_pred', 'query_fuzzy', 'pred', 'labels', 'scores', 'oracle', 'diff']

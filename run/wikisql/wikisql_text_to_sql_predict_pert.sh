@@ -21,7 +21,7 @@ python ./run.py \
   --split_id 0 \
   --predict_with_generate \
   --num_beams 5 \
-  --perturbation_type sentence
+  --perturbation_type row
 
 # --max_predict_samples 100
 # --max_eval_samples 1000

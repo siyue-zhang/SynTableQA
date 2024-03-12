@@ -16,12 +16,12 @@ python ./run.py \
   --max_source_length 1024 \
   --max_target_length 128 \
   --val_max_target_length 128 \
-  --per_device_eval_batch_size 32 \
+  --per_device_eval_batch_size 16 \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --predict_with_generate \
   --num_beams 5 \
-  --perturbation_type sentence
+  --perturbation_type row
 
 # --max_predict_samples 100
 
