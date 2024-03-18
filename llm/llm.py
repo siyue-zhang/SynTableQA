@@ -128,12 +128,12 @@ def countNumber(table, question):
 
 for i, row in df.iterrows():
 
-    if i < 500 and row['gpt_score'] in [1, 0]:
+    if i < 3000 and row['gpt_score'] in [1, 0]:
         continue
 
     print('\n----row: ', i, '-----')
-    if i > 1000:
-        break
+    # if i > 704:
+        # break
 
     question = row['question']
     question = question.replace(' -lrb- ','(').replace(' -rrb-',')')
