@@ -1049,10 +1049,10 @@ if __name__=='__main__':
 
     # model = 'AdaBoost'
     model = 'RandomForest'
-    dataset = 'wikisql'
-    # dataset = 'squall'
-    # test_split = 1
-    test_split = 0
+    # dataset = 'wikisql'
+    dataset = 'squall'
+    test_split = 1
+    # test_split = 0
     qonly = False
     downsize = None
     # name = f'd{downsize}'

@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import numpy as np
 
-robut_wikisql ='/Users/zhangsiyue/Downloads/robut_data/robut_wikisql_qa.json'
+robut_wikisql ='data/robut_data/robut_wikisql_qa.json'
 with open(robut_wikisql) as f:
     d = json.load(f)
 

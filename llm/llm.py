@@ -1,234 +1,332 @@
-from openai import OpenAI
-from prompts import *
+# import openai
 import pandas as pd
-import csv
+import string
+from openai import OpenAI
+import re
+import math
+import numpy as np
 
 client = OpenAI(
     api_key='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'
 )
-
-# model = 'gpt-3.5-turbo-0125'
-model = 'gpt-4-0125-preview'
-# model = ''
-file_path = "llm/squall_classifier_test1.csv"
+# model = 'gpt-3.5-turbo'
+model="gpt-4-0125-preview"
+file_path = "llm/squall_classifier_test1_gpt.csv"
 
 df = pd.read_csv(file_path)
+
 df['truncated_tableqa'] = pd.to_numeric(df['truncated_tableqa'])
-# df = df[df['truncated_tableqa']==1].reset_index(drop=True)
+df = df.reset_index(drop=True)
+print('df size: ', df.shape)
 
+##############
 
-def read_tsv_into_dict(file_path):
-    data_dict = {}
-    with open(file_path, 'r', encoding='utf-8', newline='') as tsvfile:
-        reader = csv.DictReader(tsvfile, delimiter='\t')
-        for row in reader:
-            for key, value in row.items():
-                if key in data_dict:
-                    data_dict[key].append(value)
-                else:
-                    data_dict[key] = [value]
-    return data_dict
+with open('relevance-prompt.txt', 'r') as f:
+    entity_align_prompt = f.read()
 
-# Example usage:
-meta_data = "data/WikiTableQuestions/misc/table-metadata.tsv"
-meta_data = read_tsv_into_dict(meta_data)
-tmp = {}
-for i in range(len(meta_data['contextId'])):
-    tmp[meta_data['contextId'][i]] = meta_data['title'][i]
-meta_data = tmp
-# disable
-meta_data = {}
+with open('alignment-prompt.txt', 'r') as f:
+    number_align_prompt = f.read()  
 
-pre_response = []
-response = []
-for i, row in df.iterrows():
+with open('similarity-prompt.txt', 'r') as f:
+    similar_prompt = f.read()   
+
+with open('comparison-prompt.txt', 'r') as f:
+    compare_prompt = f.read()   
+
+with open('contradiction-prompt.txt', 'r') as f:
+    contradiction_prompt = f.read()   
+
+##############
+def checkDigit(res):
+    return res.replace('.','').replace(',','').isdigit()
+
+def call_gpt(cur_prompt, stop, temperature = 0):
+    ans = client.chat.completions.create(
+                model=model,
+                messages = [
+                    # {"role": "system", "content": ""},
+                    {"role": "user", "content": cur_prompt}
+                ],
+                temperature=temperature)
+    returned = ans.choices[0].message.content
     
-    k=34
-    if i>k:
-        break
-    print('\n\n\n----row: ', i, '-----')
-    if i!=k:
-        continue
+    return returned
 
+def similarAlign(question, response1, response2):
 
-    tbl = df.loc[i, 'tbl']
-    first, second = tbl.split("_")
-    context_id = f"csv/{first}-csv/{second}.csv"
-    if context_id in meta_data:
-        table_title = meta_data[context_id].lower()
+    prompt = similar_prompt + "\n\nQuestion: " + question + '\nResponse A: ' + response1 + '\nResponse B: ' + response2 + '\nAnswer: '
+    print('\n\n///similarity///')
+    print(prompt)
+    gen = call_gpt(prompt, ['\n']).strip().strip(string.punctuation)
+    for i_ in range(2): 
+        if gen.lower() == 'yes' or gen.lower() == 'no':
+            break
+        gen = call_gpt(prompt, ['\n'], temperature = 1).strip().strip(string.punctuation)
+    gen = gen.lower().strip()
+    print('Answer: ', gen)
+    if gen == 'yes':
+        return True
     else:
-        table_title = None
+        return False
+    
+def entityAlign(question, response):
 
-    context = row['input_tokens'][3:-4]
-    ans_tableqa = str(row['ans_tableqa'])
-    ans_text_to_sql = str(row['ans_text_to_sql'])
+    prompt = entity_align_prompt + "\n\nQuestion: " + question + '\nResponse: ' + response + '\nAnswer: '
+    print('\n\n///entityAlign///')
+    print(prompt)
+    gen = call_gpt(prompt, ['\n']).strip().strip(string.punctuation)
+    for i_ in range(2): 
+        if gen.lower() == 'yes' or gen.lower() == 'no':
+            break
+        gen = call_gpt(prompt, ['\n'], temperature = 1).strip().strip(string.punctuation)
+    gen = gen.lower().strip()
+    print('Answer: ', gen)
+    if gen == 'yes':
+        return True
+    else:
+        return False
+
+def numberAlign(question, response):
+
+    prompt = number_align_prompt + "\n\nQuestion: " + question + '\nResponse: ' + response + '\nAnswer: '
+    print('\n\n///numberAlign///')
+    print(prompt)
+    gen = call_gpt(prompt, ['\n']).strip().strip(string.punctuation)
+    for i_ in range(2): 
+        if gen.lower() == 'yes' or gen.lower() == 'no':
+            break
+        gen = call_gpt(prompt, ['\n'], temperature = 1).strip().strip(string.punctuation)
+    gen = gen.lower().strip()
+    print('Answer: ', gen)
+    if gen == 'yes':
+        return True
+    else:
+        return False
+    
+
+def countNumber(table, question):
+
+    prompt = contradiction_prompt + "\n\nTable: " + table + '\nQuestion: ' + question + '\nAnswer: '
+    print('\n\n///contradiction///')
+    print(prompt)
+
+    def get_number(str):
+        numbers = re.findall(r'\d+', str)
+        numbers = [int(num) for num in numbers]
+        return numbers
+
+    gen = call_gpt(prompt, ['\n']).strip().strip(string.punctuation)
+    for i_ in range(2):
+        if len(get_number(gen))>0:
+            break
+        gen = call_gpt(prompt, ['\n'], temperature = 1).strip().strip(string.punctuation)
+
+    number = get_number(gen)
+    number = number[-1] if len(number)>0 else 0
+    print('Answer: ', number)
+    return number
+
+
+for i, row in df.iterrows():
+
+    # K=2751
+    # if i <K and row['gpt_score'] in [1, 0]:
+    #     continue
+
+    print('\n----row: ', i, '-----')
+    if i > 1000:
+        break
+
+    question = row['question']
+    question = question.replace(' -lrb- ','(').replace(' -rrb-',')')
+    ans_tableqa = str(row['ans_tableqa']).lower().strip()
+    ans_text_to_sql = str(row['ans_text_to_sql']).lower().strip()
     acc_tableqa = int(row['acc_tableqa'])
     acc_text_to_sql = int(row['acc_text_to_sql'])
+    truncated = int(row['truncated_tableqa'])
+    table = 'header: ' + row['input_tokens'].split('col : ')[1].replace('</s>','')
 
-    if 'response' in row and str(row['response'])!='nan':
-        res = row['response'].strip().lower()
+    nl_response_text_to_sql = []
+    for res in ans_text_to_sql.split('|'):
+        if res.lower() != 'none' and res not in nl_response_text_to_sql:
+            nl_response_text_to_sql.append(res)
+    response_text_to_sql = ', '.join(nl_response_text_to_sql)
 
-        # GPT 3.5
-        # if any([x in res for x in['answer b', 'b:', 'is b', 'answer: b']]) or res=='b':
-
-        # GPT 4
-        sents = [
-            'final answer is b',
-            'final answer: b',
-            'final answer:b',
-            'correct answer is b'
-        ]
-        conditions = any([x in res for x in sents])
-
-        if res.lower()=='b' or conditions:
-            # B is tableqa, which is 1 in preds
-            df.loc[i, 'preds_llm'] = 1
-            df.loc[i, 'score_llm'] = row['acc_tableqa']
-        else:
-            # A is text_to_sql, which is 0 in preds
-            df.loc[i, 'preds_llm'] = 0
-            df.loc[i, 'score_llm'] = row['acc_text_to_sql']
-        response.append(res)
-        if 'pre_response' in row:
-            pre_response.append(row['pre_response'])
-        else:
-            pre_response.append('')
-
-        print(df.loc[i, 'content'])
-        print('\n', res)
-        print('\npreds_llm: ', df.loc[i, 'preds_llm'])
-        continue
-
-    if ans_text_to_sql in ['', 'nan', 'na']:
-        res = 'B'
-        df.loc[i, 'score_llm'] = row['acc_tableqa']
-        df.loc[i, 'response'] = res
-        response.append(res)
-        pre_response.append('')
-        continue
+    nl_response_tableqa = []
+    for res in ans_tableqa.split('|'):
+        if res not in nl_response_tableqa:
+            nl_response_tableqa.append(res)
+    response_tableqa = ', '.join(nl_response_tableqa)
 
     if acc_tableqa==acc_text_to_sql:
-        res = 'A'
-        df.loc[i, 'score_llm'] = row['acc_text_to_sql']
-        df.loc[i, 'response'] = res
-        response.append(res)
-        pre_response.append('')
+        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_text_to_sql']
+        print('CASE A: acc_tableqa = acc_text_to_sql')
         continue
 
-    new_ans_tableqa = ans_tableqa.replace('|', ', ')
-    new_ans_text_to_sql = ans_text_to_sql.split('|')
-    tmp = []
-    for ans in new_ans_text_to_sql:
-        if ans not in tmp:
-            try:
-                ans=float(ans)
-                if ans.is_integer():
-                    ans = str(int(ans))
+    if acc_tableqa!=acc_text_to_sql and ans_text_to_sql in ['', 'nan', 'na', 'none']:
+        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+        print('CASE B: acc_text_to_sql => nan')
+        continue
+
+    ##########################################
+    # answer format correction 
+    ##########################################
+
+    # 6 pts vs 6
+    if checkDigit(ans_text_to_sql) or checkDigit(ans_tableqa):
+        if len(ans_text_to_sql) > len(ans_tableqa):
+            shorter = ans_tableqa
+            longer = ans_text_to_sql
+            words_longer = longer.split()
+            if len(words_longer)==2 and words_longer[0]==shorter and checkDigit(shorter):
+                print('CASE D: ', longer, shorter)
+                df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+                print('choose tableqa ', ans_tableqa)
+                continue
+        else:
+            shorter = ans_text_to_sql
+            longer = ans_tableqa
+            words_longer = longer.split()
+            if len(words_longer)==2 and words_longer[0]==shorter and checkDigit(shorter):
+                print('CASE D: ', longer, shorter)
+                df.loc[i, 'gpt_score'] = df.loc[i, 'acc_text_to_sql']
+                print('choose text_to_sql ', ans_text_to_sql)
+                continue
+
+    # at denver broncos vs denver broncos
+    if response_text_to_sql == 'at ' + response_tableqa:
+        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+        continue
+
+    # 98,453 vs 98453
+    if response_text_to_sql.replace(',','') == response_tableqa.replace(',',''):
+        if ',' in response_tableqa:
+            if response_text_to_sql.isdigit():
+                df.loc[i, 'gpt_score'] = df.loc[i, 'acc_text_to_sql']
+                continue
+        else:
+            if response_tableqa.isdigit():
+                df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+                continue
+    
+    # no vs 0
+    if response_text_to_sql=='0' and response_tableqa=='no':
+        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+        continue
+    if response_text_to_sql=='1' and response_tableqa=='yes':
+        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+        continue
+
+    if acc_tableqa!=acc_text_to_sql:
+
+        ##########################################
+        # answer entity and number of answer aligment
+        ##########################################
+
+        if checkDigit(row['ans_text_to_sql']) and checkDigit(row['ans_tableqa']):
+            df.loc[i, 'entityAlign'] = 1
+            df.loc[i, 'numberAlign'] = 1
+            df.loc[i, 'similarity'] = 1
+        else:
+            if nl_response_tableqa[0]==nl_response_text_to_sql[0]:
+                similarity = True
+            else:
+                similarity = similarAlign(question, nl_response_text_to_sql[0], nl_response_tableqa[0])
+            df.loc[i, 'similarity'] = int(similarity)
+            if df.loc[i, 'similarity']==1:
+                df.loc[i, 'entityAlign'] = 1
+                if 'name a ' in question and len(nl_response_text_to_sql)>1:
+                    number_align = False
+                elif len(nl_response_text_to_sql)>1:
+                    number_align = numberAlign(question, response_text_to_sql)
                 else:
-                    ans = str(ans)
-            except Exception as e:
-                pass
-            tmp.append(ans)
-    new_ans_text_to_sql = ', '.join(tmp)
+                    number_align = True
+                df.loc[i, 'numberAlign'] = int(number_align)
+            else:
+                entity_align = entityAlign(question, response_text_to_sql)
+                df.loc[i, 'entityAlign'] = int(entity_align)
 
-#     example = """
-# Question: how many coaches had above 500 wins?
-# Table: col : coach | years | seasons | wins | losses | ties | pct row 1 : o. b. "rip" sanderson | 1908 | 1 | 5 | 1 | 0 | 0.833 row 2 : ed sabre | 1920 | 1 | 3 | 1 | 0 | 0.75 row 3 : mack erwin | 1957-60 | 4 | 62 | 30 | 1 | 0.672 row 4 : chal port | 1965-91 | 27 | 641 | 386 | 2 | 0.624 row 5 : fred jordan | 1992-pres | 22 | 726 | 552 | 0 | 0.568 row 6 : john d. mcmillan | 1952-53 | 2 | 14 | 15 | 0 | 0.483 row 7 : jim newsome | 1961-64 | 4 | 37 | 43 | 0 | 0.463 row 8 : bunzy o'neal | 1948 | 1 | 6 | 7 | 0 | 0.462 row 9 : george c. rogers | 1914-15, 1921-24 | 6 | 26 | 33 | 1 | 0.441 row 10 : fred montsdeoca | 1954-56 | 2 | 22 | 31 | 0 | 0.415
-# This table is not complete.
-# Potential answer: 2
-# Q: Does the provided incomplete table provide enough information to confirm if the potential answer is correct or incorrect? Yes or No.
-# A: No. In the provided table, the coach chal port has 641 wins and the coach fred jordan has 726 wins. Therefore, there are 2 coaches who had above 500 wins based on this incomplete table. However, if there are other coaches in the table who had above 500 wins, the potential answer could be incorrect. So it can not be confirmed if the potential answer is correct or incorrect.
-# """
-
-    if acc_tableqa != acc_text_to_sql:
-        truncated = int(df.loc[i, 'truncated_tableqa']) == 1
-        if truncated:
-            # content = 'You will get a question, a table, and a response.'
-            content = 'You will get a question and a table.'
-            content += f' The table is about "{table_title}".\n\n' if table_title else '\n\n'
-            # to be checked if example is effective
-            # content += example
-            question = context.split('col :')[0].strip()
-            content += '[Question] '+question+'\n\n'
-            content += '[Table] '+context.replace(question, '').strip()
-            content += '\nThis table is not complete.\n\n'
-            # content += f'[Response] {new_ans_text_to_sql}\n\n'
-#             content += 'Does this incomplete table have enough information to verify whether the answer is correct or \
-# incorrect to the question? You should response "yes" or "no". If the answer mentions the information not provided by \
-# the table, you should response "no". If providing more data rows to this incomplete table will change the correct answer to \
-# the question, you ç.'
-            content += 'Does this incomplete table provide all the information for the question? You should response "yes" or "no".'
-            # content += '\nA:
-
-            df.loc[i, 'pre_content'] = content
-            print('\n///pre-content///')
-            print(content)
-
-            completion = client.chat.completions.create(
-                model = model,
-                messages = [
-                    {"role": "system", "content": "You are an advanced AI capable of analyzing and understanding information within tables."},
-                    {"role": "user", "content": content}
-                ],
-                temperature=0,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0,
-                seed=123
-            )
-            p_res = completion.choices[0].message.content
-            pre_response.append(p_res)
-            print('\n///pre-response///')
-            print(p_res)
-        else:
-            pre_response.append('')
-
-        assert 1==2
+                if df.loc[i, 'entityAlign']==1:
+                    if 'name a ' in question and len(nl_response_text_to_sql)>1:
+                        number_align = False
+                    elif len(nl_response_text_to_sql)>1:
+                        number_align = numberAlign(question, response_text_to_sql)
+                    else:
+                        number_align = True
+                    df.loc[i, 'numberAlign'] = int(number_align)
+                else:
+                    df.loc[i, 'numberAlign'] = 0
         
-        if not truncated or (p_res and 'yes' in p_res.lower()):
-            content = 'You will get a question, a table, and an answer.'
-            content += f' The table is about "{table_title}".\n\n' if table_title else '\n\n'
-            question = context.split('col :')[0].strip()
-            content += '[Question] '+question+'\n\n'
-            content += '[Table] '+context.replace(question, '').strip()+'\n\n'
-            content += f'[Answer A] {new_ans_text_to_sql}\n\n'
-            content += f'[Answer B] {new_ans_tableqa}\n\n'
-            content += 'Based on the given table, choose the more correct answer from A or B. \
-Let\'s think step by step, and then give the final answer. If both answers are correct, \
-choose the more natural answer to the question for humans. If both answers are incorrect, \
-choose the closer one. Ensure the final answer format is either \
-"Final Answer: A" or "Final Answer: B", no other form.'
-            
-            df.loc[i, 'content'] = content
-            print('\n///content///')
-            print(content)
-            
-            completion = client.chat.completions.create(
+        if df.loc[i, 'numberAlign'] == 1:
+            if truncated==1:
+                print('CASE E: pass alignment check, table is truncated. ', response_text_to_sql)
+
+                ##########################################
+                # contradiction in counting
+                ##########################################
+
+                try:
+                    number_text_to_sql = float(response_text_to_sql)
+                except Exception as e:
+                    number_text_to_sql = None
+                if number_text_to_sql is not None and number_text_to_sql.is_integer() and number_text_to_sql<=20:
+                    gpt_count = countNumber(table, question)
+                    if gpt_count>number_text_to_sql:
+                        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+                        print(f'CASE E-1: counting contradiction. GPT: {gpt_count} > Text-to-SQL: {number_text_to_sql}')
+                    else:
+                        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_text_to_sql']
+                else:
+                    df.loc[i, 'gpt_score'] = df.loc[i, 'acc_text_to_sql']
+                continue
+            else:
+
+                ##########################################
+                # compare two options
+                ##########################################
+                
+                content = compare_prompt + '\n'
+                content += "\n\nTable: " + table + "\nQuestion: " + question + '\nResponse A: ' + response_text_to_sql+ '\nResponse B: ' + response_tableqa + '\nAnswer: '
+                print('\n\n')
+                print(content)
+                completion = client.chat.completions.create(
                 model = model,
                 messages = [
                     {"role": "system", "content": "You are an advanced AI capable of analyzing and understanding information within tables."},
                     {"role": "user", "content": content}
                 ],
-                temperature=0,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0,
-                seed=123
+                temperature=0 # consistent output
             )
-            res = completion.choices[0].message.content
-            print('\n///response///')
-            print(res)
-            response.append(res)
+            res = completion.choices[0].message.content.lower()
+            df.loc[i, 'comparison'] = res
+
+            sents = [
+                'final answer is b',
+                'final answer: b',
+                'final answer:b',
+                'correct answer is b'
+            ]
+            conditions = any([x in res for x in sents])
+            if conditions:
+                df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+            else:
+                df.loc[i, 'gpt_score'] = df.loc[i, 'acc_text_to_sql']
+            print('CASE F: compare two answers. ', 'B is correct: ', conditions)
+            print('GPT response: ', res)
+            continue
         else:
-            response.append('A')
-    else:
-        pre_response.append('')
-        response.append('A')
+            print('CASE G: text-to-sql answer aligment check fails, choose tableqa')
+            df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+            continue
 
+    raise NotImplementedError
 
-    df.loc[i, 'pre_response'] = pre_response[-1]
-    df.loc[i, 'response'] = response[-1]
+gpt_scores = df.loc[:,'gpt_score'].values
+gpt_scores = [x for x in gpt_scores if not isinstance(x, float) or not math.isnan(x)]
+oracle = df.loc[:,'oracle'].values[:len(gpt_scores)]
 
+print('\n\navg oracle: ', np.round(np.mean(oracle),4))
+print('avg gpt: ', np.round(np.mean(gpt_scores),4))
 
 df.to_csv(file_path, index=False)
 
