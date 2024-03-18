@@ -21,19 +21,19 @@ print('df size: ', df.shape)
 
 ##############
 
-with open('relevance-prompt.txt', 'r') as f:
+with open('llm/relevance-prompt.txt', 'r') as f:
     entity_align_prompt = f.read()
 
-with open('alignment-prompt.txt', 'r') as f:
+with open('llm/alignment-prompt.txt', 'r') as f:
     number_align_prompt = f.read()  
 
-with open('similarity-prompt.txt', 'r') as f:
+with open('llm/similarity-prompt.txt', 'r') as f:
     similar_prompt = f.read()   
 
-with open('comparison-prompt.txt', 'r') as f:
+with open('llm/comparison-prompt.txt', 'r') as f:
     compare_prompt = f.read()   
 
-with open('contradiction-prompt.txt', 'r') as f:
+with open('llm/contradiction-prompt.txt', 'r') as f:
     contradiction_prompt = f.read()   
 
 ##############
@@ -129,12 +129,12 @@ def countNumber(table, question):
 
 for i, row in df.iterrows():
 
-    # K=2751
-    # if i <K and row['gpt_score'] in [1, 0]:
-    #     continue
+    K=34
+    if i <K and row['gpt_score'] in [1, 0]:
+        continue
 
     print('\n----row: ', i, '-----')
-    if i > 1000:
+    if i > K:
         break
 
     question = row['question']
