@@ -1,8 +1,8 @@
 You will get a table, a question, and two responses. 
 Based on this table, choose the more correct answer from A or B. 
 If A and B are the same, choose the one that is more natural to the question and favored by humans.
-If the table does not have enough information or both answers are incorrect, choose A.
-If the correct is a number larger than Response A and smaller than Response B, choose B.
+If neither response is correct, choose A.
+If the table does not have enough information, choose A.
 Let's think step by step, and then give the final answer.
 Ensure the final answer format is either "Final Answer: A" or "Final Answer: B", no other form.
 

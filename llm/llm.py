@@ -44,7 +44,6 @@ def call_gpt(cur_prompt, stop, temperature = 0):
     ans = client.chat.completions.create(
                 model=model,
                 messages = [
-                    # {"role": "system", "content": ""},
                     {"role": "user", "content": cur_prompt}
                 ],
                 temperature=temperature)
@@ -129,12 +128,11 @@ def countNumber(table, question):
 
 for i, row in df.iterrows():
 
-    K=34
-    if i <K and row['gpt_score'] in [1, 0]:
+    if i < 500 and row['gpt_score'] in [1, 0]:
         continue
 
     print('\n----row: ', i, '-----')
-    if i > K:
+    if i > 1000:
         break
 
     question = row['question']
