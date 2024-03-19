@@ -15,7 +15,7 @@ esch-sur-alzette is in the row 1 and column canton.
 the canton in the next row is diekirch. therefore, the canton after esch-sur-alzette is diekirch.
 final answer: A
 
-Table: header : col : date announced | plant name | employees row 1 : january 23, 2006 | st. louis assembly | 1445 row 2 : january 23, 2006 | atlanta assembly | 2028 row 3 : january 23, 2006 | batavia transmission | 1745 row 4 : january 23, 2006 | windsor casting | 684 row 5 : total | total | 5902
+Table: header : date announced | plant name | employees row 1 : january 23, 2006 | st. louis assembly | 1445 row 2 : january 23, 2006 | atlanta assembly | 2028 row 3 : january 23, 2006 | batavia transmission | 1745 row 4 : january 23, 2006 | windsor casting | 684 row 5 : total | total | 5902
 Question: how many plants have at least 1,500 employees?
 Response A: 3
 Response B: 2
