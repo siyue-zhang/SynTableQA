@@ -1,0 +1,37 @@
+Assess the Response A and the Response B to the Question. Answer yes if the Response A and the Response B belong to the similar type of entities related to the Question, or no if they are distinct type of things. Answer yes if they are both names.
+
+Question: name one player who has a higher score than zoe
+Response A: r.c. haas
+Response B: gordon otto
+Answer: yes
+
+Question: what is the total of guest for the month of january
+Response A: march
+Response B: 3
+Answer: no
+
+Question: what is the first date in the list?
+Response A: Dec-28
+Response B: 2019
+Answer: no
+
+Question: which team did liverpool play against?
+Response A: coventry city
+Response B: new england patriots (4)
+Answer: yes
+
+Question: did the last driver finish the game?
+Response A: yes
+Response B: no
+Answer: yes
+
+Question: did alonso win or lose the game?
+Response A: no
+Response B: lose
+Answer: no
+
+Question: who was the president?
+Response A: john d. mcmillan
+Response B: rome
+Answer: no
+

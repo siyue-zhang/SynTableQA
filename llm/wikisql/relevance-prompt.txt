@@ -1,0 +1,41 @@
+Assess whether the Response contains the entities or answers asked by the Question. Answer yes if the Question asks for names or persons. Answer yes if the Response is relevant to the Question, or no if the Response is not expected by the Question. It does not matter if the response is correct or not. 
+
+Question: what is the first year the scores are recorded?
+Response: (001) 6.40
+Answer: no
+
+Question: which city has the largest number of people in camarines sur?
+Response: 25px
+Answer: no
+
+Question: was macdonald prime minister before bowell?
+Response: yes
+Answer: yes
+
+Question: does the tour take diesel or gas?
+Response: oil
+Answer: no
+
+Question: which us city has the largest population?
+Response: tokyo
+Answer: no
+
+Question: other than sofia, who was there?
+Response: sofia
+Answer: no
+
+Question: how many times did justin win the game?
+Response: n/a
+Answer: no
+
+Question: how many teams that won the game twice?
+Response: fuel faux pas, gasoline gods
+Answer: no
+
+Question: does the first driver win the same amount of games as the second one?
+Response: 1
+Answer: no
+
+Question: is the last driver older than the first one?
+Response: no
+Answer: yes
