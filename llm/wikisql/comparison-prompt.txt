@@ -1,0 +1,32 @@
+You will get a table, a question, and two responses. 
+Based on this table, choose the more correct answer from A or B. 
+If A and B are the same, choose A.
+If neither response is correct, choose A.
+If the table does not have enough information, choose A.
+Let's think step by step, and then give the final answer.
+Ensure the final answer format is either "Final Answer: A" or "Final Answer: B", no other form.
+
+Table: header : canton | district | date row 1 : esch-sur-alzette | luxembourg | 4 august 1907 row 2: diekirch | diekirch | 4 august 1907 row 3: vianden | diekirch | 1 may 1922
+Question: what is the canton after esch-sur-alzette?
+Response A: diekirch
+Response B: vianden
+Answer: to find the canton after esch-sur-alzette, we need to first identify the row of esch-sur-alzette. 
+esch-sur-alzette is in the row 1 and column canton. 
+the canton in the next row is diekirch. therefore, the canton after esch-sur-alzette is diekirch.
+final answer: A
+
+Table: header : date announced | plant name | employees row 1 : january 23, 2006 | st. louis assembly | 1445 row 2 : january 23, 2006 | atlanta assembly | 2028 row 3 : january 23, 2006 | batavia transmission | 1745 row 4 : january 23, 2006 | windsor casting | 684 row 5 : total | total | 5902
+Question: how many plants have at least 1,500 employees?
+Response A: 3
+Response B: 2
+Answer: to find the number of plants with more than 1500 people employees, we need to look at the employees column and count the entries that exceed 1500. 
+1. st. louis assembly (1445<1500)
+2. atlanta assembly (2028>1500)
+3. batavia transmission (1745>1500)
+4. windsor casting (684<1500)
+5. total (5902>1500)
+because total is an aggregation amount not a real plant, the plants have at least 1500 employees are:
+- atlanta assembly
+- batavia transmission
+that makes a total of 2 plants.
+final answer: B

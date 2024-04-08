@@ -1,3 +1,0 @@
-Table: header : canton | district | establish date row 1 : esch-sur-alzette | luxembourg | 4 august 1907 row 2: diekirch | diekirch | 4 august 1907 row 3: vianden | diekirch | 1 may 1922
-Question: how many cantons are established in 1907?
-Answer: 2
