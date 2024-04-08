@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from metric.squall_evaluator import Evaluator
+from metric.wikisql import evaluate_example
 
 def postprocess_text(preds, labels):
     preds = [pred.strip() for pred in preds]
