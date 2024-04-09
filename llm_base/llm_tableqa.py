@@ -13,12 +13,7 @@ from transformers import AutoTokenizer
 
 from openai import OpenAI
 from metric.squall_evaluator import Evaluator
-
-client = OpenAI(
-    api_key='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'
-)
-model = 'gpt-3.5-turbo'
-# model="gpt-4-0125-preview"
+from metric.wikisql import evaluate_example
 
 
 def get_default_processor(max_cell_length, max_input_length, target_delimiter=', '):
@@ -113,7 +108,8 @@ def preprocess_squall(examples):
         table_content_copy = deepcopy(table_content)
         answer = answer_texts[i].split('|')
         question = nls[i]
-
+        if len(table_content_copy['rows'])>50:
+            table_content_copy['rows'] = table_content_copy['rows'][:50]
         input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
         input_sources.append(input_source)
 
@@ -126,7 +122,40 @@ def preprocess_squall(examples):
     return examples
 
 
-def call_gpt(cur_prompt, temperature=0):
+def preprocess_wikisql(examples):
+
+    TABLE_PROCESSOR = get_default_processor(max_cell_length=50, max_input_length=1024, target_delimiter=', ')
+    input_sources = []
+    output_targets = []
+    tables = examples['table']
+    answers = examples['answers']
+    questions = examples['question']
+    for i in range(len(examples['question'])): 
+        table_content = tables[i]
+        table_content_copy = deepcopy(table_content)
+        answer = answers[i]
+        question = questions[i]
+        if len(table_content_copy['rows'])>50:
+            table_content_copy['rows'] = table_content_copy['rows'][:50]
+        input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).lower()
+        input_sources.append(input_source)
+   
+        output_target = TABLE_PROCESSOR.process_output(answer).lower()
+        output_targets.append(output_target)
+
+    examples = examples.add_column("input_sources", input_sources)
+    examples = examples.add_column('output_targets', output_targets)
+
+    return examples
+
+
+
+def call_gpt(cur_prompt, temperature=0, version=3.5):
+
+    client = OpenAI(
+        api_key='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'
+    )
+    model = "gpt-4-0125-preview" if version == 4 else "gpt-3.5-turbo"
     ans = client.chat.completions.create(
         model=model,
         messages=[
@@ -144,8 +173,12 @@ def call_gpt(cur_prompt, temperature=0):
 
 if __name__=='__main__':
 
-    dataset_name = 'squall'
-    squall_evaluator = Evaluator()
+    version = 4
+    # dataset_name = 'squall'
+    dataset_name = 'wikisql'
+
+    if dataset_name == 'squall':
+        squall_evaluator = Evaluator()
 
     # Load dataset
     if dataset_name == 'squall':
@@ -153,19 +186,21 @@ if __name__=='__main__':
         raw_datasets = load_dataset(task, 
                                     plus=True, 
                                     split_id=1)
-        file_path = "llm_base/squall_plus_llm_tableqa_test1.csv"
+        file_path = f"llm_base/gpt{version}/squall_plus_llm_tableqa_test1.csv"
     elif dataset_name == 'wikisql':
         task = "./task/wikisql_robut.py"
         raw_datasets = load_dataset(task, 
                                     split_id=0)
-        # file_path = "llm_base/squall_plus_llm_tableqa_test1.csv"
+        file_path = f"llm_base/gpt{version}/wikisql_llm_tableqa_test0.csv"
 
     # for prompt exampler
     train_dataset = raw_datasets['validation']
-    train_dataset = preprocess_squall(train_dataset) if dataset_name == 'squall' else None
+    if len(train_dataset)>2000:
+        train_dataset=train_dataset.select(range(2000))
+    train_dataset = preprocess_squall(train_dataset) if dataset_name == 'squall' else preprocess_wikisql(train_dataset)
 
     exampler='Based on the table, answer the question. Only response the answer.\n\n'
-    ids = [1, 128]
+    ids = [1, 128, 163, 275]
     for i in ids:
         _exampler = train_dataset[i]['input_sources']
         _answer = train_dataset[i]['output_targets']
@@ -175,30 +210,39 @@ if __name__=='__main__':
 
     # for test samples
     test_dataset = raw_datasets['test']
-    test_dataset = preprocess_squall(test_dataset) if dataset_name == 'squall' else None
+    if dataset_name=='wikisql':
+        test_dataset=test_dataset.select(range(2000))
+    test_dataset = preprocess_squall(test_dataset) if dataset_name == 'squall' else preprocess_wikisql(test_dataset)
 
     df = pd.read_csv(file_path)
-    assert len(test_dataset)==df.shape[0]
+    # assert len(test_dataset)==df.shape[0]
     
     for i, row in df.iterrows():
 
-        # if i < 10:
+        # if i < 1535:
         #     continue
 
-        if i > 200:
+        if i > 500:
             break
 
         print(f'\n-----{i}--------\n')
         input_source = test_dataset[i]['input_sources']
         cur_prompt = exampler + "\n\nQuestion: " + input_source.replace('col : ','\n\nTable: col : ') + "\n\nAnswer: "
-        returned, log_prob = call_gpt(cur_prompt)
+        returned, log_prob = call_gpt(cur_prompt, version=version)
         df.loc[i, 'ans_llm_tableqa'] = returned
         df.loc[i, 'log_prob_llm_tableqa'] = log_prob
-
+        # print(cur_prompt)
+        # print(returned)
+        # print(test_dataset['answers'][i])
+        # assert 1==2
         if dataset_name=='squall':            
             correct_flag = squall_evaluator.evaluate_tableqa([{'pred': returned, 'nt': test_dataset['nt'][i]}], '|')
             if isinstance(correct_flag, list):
                 correct_flag=correct_flag[0]
+        else:
+            answers = test_dataset['answers'][i]
+            answers = ', '.join([a.strip().lower() for a in answers])
+            correct_flag = evaluate_example(returned.lower(), answers.lower(), ', ')
 
         df.loc[i, 'acc_llm_tableqa'] = int(correct_flag)
 

@@ -9,16 +9,14 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
     TABLE_PROCESSOR = get_default_processor(max_cell_length=50, max_input_length=1024, target_delimiter=', ')
 
     questions = examples["question"]
+    tables = examples["table"]
     input_truncated = []
     output_targets = []
     inputs, outputs = [], []
 
     for i in range(len(questions)):
         question = questions[i]
-        table_content = examples["table"][i]
-
-        w = pd.DataFrame.from_records(table_content['rows'],columns=table_content['header'])
-        examples["table"][i] = table_content
+        table_content = tables[i]
 
         table_content['header'] = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in table_content['header']]
         table_content['header'] = [f'{k+1}_{x}' for k, x in enumerate(table_content['header'])]
@@ -83,7 +81,7 @@ if __name__=='__main__':
     from transformers import T5Tokenizer
     import sys
     sys.path.append('./')
-    datasets = load_dataset("/home/siyue/Projects/SynTableQA/task/wikisql_robut.py", 
+    datasets = load_dataset("/scratch/sz4651/Projects/SynTableQA/task/wikisql_robut.py", 
                             split_id=0, ignore_verifications=True,
                             # perturbation_type='row',
                             # download_mode='force_redownload'

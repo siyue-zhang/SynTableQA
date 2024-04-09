@@ -171,6 +171,9 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
 		
 		nl_header = table['header']
 		n_col = len(nl_header)
+		nl_header = [x.replace('\n', ' ').replace(' ','_').strip().lower() for x in nl_header]
+		nl_header = [f'{k+1}_{x}' for k, x in enumerate(nl_header)]
+
 		nm_header = [f"col{j}" for j in range(n_col)]
 
 		for j in range(n_col):
