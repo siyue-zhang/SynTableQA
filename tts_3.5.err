@@ -1,7 +1,0 @@
-WARNING: Could not find any nv files on this host!
-Traceback (most recent call last):
-  File "llm_base/llm_text_to_sql.py", line 189, in <module>
-    raw_datasets = load_dataset(task,
-  File "/scratch/sz4651/Projects/SynTableQA/./llm_base/llm_tableqa.py", line 153, in call_gpt
-    model=model,
-NameError: name 'model' is not defined

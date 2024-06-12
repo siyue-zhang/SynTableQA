@@ -2,14 +2,14 @@ export CUDA_VISIBLE_DEVICES=0
 
 model_name="t5-large"
 dataset_name="squall"
-output_dir="output/squall_d2_text_to_sql1"
-checkpoint=1800
+output_dir="output/squall_text_to_sql1"
+checkpoint=4600
 
 python ./run.py \
   --task text_to_sql \
   --do_predict \
   --squall_plus True \
-  --predict_split dev \
+  --predict_split test \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -22,7 +22,10 @@ python ./run.py \
   --split_id 1 \
   --predict_with_generate \
   --num_beams 5 \
-  --squall_downsize 2
+  --input_noise 9
+  # --max_predict_samples 500
+
+  # --squall_downsize 2
 
 # --save_note nor 
 

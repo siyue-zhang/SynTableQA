@@ -9,7 +9,7 @@ python ./run.py \
   --task tableqa \
   --do_predict \
   --squall_plus True \
-  --predict_split dev \
+  --predict_split test \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -20,7 +20,8 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --split_id 1 \
   --predict_with_generate \
-  --num_beams 5 
+  --num_beams 5 \
+  --input_noise 1
 
 # --max_predict_samples 100
 # --aug True 

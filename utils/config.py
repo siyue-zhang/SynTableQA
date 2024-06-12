@@ -70,6 +70,9 @@ class DataTrainingArguments:
     split_id: int = field(
         default=1, metadata={"help": ( "dataset split id")}
     )
+    input_noise: int = field(
+        default=1, metadata={"help": "whether to perturb input to generate different outputs"}
+    )
     perturbation_type: str = field(
         default="original", metadata={"help": "perturbation type of the RobuT dev set"}
     )

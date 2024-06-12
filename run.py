@@ -176,7 +176,8 @@ def main():
                 "max_source_length": data_args.max_source_length,
                 "max_target_length": data_args.max_target_length,
                 "ignore_pad_token_for_loss": data_args.ignore_pad_token_for_loss,
-                "padding": padding,}
+                "padding": padding,
+                "input_noise": data_args.input_noise}
         
     if training_args.do_train or data_args.predict_split=='train':
         train_dataset = raw_datasets["train"]
@@ -271,8 +272,11 @@ def main():
             if dataset_name == 'wikisql' and data_args.predict_split == 'dev' and split_id == 0 and data_args.perturbation_type != 'original'
             else ''
         )
+        
         note_suffix = f'_{data_args.save_note}' if data_args.save_note else ''
-
+        if data_args.input_noise is not None:
+            note_suffix += f'_noise{data_args.input_noise}'
+            
         stage = (
             f'{dataset_name}'
             f'{squall_plus_suffix}'

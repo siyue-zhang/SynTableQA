@@ -20,7 +20,8 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --split_id 0 \
   --predict_with_generate \
-  --num_beams 5
+  --num_beams 5 \
+  --input_noise True
   
 # --aug True 
 # --max_predict_samples 500

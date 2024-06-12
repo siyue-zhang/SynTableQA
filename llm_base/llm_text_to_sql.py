@@ -105,7 +105,8 @@ def preprocess_squall(examples):
         table_content_x = {'header': table_content['nl_header'], 'rows': rows}
 
         question = nl
-        table_content_x['rows'] = table_content_x['rows'][:2]
+        if len(table_content_x['rows'])>5:
+            table_content_x['rows'] = table_content_x['rows'][:5]
         input_source = TABLE_PROCESSOR.process_input(table_content_x, question, []).lower()
 
         for j in range(len(table_content['ori_header'])):
@@ -150,10 +151,6 @@ def preprocess_wikisql(examples):
         # table_content_copy['rows'] = [table_content_copy['rows'][0]]
         table_content_copy['rows'] = []
         input_source = TABLE_PROCESSOR.process_input(table_content_copy, question, []).strip().lower()
-
-        # types = table_content['types']
-        # str_types = 'type : ' + ' | '.join(types) + ' row 1 :'
-        # input_source = input_source.replace('row 1 :', str_types)
         inputs.append(input_source)
 
         output = sqls[i]
@@ -169,7 +166,7 @@ def preprocess_wikisql(examples):
 
 if __name__=='__main__':
 
-    version = 4
+    version = 3.5
     # dataset_name = 'squall'
     dataset_name = 'wikisql'
 
@@ -196,7 +193,6 @@ if __name__=='__main__':
     train_dataset = preprocess_squall(train_dataset) if dataset_name == 'squall' else preprocess_wikisql(train_dataset)
 
     exampler='Based on the table schema, write the SQL query to answer the question. Only response the SQL query.\n\n'
- 
     ids = [1, 69, 141, 163, 259, 422, 1719, 1749]
     for i in ids:
         _exampler = train_dataset[i]['input_sources']
@@ -216,23 +212,24 @@ if __name__=='__main__':
     
     for i, row in df.iterrows():
 
-        # if i < 4:
+        # if i < 500:
         #     continue
 
-        if i > 500:
+        if i > 100:
             break
 
         print(f'\n-----{i}--------\n')
         input_source = test_dataset[i]['input_sources']
         cur_prompt = exampler + "\n\nQuestion: " + input_source.replace('col : ','\n\nTable: col : ') + "\n\nSQL: "
-        # print(cur_prompt)
+        print(cur_prompt)
         returned, log_prob = call_gpt(cur_prompt, version=version)
+        # print(returned)
         if '```sql' in returned:
             returned = returned.replace('```sql\n','').replace('\n```','')
         df.loc[i, 'query_pred_llm'] = returned
         df.loc[i, 'log_prob_llm_text_to_sql'] = log_prob
         # print(returned,'\n\n')
-
+        # assert 1==2
         if dataset_name=='squall':
             predictions = squall_postproc([returned], test_dataset.select([i]), True)
             fuzzy_query = predictions[0]["result"][0]["sql"]
@@ -244,7 +241,7 @@ if __name__=='__main__':
                 correct_flag=correct_flag[0]
         else:
             eval_dataset = test_dataset.select([i])
-            predictions = wiki_postproc([returned], eval_dataset, True)
+            predictions = wiki_postproc([returned], eval_dataset, False)
             for k, pred in enumerate(predictions):
 
                 answers = eval_dataset['answers'][k]
@@ -262,9 +259,10 @@ if __name__=='__main__':
                 predicted = ', '.join(predicted_values)
                 correct_flag = evaluate_example(predicted, answers, target_delimiter=', ')
                 fuzzy_query = pred
-
+        
         df.loc[i, 'query_fuzzy_llm'] = fuzzy_query
         df.loc[i, 'queried_ans_llm'] = predicted
         df.loc[i, 'acc_llm_text_to_sql'] = int(correct_flag)
 
-    df.to_csv(file_path, index=False)   
+    # df.to_csv(file_path, index=False)   
+    df.to_csv('tmp.csv', index=False)   

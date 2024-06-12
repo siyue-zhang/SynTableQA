@@ -3,13 +3,13 @@ export CUDA_VISIBLE_DEVICES=0
 model_name="neulab/omnitab-large"
 dataset_name="squall"
 output_dir="output/squall_plus_tableqa3"
-checkpoint=2600
+checkpoint=4900
 
 python ./run.py \
   --task tableqa \
   --do_predict \
   --squall_plus True \
-  --predict_split dev \
+  --predict_split test \
   --output_dir ${output_dir} \
   --resume_from_checkpoint ${output_dir}/checkpoint-${checkpoint} \
   --model_name_or_path ${model_name} \
@@ -20,6 +20,7 @@ python ./run.py \
   --dataset_name ${dataset_name} \
   --split_id 3 \
   --predict_with_generate \
-  --num_beams 5
+  --num_beams 5 \
+  --input_noise 90
+  # --max_predict_samples 500
 # --aug True
-# --max_predict_samples 500

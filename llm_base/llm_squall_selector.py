@@ -11,7 +11,7 @@ client = OpenAI(
     api_key='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'
 )
 
-base_version = 4
+base_version = 3.5
 if base_version == 4:
     model="gpt-4-0125-preview"
 else:
@@ -21,7 +21,7 @@ path = f"/scratch/sz4651/Projects/SynTableQA/llm_base/gpt{base_version}/"
 df_text_to_sql = pd.read_csv(path + 'squall_plus_llm_text_to_sql_test1.csv')
 df_tableqa = pd.read_csv(path + 'squall_plus_llm_tableqa_test1.csv')
 
-k = 500
+k = 1000
 df_text_to_sql = df_text_to_sql[:k]
 df_tableqa =df_tableqa[:k]
 
@@ -150,16 +150,16 @@ def countNumber(table, question):
 
 for i, row in df.iterrows():
 
-    # if i < 3000 and row['gpt_score'] in [1, 0]:
+    # if i < 62:
     #     continue
 
     print('\n----row: ', i, '-----')
-    if i > 500:
+    if i > 1000:
         break
 
     question = row['question']
     question = question.replace(' -lrb- ','(').replace(' -rrb-',')')
-    ans_tableqa = str(row['ans_tableqa']).lower().strip()
+    ans_tableqa = row['ans_tableqa'].split("Final Answer:")[-1].strip().lower()
     ans_text_to_sql = str(row['ans_text_to_sql']).lower().strip()
     acc_tableqa = int(row['acc_tableqa'])
     acc_text_to_sql = int(row['acc_text_to_sql'])
@@ -183,10 +183,11 @@ for i, row in df.iterrows():
         print('CASE A: acc_tableqa = acc_text_to_sql')
         continue
 
-    if acc_tableqa!=acc_text_to_sql and ans_text_to_sql in ['', 'nan', 'na', 'none']:
-        df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
-        print('CASE B: acc_text_to_sql => nan')
-        continue
+    if acc_tableqa!=acc_text_to_sql:
+        if ans_text_to_sql in ['', 'nan', 'na', 'none'] or len(nl_response_text_to_sql)==0:
+            df.loc[i, 'gpt_score'] = df.loc[i, 'acc_tableqa']
+            print('CASE B: acc_text_to_sql => nan')
+            continue
 
     ##########################################
     # answer format correction 

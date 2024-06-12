@@ -10,7 +10,7 @@ from copy import deepcopy
 import re
 
 def header_check(pred, mapping_b):
-    words = [x.strip() for x in pred.split()]
+    words = pred.replace('(', ' ( ').replace(')',' ) ').split()
     correct_map = {}
     for w in words:
         if re.match(r'^\d*_', w) and w not in mapping_b:
@@ -63,6 +63,8 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
             new_ori2, _ = process.extractOne(ori2, can)
         else:
             new_ori2, _ = process.extractOne(ori2, candidates)
+        if f"'{ori2}'" in to_replace:
+            new_ori2 = new_ori2.replace("'", "''")
         to_replace = to_replace.replace(ori2, new_ori2)
 
     if ori3 and ori3 not in cell_dict:
@@ -71,6 +73,8 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
             new_ori3, _ = process.extractOne(ori3, can)
         else:
             new_ori3, _ = process.extractOne(ori3, candidates)
+        if f"'{ori3}'" in to_replace:
+            new_ori3 = new_ori3.replace("'", "''")
         to_replace = to_replace.replace(ori3, new_ori3)
 
     return to_replace
@@ -79,7 +83,7 @@ def correctify(col, ori, to_replace, cell_dict, mapping, mapping_b, ori2=None, o
 
 def string_check(pred, mapping, contents):
 
-    verbose = False
+    verbose = True
     contents = contents["contents"]
     ori_pred = str(pred)
     mapping_b = {mapping[k]:k for k in mapping}
@@ -302,16 +306,13 @@ def postprocess_text(decoded_preds, eval_dataset, fuzzy):
         table_path = f'./data/squall/tables/json/{table_id}.json'
         with open(table_path, 'r') as file:
             contents = json.load(file)
-
         if fuzzy:
             pred = header_check(pred, mapping_b)
-
         used = []
         for h in sorted(nl_headers, key=len, reverse=True):
             if h in pred and all([h not in u for u in used]):
                 pred=pred.replace(h, mapping_b[h])
                 used.append(mapping_b[h])
-                
         if fuzzy:
             pred = string_check(pred, mapping, contents)
 

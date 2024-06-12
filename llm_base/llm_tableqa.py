@@ -173,12 +173,15 @@ def call_gpt(cur_prompt, temperature=0, version=3.5):
 
 if __name__=='__main__':
 
-    version = 4
+    version = 3.5
     # dataset_name = 'squall'
     dataset_name = 'wikisql'
-
+    
     if dataset_name == 'squall':
         squall_evaluator = Evaluator()
+        sep = '|'
+    else:
+        sep = ', '
 
     # Load dataset
     if dataset_name == 'squall':
@@ -195,12 +198,14 @@ if __name__=='__main__':
 
     # for prompt exampler
     train_dataset = raw_datasets['validation']
-    if len(train_dataset)>2000:
-        train_dataset=train_dataset.select(range(2000))
-    train_dataset = preprocess_squall(train_dataset) if dataset_name == 'squall' else preprocess_wikisql(train_dataset)
+    # if len(train_dataset)>2000:
+    #     train_dataset=train_dataset.select(range(2000))
+    # train_dataset = preprocess_squall(train_dataset) if dataset_name == 'squall' else preprocess_wikisql(train_dataset)
 
-    exampler='Based on the table, answer the question. Only response the answer.\n\n'
-    ids = [1, 128, 163, 275]
+    # exampler='Based on the table, answer the question. Only response the answer.\n\n'
+    exampler='You are an advanced AI capable of analyzing and understanding information within tables. Read the table below.\n\n'
+    ids=[]
+    # ids = [1, 128, 163, 275]
     for i in ids:
         _exampler = train_dataset[i]['input_sources']
         _answer = train_dataset[i]['output_targets']
@@ -210,8 +215,7 @@ if __name__=='__main__':
 
     # for test samples
     test_dataset = raw_datasets['test']
-    if dataset_name=='wikisql':
-        test_dataset=test_dataset.select(range(2000))
+    test_dataset = test_dataset.select(range(2000))
     test_dataset = preprocess_squall(test_dataset) if dataset_name == 'squall' else preprocess_wikisql(test_dataset)
 
     df = pd.read_csv(file_path)
@@ -219,30 +223,33 @@ if __name__=='__main__':
     
     for i, row in df.iterrows():
 
-        # if i < 1535:
-        #     continue
+        if i < 500:
+            continue
 
-        if i > 500:
+        if i > 1000:
             break
 
         print(f'\n-----{i}--------\n')
         input_source = test_dataset[i]['input_sources']
-        cur_prompt = exampler + "\n\nQuestion: " + input_source.replace('col : ','\n\nTable: col : ') + "\n\nAnswer: "
+        # cur_prompt = exampler + "\n\nQuestion: " + input_source.replace('col : ','\n\nTable: col : ') + "\n\nAnswer: "
+        cur_prompt = exampler + input_source.split('col : ')[1] + '\n\nBased on the given table, answer the following question:\n\n' + input_source.split('col : ')[0]
+        cur_prompt += f"\n\nLet's think step by step, and then give the final answer. Ensure the final answer format is only \"Final Answer: AnswerName1{sep}AnswerName2...\" form, no other form. And ensure the final answer is a number or entity names, as short as possible, without any explanation.\n\n"
         returned, log_prob = call_gpt(cur_prompt, version=version)
         df.loc[i, 'ans_llm_tableqa'] = returned
         df.loc[i, 'log_prob_llm_tableqa'] = log_prob
-        # print(cur_prompt)
-        # print(returned)
-        # print(test_dataset['answers'][i])
+        print(cur_prompt)
+        print(returned)
         # assert 1==2
+        returned = returned.split("Final Answer:")[-1].strip()
+
         if dataset_name=='squall':            
             correct_flag = squall_evaluator.evaluate_tableqa([{'pred': returned, 'nt': test_dataset['nt'][i]}], '|')
             if isinstance(correct_flag, list):
                 correct_flag=correct_flag[0]
         else:
             answers = test_dataset['answers'][i]
-            answers = ', '.join([a.strip().lower() for a in answers])
-            correct_flag = evaluate_example(returned.lower(), answers.lower(), ', ')
+            answers = sep.join([a.strip().lower() for a in answers])
+            correct_flag = evaluate_example(returned.lower(), answers.lower(), sep)
 
         df.loc[i, 'acc_llm_tableqa'] = int(correct_flag)
 

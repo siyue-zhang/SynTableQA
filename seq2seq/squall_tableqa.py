@@ -1,12 +1,13 @@
 import pandas as pd
 import json
 import re
+import random
 from copy import deepcopy
 import sys
 sys.path.append('./')
 from utils.processor import get_default_processor
 
-def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
+def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding, input_noise=None):
     # preprocess the squall datasets for the model input
     TABLE_PROCESSOR = get_default_processor(max_cell_length=15, max_input_length=1024, target_delimiter='|')
 
@@ -85,6 +86,25 @@ def preprocess_function(examples, tokenizer, max_source_length, max_target_lengt
         table_content_copy = deepcopy(table_content)
         answer = answer_texts[i].split('|')
         question = nls[i]
+
+        if input_noise is not None:
+            random.seed(input_noise)
+            # print('\n---before---\n', table_content_copy)
+            random.shuffle(table_content_copy['rows'])
+            # print('\n---row shuffle---\n', table_content_copy)
+
+            kk=3
+            if len(table_content_copy['header'])>kk:
+                fixed_header = table_content_copy['header'][:kk]
+                shuffled_header = table_content_copy['header'][kk:]
+                random.shuffle(shuffled_header)
+                table_content_copy['header'] = fixed_header + shuffled_header
+                for row in table_content_copy['rows']:
+                    fixed_part = row[:kk]
+                    shuffle_part = row[kk:]
+                    shuffled_row = fixed_part + [shuffle_part[shuffled_header.index(col)] for col in table_content_copy['header'][kk:]]
+                    row[:] = shuffled_row
+            # print('\n---col shuffle---\n', table_content_copy)
 
         if examples['split_key'][i] == "train":
             # in training, we employ answer to filter table rows to make LARGE tables fit into memory;

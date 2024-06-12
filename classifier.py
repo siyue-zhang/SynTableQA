@@ -963,14 +963,14 @@ def load_and_predict(dataset, X, Y, feature_names, model, name=""):
     # return classifier.predict_proba(X)
     # return classifier.predict(X)
 
-    f = classifier.feature_importances_
+    # f = classifier.feature_importances_
     names = feature_names
 
     print('\n-----------\n')
-    print(len(names), ' : ', len(f))
-    assert len(names)==len(f)
-    for x, y in zip(names, f):
-        print(x, ' : ', round(y,4))
+    # print(len(names), ' : ', len(f))
+    # assert len(names)==len(f)
+    # for x, y in zip(names, f):
+    #     print(x, ' : ', round(y,4))
     print('\n-----------\n')
 
     return classifier.score(X, Y)
@@ -1047,8 +1047,10 @@ if __name__=='__main__':
     tableqa_tokenizer = TapexTokenizer.from_pretrained("microsoft/tapex-large")
     text_to_sql_tokenizer = T5Tokenizer.from_pretrained("t5-large")
 
-    # model = 'AdaBoost'
-    model = 'RandomForest'
+    # model = 'LR'
+    # model = 'kNN'
+    model = 'MLP'
+    # model = 'RandomForest'
     # dataset = 'wikisql'
     dataset = 'squall'
     test_split = 1
