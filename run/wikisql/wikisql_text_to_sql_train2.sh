@@ -1,6 +1,6 @@
 export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_wikisql
-export WANDB_ENTITY=siyue-zhang
+export WANDB_ENTITY=
 
 model_name="t5-large"
 run_name="wikisql_text_to_sql2"

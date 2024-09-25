@@ -1,6 +1,6 @@
 export CUDA_VISIBLE_DEVICES=0,1
 export WANDB_PROJECT=STQA_squall
-export WANDB_ENTITY=siyue-zhang
+export WANDB_ENTITY=
 
 model_name="t5-large"
 run_name="squall_d2_text_to_sql3"

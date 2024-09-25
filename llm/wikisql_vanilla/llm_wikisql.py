@@ -9,7 +9,7 @@ import Levenshtein
 
 
 client = OpenAI(
-    api_key='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'
+    api_key=''
 )
 model = 'gpt-3.5-turbo'
 # model="gpt-4-0125-preview"
