@@ -2,7 +2,6 @@ import sys
 sys.path.append('./')
 from copy import deepcopy
 from utils.processor import get_default_processor
-import pandas as pd
 
 def preprocess_function(examples, tokenizer, max_source_length, max_target_length, ignore_pad_token_for_loss, padding):
 
