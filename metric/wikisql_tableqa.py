@@ -13,7 +13,6 @@ def prepare_compute_metrics(tokenizer, eval_dataset, stage=None, fuzzy=None):
         decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
         # labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
         # decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
-        # prepare the prediction format for the evaluator
         predictions = decoded_preds
         tapex_flag = []
         sep = ', '

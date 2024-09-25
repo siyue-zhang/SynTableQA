@@ -1,17 +1,13 @@
 import json
 import numpy as np
 import pandas as pd
-from tqdm import tqdm 
-from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVC
 import pickle
-import re
 import os
 from sklearn import linear_model
 import random
