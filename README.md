@@ -4,7 +4,6 @@ Code for 2024 EMNLP Findings
 
 [SynTQA: Synergistic Table-based Question Answering via Mixture of Text-to-SQL and E2E TQA](https://arxiv.org/abs/2409.16682)
 
-Under Construction ...
 
 # Experiments
 
